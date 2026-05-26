@@ -2,25 +2,25 @@
 
 Fases incrementales. Cada fase deja la app en estado utilizable y desplegable.
 
-## Fase 0 — Andamiaje (base del proyecto)
-- [ ] `git init`, conectar a `github.com/ellaguno/sesolibre-games`.
-- [ ] Scaffold Vite + React + TypeScript + Tailwind.
-- [ ] Configurar ESLint, Prettier, Vitest.
-- [ ] Configurar `vite-plugin-pwa` (manifest + service worker básico).
-- [ ] `base: './'` y router compatible con Capacitor.
-- [ ] Estructura de carpetas (ver ARCHITECTURE.md).
-- [ ] Capa de `storage.ts` (Capacitor Preferences / localStorage).
+## Fase 0 — Andamiaje (base del proyecto) ✅
+- [x] `git init`, conectar a `github.com/ellaguno/sesolibre-games`.
+- [x] Scaffold Vite + React + TypeScript + Tailwind.
+- [x] Configurar ESLint, Prettier, Vitest.
+- [x] Configurar `vite-plugin-pwa` (manifest + service worker básico).
+- [x] `base: './'` y router compatible con Capacitor (HashRouter).
+- [x] Estructura de carpetas (ver ARCHITECTURE.md).
+- [x] Capa de `storage.ts` (Capacitor Preferences / localStorage).
 
-**Entregable:** app vacía que arranca, instala como PWA y persiste un valor de prueba.
+**Entregable:** app vacía que arranca, instala como PWA y persiste un valor de prueba. ✔
 
-## Fase 1 — Hub + servicios transversales
-- [ ] `HubScreen` con catálogo (tarjetas leídas de `registry.ts`).
-- [ ] `ScoreService` (récords por juego) + UI de mejores puntuaciones.
-- [ ] Ajustes (tema claro/oscuro, sonido) persistentes.
-- [ ] `AudioService` con sonidos base.
-- [ ] Tema visual y componentes UI compartidos.
+## Fase 1 — Hub + servicios transversales ✅
+- [x] `HubScreen` con catálogo (tarjetas leídas de `registry.ts`).
+- [x] `ScoreService` (récords por juego) + UI de mejores puntuaciones.
+- [x] Ajustes (tema claro/oscuro, sonido) persistentes.
+- [x] `AudioService` con sonidos base (WebAudio sintetizado).
+- [x] Tema visual y componentes UI compartidos (Button, Screen).
 
-**Entregable:** hub navegable y atractivo, sin juegos aún (placeholders).
+**Entregable:** hub navegable y atractivo, sin juegos aún (placeholders). ✔
 
 ## Fase 2 — Portar juegos existentes
 - [ ] Portar **Figures** (match-3) al stack común; integrar score.
