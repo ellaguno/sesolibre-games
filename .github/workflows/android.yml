@@ -1,0 +1,64 @@
+name: Android APK
+
+# Compila la app a un APK de Android (debug, firmado con la clave de depuración
+# de Android — instalable, aún NO firmado para producción). Se ejecuta a mano
+# (workflow_dispatch) o al publicar un tag vX.Y.Z, y adjunta el APK como
+# artefacto; en tags además crea un Release con el APK.
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Añadir plataforma Android (se genera en CI, no se versiona)
+        run: npx cap add android
+
+      - name: Sincronizar web -> nativo
+        run: npx cap sync android
+
+      - name: Compilar APK (debug)
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Renombrar APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk sesolibre-games-${{ github.ref_name }}.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sesolibre-games-apk
+          path: sesolibre-games-*.apk
+
+      - name: Crear Release (solo en tags)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: sesolibre-games-*.apk
+          body: |
+            APK de depuración (instalable; aún no firmado para tiendas).
+            Generado automáticamente por GitHub Actions.

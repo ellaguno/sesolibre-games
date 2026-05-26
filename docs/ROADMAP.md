@@ -69,17 +69,20 @@ Pendientes de pulido (Glótono) anotados en [BACKLOG.md](./BACKLOG.md).
 **Entregable:** experiencia animada. ✔
 Ronda de pulido por juego pendiente (ver [BACKLOG.md](./BACKLOG.md), incl. bug de Sudoku).
 
-## Fase 6 — Empaquetado nativo y publicación
-- [ ] **CI con GitHub Actions**: workflow que haga `npm ci && build`, `cap sync`
-      y compile el APK (inicialmente **sin firmar**), publicándolo como
-      *release* del repo. Firma y subida a tiendas, después.
-- [ ] Integrar Capacitor; `cap add android`; build AAB firmado.
-- [ ] Íconos, splash, ajustes de WebView, controles táctiles revisados.
-- [ ] Publicar PWA web (GitHub Pages / Netlify).
+## Fase 6 — Empaquetado nativo y publicación 🚧
+- [x] Integrar Capacitor (`@capacitor/android`); `cap add android` valida config.
+- [x] **CI con GitHub Actions** (ver [RELEASING.md](./RELEASING.md)):
+      - `web.yml`: build + publica la PWA en GitHub Pages en cada push a main.
+      - `android.yml`: build + `cap add/sync` + `gradlew assembleDebug`; sube el
+        APK (debug, sin firma de producción) como artefacto y como *Release* en
+        tags `vX.Y.Z`.
+- [ ] Activar Pages (Settings → Pages → Source = GitHub Actions) — paso manual.
+- [ ] Íconos/splash definitivos (hoy placeholders).
+- [ ] Firma de producción (keystore como secret) + AAB para Google Play.
 - [ ] Cuenta y credenciales Google Play → publicar.
 - [ ] (Posterior) `cap add ios`, build Xcode, App Store.
 
-**Entregable:** app publicada en web y Google Play; iOS encaminado.
+**Entregable:** PWA en Pages + APK de prueba por CI. Firma/tiendas, después.
 
 ## Riesgos / notas
 - **Rutas en WebView nativo**: usar router hash/memory y `base: './'`.
