@@ -22,9 +22,11 @@ Fases incrementales. Cada fase deja la app en estado utilizable y desplegable.
 
 **Entregable:** hub navegable y atractivo, sin juegos aún (placeholders). ✔
 
-## Fase 2 — Portar juegos existentes
+## Fase 2 — Juegos arcade (existentes + maze-chase propio)
+- [x] **Glótono** — maze-chase ORIGINAL (no clon de Pac-Man, por IP): laberinto
+      procedural, slime vs. virus, orbes de poder, vidas, controles teclado +
+      swipe táctil, integrado con `ScoreService`. Lógica testeada.
 - [ ] Portar **Figures** (match-3) al stack común; integrar score.
-- [ ] Portar **Pac-Man** (canvas) con controles táctiles para móvil.
 - [ ] Verificar offline y arranque desde el hub.
 
 **Entregable:** 2 juegos jugables e integrados con récords.

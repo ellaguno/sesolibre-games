@@ -1,0 +1,34 @@
+import { Suspense, lazy, useMemo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { games } from '../core/registry';
+import { ScoreService } from '../core/ScoreService';
+import GamePlaceholder from './GamePlaceholder';
+
+export default function GameHost() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const game = games.find((g) => g.id === id);
+
+  const Lazy = useMemo(
+    () => (game?.load ? lazy(game.load) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [game?.id],
+  );
+
+  if (!game || !game.available || !Lazy) return <GamePlaceholder />;
+
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-full items-center justify-center text-slate-400">
+          Cargando…
+        </div>
+      }
+    >
+      <Lazy
+        onScore={(score) => void ScoreService.submit(game.id, score)}
+        onExit={() => navigate('/')}
+      />
+    </Suspense>
+  );
+}

@@ -23,10 +23,19 @@ sencilla desde la que se lanzan varios minijuegos. La app:
 | # | Juego        | Origen                          | Estado    | Fase |
 |---|--------------|---------------------------------|-----------|------|
 | 1 | Figures      | Match-3, repo `sesolibre-figures` (React+Tailwind) | Portar | 2 |
-| 2 | Pac-Man      | Canvas vanilla, repo `pacman`   | Portar    | 2 |
+| 2 | Glótono      | Maze-chase **original** (inspirado en el género) | Hecho | 2 |
 | 3 | Buscaminas   | Nuevo                           | Crear     | 3 |
 | 4 | Sudoku       | Nuevo                           | Crear     | 3 |
 | 5 | Solitario    | Klondike (1 ó 3 cartas/turno)   | Crear     | 4 |
+
+### Nota sobre propiedad intelectual
+
+Inspirarse en *géneros* clásicos es legítimo; copiar nombres, personajes, mapas o
+sonidos de una marca concreta no. Por eso el maze-chase es un juego **propio**
+("Glótono": slime que absorbe orbes y esquiva "virus", laberinto procedural,
+audio sintetizado) y **no** un clon de Pac-Man. Los demás juegos (match-3,
+buscaminas, sudoku, solitario Klondike) son mecánicas de dominio público; basta
+con evitar nombres de marca y arte calcado.
 
 ## 3. Decisiones de arquitectura (confirmadas)
 
