@@ -31,9 +31,9 @@ describe('Glotono engine', () => {
       g.update(1 / 60);
       if (g.status !== 'playing') break;
     }
-    // O comió orbes (bajó el conteo) o terminó la partida; nunca debe quedarse igual.
-    expect(g.dotsRemaining).toBeLessThan(start);
+    // Comió orbes (subió el score). Pudo además bajar el conteo o avanzar de nivel.
     expect(g.score).toBeGreaterThan(0);
+    expect(g.dotsRemaining < start || g.level > 1).toBe(true);
   });
 
   it('clampa dt grande sin romperse', () => {

@@ -70,6 +70,9 @@ Pendientes de pulido (Glótono) anotados en [BACKLOG.md](./BACKLOG.md).
 Ronda de pulido por juego pendiente (ver [BACKLOG.md](./BACKLOG.md), incl. bug de Sudoku).
 
 ## Fase 6 — Empaquetado nativo y publicación
+- [ ] **CI con GitHub Actions**: workflow que haga `npm ci && build`, `cap sync`
+      y compile el APK (inicialmente **sin firmar**), publicándolo como
+      *release* del repo. Firma y subida a tiendas, después.
 - [ ] Integrar Capacitor; `cap add android`; build AAB firmado.
 - [ ] Íconos, splash, ajustes de WebView, controles táctiles revisados.
 - [ ] Publicar PWA web (GitHub Pages / Netlify).

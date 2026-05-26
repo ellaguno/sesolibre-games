@@ -144,9 +144,10 @@ interface Mover {
 interface Enemy extends Mover {
   frightened: number; // segundos restantes de vulnerabilidad
   base: Vec; // celda de respawn
+  aggressive: boolean; // "hunter": más rápido y persigue sin titubear
 }
 
-export type GameStatus = 'playing' | 'won' | 'lost';
+export type GameStatus = 'playing' | 'lost';
 
 const ZERO: Vec = { x: 0, y: 0 };
 const eq = (a: Vec, b: Vec) => a.x === b.x && a.y === b.y;
@@ -155,9 +156,12 @@ const isZero = (v: Vec) => v.x === 0 && v.y === 0;
 export interface RenderState {
   maze: Maze;
   playerPos: Vec; // coords continuas (celdas)
-  enemies: { pos: Vec; frightened: boolean }[];
+  playerDir: Vec; // dirección actual (para la boca)
+  moving: boolean; // ¿el jugador se está moviendo?
+  enemies: { pos: Vec; frightened: boolean; aggressive: boolean }[];
   score: number;
   lives: number;
+  level: number;
   status: GameStatus;
   dotsRemaining: number;
 }
@@ -168,28 +172,52 @@ const ENEMY_FRIGHT_SPEED = 3.2;
 const FRIGHT_TIME = 6;
 
 export class Glotono {
-  readonly maze: Maze;
-  private player: Mover;
-  private enemies: Enemy[];
+  maze!: Maze;
+  private player!: Mover;
+  private enemies!: Enemy[];
   private desired: Vec = ZERO;
   private rng: () => number;
+  private baseSeed: number;
   score = 0;
   lives = 3;
+  level = 1;
   status: GameStatus = 'playing';
-  dotsRemaining: number;
+  dotsRemaining = 0;
   private comboBase = 200;
   private combo = 1;
 
   constructor(seed = Date.now()) {
+    this.baseSeed = seed;
     this.rng = mulberry32(seed ^ 0x9e3779b9);
+    this.setupLevel(seed);
+  }
+
+  /** Construye el laberinto y entidades del nivel actual. */
+  private setupLevel(seed: number) {
     this.maze = generateMaze(seed);
     this.dotsRemaining = this.maze.totalDots;
     this.player = this.spawnMover(this.maze.playerSpawn);
-    this.enemies = this.maze.enemySpawns.map((s) => ({
+    this.desired = { ...ZERO };
+    this.combo = 1;
+    // A más nivel, más "hunters" (agresivos): 1 desde el nivel 2.
+    const aggressiveCount = Math.min(Math.max(this.level - 1, 0), this.maze.enemySpawns.length);
+    const startAggressive = this.maze.enemySpawns.length - aggressiveCount;
+    this.enemies = this.maze.enemySpawns.map((s, i) => ({
       ...this.spawnMover(s),
       frightened: 0,
       base: { ...s },
+      aggressive: i >= startAggressive,
     }));
+  }
+
+  /** Multiplicador de velocidad de enemigos según el nivel (con tope). */
+  private get levelSpeedMul(): number {
+    return Math.min(1 + (this.level - 1) * 0.1, 1.6);
+  }
+
+  private nextLevel() {
+    this.level++;
+    this.setupLevel((this.baseSeed + this.level * 0x9e37) >>> 0);
   }
 
   private spawnMover(cell: Vec): Mover {
@@ -291,8 +319,9 @@ export class Glotono {
         e.dir = this.bestDir(c, opts, target, +1);
       }
     } else {
-      // perseguir: minimizar distancia, con algo de azar para dispersar
-      if (this.rng() < 0.15) {
+      // perseguir: minimizar distancia. Los agresivos casi nunca titubean.
+      const randomness = e.aggressive ? 0.04 : 0.15;
+      if (this.rng() < randomness) {
         e.dir = opts[Math.floor(this.rng() * opts.length)];
       } else {
         e.dir = this.bestDir(c, opts, target, -1);
@@ -324,13 +353,15 @@ export class Glotono {
     this.stepMover(this.player, PLAYER_SPEED, dt, this.choosePlayer);
     for (const e of this.enemies) {
       if (e.frightened > 0) e.frightened = Math.max(0, e.frightened - dt);
-      const speed = e.frightened > 0 ? ENEMY_FRIGHT_SPEED : ENEMY_SPEED;
+      let speed = e.frightened > 0 ? ENEMY_FRIGHT_SPEED : ENEMY_SPEED * this.levelSpeedMul;
+      if (e.aggressive && e.frightened === 0) speed *= 1.15;
       this.stepMover(e, speed, dt, () => this.chooseEnemy(e));
     }
 
     this.handleCollisions();
 
-    if (this.dotsRemaining <= 0) this.status = 'won';
+    // Laberinto limpio: avanzar de nivel automáticamente (la puntuación sigue).
+    if (this.dotsRemaining <= 0 && this.status === 'playing') this.nextLevel();
   }
 
   private handleCollisions() {
@@ -378,12 +409,16 @@ export class Glotono {
     return {
       maze: this.maze,
       playerPos: this.pos(this.player),
+      playerDir: { ...this.player.dir },
+      moving: !isZero(this.player.dir),
       enemies: this.enemies.map((e) => ({
         pos: this.pos(e),
         frightened: e.frightened > 0,
+        aggressive: e.aggressive,
       })),
       score: this.score,
       lives: this.lives,
+      level: this.level,
       status: this.status,
       dotsRemaining: this.dotsRemaining,
     };

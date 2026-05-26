@@ -19,22 +19,21 @@ Fase 5 — animaciones procedurales).
 - **Glótono #1** — overlay "Jugar de nuevo" no desaparecía al reiniciar;
   resuelto reseteando el HUD al cambiar `seed`.
 
-## Glótono (pendientes)
+## Glótono ✅ (segunda ronda de pulido)
 
-1. **Avance de nivel automático.** Al limpiar el laberinto no pasa a un nivel
-   nuevo automáticamente. Deseable: encadenar niveles (nuevo laberinto, quizá
-   más rápido/difícil) sin botón intermedio, acumulando puntuación.
+1. ~~Avance de nivel automático~~ — **hecho**: al limpiar el laberinto se genera
+   uno nuevo automáticamente, sube el nivel (HUD + aviso "¡Nivel N!"), enemigos
+   más rápidos por nivel y la puntuación se acumula.
+2. ~~Laberinto menos "cuadriculado"~~ — **hecho**: paredes orgánicas (esquinas
+   redondeadas según vecinos → tubos suaves) con degradado.
+3. ~~Animación de Glótono~~ — **hecho**: boca que se abre/cierra ("mastica")
+   orientada a la dirección de movimiento, con ojo.
+4. ~~Enemigos más expresivos~~ — **hecho**: virus con púas y ojos; los
+   "agresivos" (morados, más grandes, persiguen sin titubear) aparecen y
+   aumentan con el nivel.
 
-2. **Laberinto menos "cuadriculado".** Hoy son celdas cuadradas. Mejorar la
-   estética: corredores redondeados/orgánicos, curvas, variación de grosor de
-   pared, posibles formas no rectangulares.
-
-3. **Animación de Glótono.** Que se note cómo "entra" y **digiere** los orbes;
-   darle una boca que se abre/cierra al moverse y al comer.
-
-4. **Enemigos más expresivos.** Los triángulos son muy simples. Mejorar el arte
-   de los "virus"; idealmente que **evolucionen** y aparezca alguno más
-   agresivo (variantes de IA/velocidad por tipo).
+Posibles mejoras futuras: corredores de grosor variable / formas no rectangulares;
+animación específica al digerir cada orbe; más tipos de enemigo.
 
 ## Otras mejoras futuras
 

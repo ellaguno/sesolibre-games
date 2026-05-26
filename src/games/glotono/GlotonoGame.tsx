@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Glotono, type RenderState, DOT_NONE, DOT_ORB, DOT_POWER, WALL } from './engine';
+import {
+  Glotono,
+  type RenderState,
+  type Maze,
+  DOT_NONE,
+  DOT_ORB,
+  WALL,
+} from './engine';
 import type { GameProps } from '../../core/registry';
 import { AudioService } from '../../core/AudioService';
 import Button from '../../ui/Button';
@@ -18,29 +25,67 @@ const DIRS: Record<string, Dir> = {
   d: { x: 1, y: 0 },
 };
 
-function draw(ctx: CanvasRenderingContext2D, s: RenderState, t: number) {
-  const { maze } = s;
-  const W = maze.tw * TILE;
-  const H = maze.th * TILE;
-  ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = '#0b1020';
-  ctx.fillRect(0, 0, W, H);
+// Rectángulo redondeado con radio por esquina.
+function roundRectVar(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  tl: number,
+  tr: number,
+  br: number,
+  bl: number,
+) {
+  ctx.beginPath();
+  ctx.moveTo(x + tl, y);
+  ctx.lineTo(x + w - tr, y);
+  ctx.arcTo(x + w, y, x + w, y + tr, tr);
+  ctx.lineTo(x + w, y + h - br);
+  ctx.arcTo(x + w, y + h, x + w - br, y + h, br);
+  ctx.lineTo(x + bl, y + h);
+  ctx.arcTo(x, y + h, x, y + h - bl, bl);
+  ctx.lineTo(x, y + tl);
+  ctx.arcTo(x, y, x + tl, y, tl);
+  ctx.closePath();
+}
 
-  // Paredes (neón)
+const isWall = (maze: Maze, x: number, y: number) => maze.grid[y]?.[x] === WALL;
+
+// Paredes "orgánicas": cada celda de muro se redondea solo en las esquinas
+// expuestas (sin muro vecino), de modo que los tramos se ven como tubos suaves.
+function drawWalls(ctx: CanvasRenderingContext2D, maze: Maze) {
+  const R = TILE * 0.45;
   for (let y = 0; y < maze.th; y++) {
     for (let x = 0; x < maze.tw; x++) {
-      if (maze.grid[y][x] === WALL) {
-        ctx.fillStyle = '#1e2a4a';
-        ctx.strokeStyle = '#3b82f6';
-        ctx.lineWidth = 1.5;
-        roundRect(ctx, x * TILE + 1, y * TILE + 1, TILE - 2, TILE - 2, 5);
-        ctx.fill();
-        ctx.stroke();
-      }
+      if (!isWall(maze, x, y)) continue;
+      const up = isWall(maze, x, y - 1);
+      const dn = isWall(maze, x, y + 1);
+      const lf = isWall(maze, x - 1, y);
+      const rt = isWall(maze, x + 1, y);
+      const px = x * TILE;
+      const py = y * TILE;
+      const grad = ctx.createLinearGradient(px, py, px, py + TILE);
+      grad.addColorStop(0, '#2b3c6e');
+      grad.addColorStop(1, '#16233f');
+      ctx.fillStyle = grad;
+      roundRectVar(
+        ctx,
+        px,
+        py,
+        TILE,
+        TILE,
+        !up && !lf ? R : 0,
+        !up && !rt ? R : 0,
+        !dn && !rt ? R : 0,
+        !dn && !lf ? R : 0,
+      );
+      ctx.fill();
     }
   }
+}
 
-  // Orbes
+function drawDots(ctx: CanvasRenderingContext2D, maze: Maze, t: number) {
   for (let y = 0; y < maze.th; y++) {
     for (let x = 0; x < maze.tw; x++) {
       const d = maze.dots[y][x];
@@ -52,7 +97,7 @@ function draw(ctx: CanvasRenderingContext2D, s: RenderState, t: number) {
         ctx.beginPath();
         ctx.arc(cx, cy, 2.5, 0, Math.PI * 2);
         ctx.fill();
-      } else if (d === DOT_POWER) {
+      } else {
         const pulse = 4 + Math.sin(t / 150) * 1.5;
         ctx.fillStyle = '#34d399';
         ctx.shadowColor = '#34d399';
@@ -64,62 +109,96 @@ function draw(ctx: CanvasRenderingContext2D, s: RenderState, t: number) {
       }
     }
   }
+}
 
-  // Enemigos (virus = triángulos)
-  for (const e of s.enemies) {
-    const cx = e.pos.x * TILE + TILE / 2;
-    const cy = e.pos.y * TILE + TILE / 2;
-    const r = TILE * 0.42;
-    ctx.fillStyle = e.frightened ? '#64748b' : '#f43f5e';
-    ctx.shadowColor = ctx.fillStyle;
-    ctx.shadowBlur = 8;
-    ctx.beginPath();
-    for (let i = 0; i < 3; i++) {
-      const a = -Math.PI / 2 + (i * 2 * Math.PI) / 3;
-      const px = cx + Math.cos(a) * r;
-      const py = cy + Math.sin(a) * r;
-      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
-    }
-    ctx.closePath();
-    ctx.fill();
-    ctx.shadowBlur = 0;
+// Virus: cuerpo con púas y dos ojos. Los agresivos son morados y más grandes.
+function drawVirus(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  frightened: boolean,
+  aggressive: boolean,
+  t: number,
+) {
+  const r = TILE * (aggressive ? 0.46 : 0.4);
+  const color = frightened ? '#64748b' : aggressive ? '#a855f7' : '#f43f5e';
+  const spikes = aggressive ? 9 : 7;
+  ctx.fillStyle = color;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  for (let i = 0; i < spikes * 2; i++) {
+    const rad = i % 2 === 0 ? r : r * 0.66;
+    const a = (i / (spikes * 2)) * Math.PI * 2 + t / 600;
+    const px = cx + Math.cos(a) * rad;
+    const py = cy + Math.sin(a) * rad;
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
   }
+  ctx.closePath();
+  ctx.fill();
+  ctx.shadowBlur = 0;
 
-  // Glótono (slime = gota verde con leve "respiración")
+  // Ojos
+  const eyeDx = r * 0.32;
+  const eyeY = cy - r * 0.05;
+  for (const sx of [-1, 1]) {
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(cx + sx * eyeDx, eyeY, r * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#0b1020';
+    ctx.beginPath();
+    ctx.arc(cx + sx * eyeDx, eyeY + r * 0.04, r * 0.1, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// Glótono: gota verde con boca que se abre/cierra ("mastica") según se mueve.
+function drawPlayer(ctx: CanvasRenderingContext2D, s: RenderState, t: number) {
   const px = s.playerPos.x * TILE + TILE / 2;
   const py = s.playerPos.y * TILE + TILE / 2;
-  const wobble = 1 + Math.sin(t / 120) * 0.08;
+  const r = TILE * 0.44;
+  const ang = Math.atan2(s.playerDir.y, s.playerDir.x);
+  const chomp = s.moving ? 0.5 + 0.5 * Math.sin(t / 90) : 0;
+  const mouth = (0.05 + 0.32 * chomp) * Math.PI; // semiabertura
+
   ctx.fillStyle = '#22c55e';
   ctx.shadowColor = '#22c55e';
   ctx.shadowBlur = 14;
   ctx.beginPath();
-  ctx.ellipse(px, py, TILE * 0.42 * wobble, TILE * 0.42 * (2 - wobble), 0, 0, Math.PI * 2);
+  ctx.moveTo(px, py);
+  ctx.arc(px, py, r, ang + mouth, ang + Math.PI * 2 - mouth);
+  ctx.closePath();
   ctx.fill();
   ctx.shadowBlur = 0;
+
+  // Ojo (perpendicular a la dirección)
+  const ex = px + Math.cos(ang - Math.PI / 2) * r * 0.45;
+  const ey = py + Math.sin(ang - Math.PI / 2) * r * 0.45;
+  ctx.fillStyle = '#0b1020';
+  ctx.beginPath();
+  ctx.arc(ex, ey, r * 0.13, 0, Math.PI * 2);
+  ctx.fill();
 }
 
-function roundRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number,
-) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
+function draw(ctx: CanvasRenderingContext2D, s: RenderState, t: number) {
+  const { maze } = s;
+  ctx.fillStyle = '#0b1020';
+  ctx.fillRect(0, 0, maze.tw * TILE, maze.th * TILE);
+  drawWalls(ctx, maze);
+  drawDots(ctx, maze, t);
+  for (const e of s.enemies) {
+    drawVirus(ctx, e.pos.x * TILE + TILE / 2, e.pos.y * TILE + TILE / 2, e.frightened, e.aggressive, t);
+  }
+  drawPlayer(ctx, s, t);
 }
 
 export default function GlotonoGame({ onScore, onExit }: GameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<Glotono | null>(null);
   const [seed, setSeed] = useState(() => Date.now());
-  const [hud, setHud] = useState({ score: 0, lives: 3, status: 'playing' as string });
+  const [hud, setHud] = useState({ score: 0, lives: 3, level: 1, status: 'playing' as string });
+  const [levelFlash, setLevelFlash] = useState<number | null>(null);
   const submittedRef = useRef(false);
 
   const setDir = useCallback((dir: Dir) => {
@@ -130,7 +209,8 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
     const engine = new Glotono(seed);
     engineRef.current = engine;
     submittedRef.current = false;
-    setHud({ score: 0, lives: 3, status: 'playing' }); // limpiar overlay al reiniciar
+    setHud({ score: 0, lives: 3, level: 1, status: 'playing' });
+    setLevelFlash(null);
     const canvas = canvasRef.current!;
     canvas.width = engine.maze.tw * TILE;
     canvas.height = engine.maze.th * TILE;
@@ -138,9 +218,14 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
 
     let raf = 0;
     let last = performance.now();
-    let prevStatus = engine.status;
-    let hudScore = 0;
-    let hudLives = 3;
+    let flashTimer: ReturnType<typeof setTimeout> | null = null;
+    // snapshot de lo último enviado al HUD (evita setState por frame)
+    let pushedScore = 0;
+    let pushedLives = 3;
+    let pushedLevel = 1;
+    let pushedStatus = engine.status as string;
+    let lastLevelSeen = engine.level;
+    let prevStatus = engine.status as string;
 
     const loop = (now: number) => {
       const dt = (now - last) / 1000;
@@ -148,24 +233,49 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
       engine.update(dt);
       draw(ctx, engine.getState(), now);
 
+      if (engine.level !== lastLevelSeen) {
+        lastLevelSeen = engine.level;
+        AudioService.play('win');
+        setLevelFlash(engine.level);
+        if (flashTimer) clearTimeout(flashTimer);
+        flashTimer = setTimeout(() => setLevelFlash(null), 1300);
+      }
+
       if (engine.status !== prevStatus) {
         prevStatus = engine.status;
-        if (engine.status === 'won') AudioService.play('win');
-        if (engine.status === 'lost') AudioService.play('lose');
-        if (engine.status !== 'playing' && !submittedRef.current) {
-          submittedRef.current = true;
-          onScore(engine.score);
+        if (engine.status === 'lost') {
+          AudioService.play('lose');
+          if (!submittedRef.current) {
+            submittedRef.current = true;
+            onScore(engine.score);
+          }
         }
-        setHud({ score: engine.score, lives: engine.lives, status: engine.status });
-      } else if (engine.score !== hudScore || engine.lives !== hudLives) {
-        hudScore = engine.score;
-        hudLives = engine.lives;
-        setHud({ score: engine.score, lives: engine.lives, status: engine.status });
+      }
+
+      if (
+        engine.score !== pushedScore ||
+        engine.lives !== pushedLives ||
+        engine.level !== pushedLevel ||
+        engine.status !== pushedStatus
+      ) {
+        pushedScore = engine.score;
+        pushedLives = engine.lives;
+        pushedLevel = engine.level;
+        pushedStatus = engine.status;
+        setHud({
+          score: engine.score,
+          lives: engine.lives,
+          level: engine.level,
+          status: engine.status,
+        });
       }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      if (flashTimer) clearTimeout(flashTimer);
+    };
   }, [seed, onScore]);
 
   // Teclado
@@ -194,9 +304,7 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
     const dy = t.clientY - touchStart.current.y;
     if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
     setDir(
-      Math.abs(dx) > Math.abs(dy)
-        ? { x: Math.sign(dx), y: 0 }
-        : { x: 0, y: Math.sign(dy) },
+      Math.abs(dx) > Math.abs(dy) ? { x: Math.sign(dx), y: 0 } : { x: 0, y: Math.sign(dy) },
     );
     touchStart.current = null;
   };
@@ -213,18 +321,28 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
         </button>
         <div className="font-mono text-sm">
           <span className="text-emerald-400">●</span> {hud.score}
-          <span className="ml-4 text-rose-400">♥</span> {hud.lives}
+          <span className="ml-3 text-sky-400">Nv {hud.level}</span>
+          <span className="ml-3 text-rose-400">♥</span> {hud.lives}
         </div>
       </div>
 
       <div className="relative touch-none" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         <canvas ref={canvasRef} className="max-w-full rounded-xl" />
-        {hud.status !== 'playing' && (
+
+        {levelFlash !== null && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <span className="route-enter rounded-xl bg-slate-950/70 px-5 py-2 text-2xl font-extrabold text-sky-300">
+              ¡Nivel {levelFlash}!
+            </span>
+          </div>
+        )}
+
+        {hud.status === 'lost' && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-xl bg-slate-950/80">
-            <p className="text-2xl font-bold">
-              {hud.status === 'won' ? '¡Laberinto limpio! 🎉' : 'Te atraparon 💀'}
+            <p className="text-2xl font-bold">Te atraparon 💀</p>
+            <p className="font-mono text-emerald-400">
+              Nivel {hud.level} · {hud.score} pts
             </p>
-            <p className="font-mono text-emerald-400">Puntos: {hud.score}</p>
             <div className="flex gap-2">
               <Button onClick={() => setSeed(Date.now())}>Jugar de nuevo</Button>
               <Button variant="ghost" onClick={onExit}>
@@ -237,7 +355,7 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
 
       <p className="mt-3 text-center text-xs text-slate-500">
         Flechas / WASD o desliza para moverte. Absorbe un orbe grande para volverte
-        contra los virus.
+        contra los virus. Limpia el laberinto para subir de nivel.
       </p>
     </main>
   );
