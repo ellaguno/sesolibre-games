@@ -71,6 +71,7 @@ export const games: GameMeta[] = [
     emoji: '🃏',
     scoreKind: 'moves',
     higherIsBetter: false,
-    available: false,
+    available: true,
+    load: () => import('../games/solitaire/SolitaireGame'),
   },
 ];

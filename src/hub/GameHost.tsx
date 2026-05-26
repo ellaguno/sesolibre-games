@@ -2,6 +2,7 @@ import { Suspense, lazy, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { games } from '../core/registry';
 import { ScoreService } from '../core/ScoreService';
+import { useRewards } from '../core/RewardService';
 import GamePlaceholder from './GamePlaceholder';
 
 export default function GameHost() {
@@ -26,7 +27,10 @@ export default function GameHost() {
       }
     >
       <Lazy
-        onScore={(score) => void ScoreService.submit(game.id, score)}
+        onScore={(score) => {
+          void ScoreService.submit(game.id, score);
+          useRewards.getState().recordPlay(game.id);
+        }}
         onExit={() => navigate('/')}
       />
     </Suspense>

@@ -43,14 +43,18 @@ Pendientes de pulido (Glótono) anotados en [BACKLOG.md](./BACKLOG.md).
 
 **Entregable:** 4 juegos disponibles (+ Figures = 5 jugables). ✔
 
-## Fase 4 — Solitario + recompensas
-- [ ] **Solitario (Klondike)**: modo 1 y 3 cartas por turno, arrastrar/soltar,
-      auto-completar, deshacer; score por tiempo/movimientos. Tests de reglas.
-- [ ] **RewardService**: recompensa diaria, rachas, logros, moneda virtual.
-- [ ] Pantalla de recompensas/logros + badge en el hub.
-- [ ] Cosméticos canjeables básicos (temas / mazos / skins).
+## Fase 4 — Solitario + recompensas ✅
+- [x] **Solitario (Klondike)**: modo 1 y 3 cartas por turno, mover por selección
+      (origen→destino), auto-completar, deshacer; score por movimientos.
+      12 tests de reglas (incl. secuencias multi-carta, robar/reciclar).
+- [x] **RewardService**: recompensa diaria con racha, moneda virtual, logros.
+      6 tests de lógica diaria. Persistencia Zustand+storage.
+- [x] Pantalla de recompensas/logros + badge de "diaria disponible" en el hub.
+- [x] `recordPlay` en GameHost desbloquea logros al completar cada juego.
+- [ ] Cosméticos canjeables (temas / mazos / skins) — pendiente, mueve a backlog.
 
-**Entregable:** 5 juegos + sistema de recompensas completo.
+**Entregable:** 5 juegos + sistema de recompensas. ✔
+(La tienda de cosméticos para gastar monedas queda como mejora futura.)
 
 ## Fase 5 — Animaciones dinámicas / procedurales
 - [ ] Capa de transiciones de navegación (hub ↔ juego).
