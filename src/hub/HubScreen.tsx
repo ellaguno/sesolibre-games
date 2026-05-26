@@ -116,7 +116,7 @@ export default function HubScreen() {
             >
               SesoLibre.com
             </a>
-            <span className="mx-2">·</span>v0.1.0<span className="mx-2">·</span>
+            <span className="mx-2">·</span>v{__APP_VERSION__}<span className="mx-2">·</span>
             {t('hub.footer')}
           </p>
         </footer>
