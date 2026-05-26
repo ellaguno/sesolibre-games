@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Glotono, FLOOR } from '../src/games/glotono/engine';
+import { Glotono, FLOOR, bfsFirstStep } from '../src/games/glotono/engine';
 
 const DIRS = [
   { x: 1, y: 0 },
@@ -40,5 +40,34 @@ describe('Glotono engine', () => {
     const g = new Glotono(7);
     expect(() => g.update(10)).not.toThrow();
     expect(g.status).toBe('playing');
+  });
+});
+
+describe('bfsFirstStep (inteligencia de enemigos)', () => {
+  const F = FLOOR;
+  const W = 1;
+
+  it('avanza recto por un pasillo', () => {
+    const grid = [[F, F, F, F]]; // 1 fila
+    expect(bfsFirstStep(grid, { x: 0, y: 0 }, { x: 3, y: 0 })).toEqual({ x: 1, y: 0 });
+  });
+
+  it('rodea una pared (no va en línea recta hacia la meta)', () => {
+    // El camino directo hacia abajo está bloqueado; debe ir a la izquierda.
+    const grid = [
+      [F, F, F],
+      [F, W, W],
+      [F, F, F],
+    ];
+    expect(bfsFirstStep(grid, { x: 2, y: 0 }, { x: 2, y: 2 })).toEqual({ x: -1, y: 0 });
+  });
+
+  it('devuelve null si no hay ruta', () => {
+    const grid = [[F, W, F]];
+    expect(bfsFirstStep(grid, { x: 0, y: 0 }, { x: 2, y: 0 })).toBeNull();
+  });
+
+  it('devuelve null si ya está en la meta', () => {
+    expect(bfsFirstStep([[F]], { x: 0, y: 0 }, { x: 0, y: 0 })).toBeNull();
   });
 });

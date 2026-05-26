@@ -153,32 +153,66 @@ function drawVirus(
   }
 }
 
-// Glótono: gota verde con boca que se abre/cierra ("mastica") según se mueve.
+// Manchas internas (vacuolas) del paramecio, en coords locales (relativas a r).
+const SPOTS = [
+  { x: -0.28, y: -0.22, r: 0.16, c: 'rgba(21,128,61,0.65)' },
+  { x: 0.1, y: 0.26, r: 0.2, c: 'rgba(22,163,74,0.55)' },
+  { x: 0.34, y: -0.12, r: 0.12, c: 'rgba(134,239,172,0.55)' },
+  { x: -0.05, y: -0.02, r: 0.22, c: 'rgba(16,94,45,0.6)' }, // núcleo
+];
+
+// Glótono: cuerpo orgánico tipo "paramecio" (ovalado e irregular) con manchas
+// internas y una boca que se abre/cierra ("mastica") según se mueve.
 function drawPlayer(ctx: CanvasRenderingContext2D, s: RenderState, t: number) {
   const px = s.playerPos.x * TILE + TILE / 2;
   const py = s.playerPos.y * TILE + TILE / 2;
-  const r = TILE * 0.44;
+  const r = TILE * 0.46;
   const ang = Math.atan2(s.playerDir.y, s.playerDir.x);
   const chomp = s.moving ? 0.5 + 0.5 * Math.sin(t / 90) : 0;
-  const mouth = (0.05 + 0.32 * chomp) * Math.PI; // semiabertura
+  const mouth = (0.04 + 0.3 * chomp) * Math.PI; // semiabertura de la boca
 
+  ctx.save();
+  ctx.translate(px, py);
+  ctx.rotate(ang); // +x = frente (dirección de avance)
+
+  // Contorno irregular: óvalo alargado con ondulación (perfil de paramecio).
+  // Se deja una cuña al frente (theta≈0) como boca.
   ctx.fillStyle = '#22c55e';
   ctx.shadowColor = '#22c55e';
-  ctx.shadowBlur = 14;
+  ctx.shadowBlur = 13;
   ctx.beginPath();
-  ctx.moveTo(px, py);
-  ctx.arc(px, py, r, ang + mouth, ang + Math.PI * 2 - mouth);
+  ctx.moveTo(0, 0); // esquina de la boca, en el centro
+  const STEPS = 28;
+  for (let i = 0; i <= STEPS; i++) {
+    const theta = mouth + (i / STEPS) * (Math.PI * 2 - 2 * mouth);
+    const wob = 1 + 0.1 * Math.sin(3 * theta + t / 220) + 0.06 * Math.sin(5 * theta - t / 300);
+    const rad = r * wob;
+    const x = Math.cos(theta) * rad * 1.22; // alargado en el eje de avance
+    const y = Math.sin(theta) * rad * 0.9;
+    ctx.lineTo(x, y);
+  }
   ctx.closePath();
   ctx.fill();
   ctx.shadowBlur = 0;
 
-  // Ojo (perpendicular a la dirección)
-  const ex = px + Math.cos(ang - Math.PI / 2) * r * 0.45;
-  const ey = py + Math.sin(ang - Math.PI / 2) * r * 0.45;
+  // Manchas internas (recortadas al cuerpo).
+  ctx.save();
+  ctx.clip();
+  for (const sp of SPOTS) {
+    ctx.fillStyle = sp.c;
+    ctx.beginPath();
+    ctx.ellipse(sp.x * r * 1.22, sp.y * r, sp.r * r, sp.r * r * 0.85, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Ojo cerca del frente, ligeramente arriba.
   ctx.fillStyle = '#0b1020';
   ctx.beginPath();
-  ctx.arc(ex, ey, r * 0.13, 0, Math.PI * 2);
+  ctx.arc(r * 0.5, -r * 0.4, r * 0.12, 0, Math.PI * 2);
   ctx.fill();
+
+  ctx.restore();
 }
 
 function draw(ctx: CanvasRenderingContext2D, s: RenderState, t: number) {

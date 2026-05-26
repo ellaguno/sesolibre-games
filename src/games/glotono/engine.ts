@@ -133,6 +133,41 @@ export function generateMaze(seed: number): Maze {
   return { grid, dots, tw, th, playerSpawn, enemySpawns, totalDots };
 }
 
+/**
+ * Primer paso del camino MÁS CORTO (BFS) desde `start` hasta `goal` por celdas
+ * de suelo. Devuelve la dirección a tomar, o null si no hay ruta (o ya están en
+ * la meta). Exportada para poder testear la "inteligencia" de los enemigos.
+ */
+export function bfsFirstStep(
+  grid: number[][],
+  start: Vec,
+  goal: Vec,
+): Vec | null {
+  if (start.x === goal.x && start.y === goal.y) return null;
+  const isFloor = (x: number, y: number) => grid[y]?.[x] === FLOOR;
+  const seen = new Set<string>([`${start.x},${start.y}`]);
+  const firstStep = new Map<string, Vec>();
+  const queue: Vec[] = [start];
+  let head = 0;
+  while (head < queue.length) {
+    const cur = queue[head++];
+    for (const d of DIRS) {
+      const nx = cur.x + d.x;
+      const ny = cur.y + d.y;
+      if (!isFloor(nx, ny)) continue;
+      const key = `${nx},${ny}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const fs =
+        cur.x === start.x && cur.y === start.y ? d : firstStep.get(`${cur.x},${cur.y}`)!;
+      if (nx === goal.x && ny === goal.y) return fs;
+      firstStep.set(key, fs);
+      queue.push({ x: nx, y: ny });
+    }
+  }
+  return null;
+}
+
 // ---------- Entidades ----------
 interface Mover {
   from: Vec;
@@ -300,33 +335,43 @@ export class Glotono {
 
   private chooseEnemy(e: Enemy) {
     const c = e.from;
-    let opts = this.openNeighbors(c);
-    // evitar dar marcha atrás salvo que sea callejón sin salida
-    const rev = { x: -e.dir.x, y: -e.dir.y };
-    const noRev = opts.filter((d) => !eq(d, rev));
-    if (noRev.length > 0) opts = noRev;
+    const opts = this.openNeighbors(c);
     if (opts.length === 0) {
       e.dir = { ...ZERO };
       return;
     }
+    const rev = { x: -e.dir.x, y: -e.dir.y };
+    const noRev = opts.filter((d) => !eq(d, rev));
 
-    const target = this.pos(this.player);
     if (e.frightened > 0) {
-      // huir: maximizar distancia, con algo de azar
-      if (this.rng() < 0.4) {
-        e.dir = opts[Math.floor(this.rng() * opts.length)];
-      } else {
-        e.dir = this.bestDir(c, opts, target, +1);
-      }
-    } else {
-      // perseguir: minimizar distancia. Los agresivos casi nunca titubean.
-      const randomness = e.aggressive ? 0.04 : 0.15;
-      if (this.rng() < randomness) {
-        e.dir = opts[Math.floor(this.rng() * opts.length)];
-      } else {
-        e.dir = this.bestDir(c, opts, target, -1);
+      // huir: maximizar distancia (en línea recta basta), con algo de azar
+      const flee = noRev.length ? noRev : opts;
+      e.dir =
+        this.rng() < 0.4
+          ? flee[Math.floor(this.rng() * flee.length)]
+          : this.bestDir(c, flee, this.pos(this.player), +1);
+      return;
+    }
+
+    // Persecución: con probabilidad `intelligence` toma el camino MÁS CORTO real
+    // (BFS por el laberinto, no distancia en línea recta), así te alcanza aunque
+    // te quedes quieto y rodea las paredes. Si no, deambula. La inteligencia
+    // sube por nivel y es mayor en los agresivos.
+    const intelligence = Math.min(
+      0.5 + (this.level - 1) * 0.12 + (e.aggressive ? 0.35 : 0),
+      1,
+    );
+    if (this.rng() < intelligence) {
+      const ppos = this.pos(this.player);
+      const goal = { x: Math.round(ppos.x), y: Math.round(ppos.y) };
+      const step = bfsFirstStep(this.maze.grid, c, goal);
+      if (step) {
+        e.dir = step;
+        return;
       }
     }
+    const wander = noRev.length ? noRev : opts;
+    e.dir = wander[Math.floor(this.rng() * wander.length)];
   }
 
   private bestDir(cell: Vec, opts: Vec[], target: Vec, sign: number): Vec {
@@ -344,6 +389,7 @@ export class Glotono {
     }
     return best;
   }
+
 
   update(dt: number) {
     if (this.status !== 'playing') return;
