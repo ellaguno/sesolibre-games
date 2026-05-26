@@ -11,9 +11,11 @@ Workflow: [`.github/workflows/web.yml`](../.github/workflows/web.yml)
 - Hace `npm ci && npm run build` y publica `dist/` en **GitHub Pages**.
 - URL: `https://ellaguno.github.io/sesolibre-games/`
 
-El workflow usa `configure-pages` con `enablement: true`, así que **habilita
-Pages automáticamente** en el primer run exitoso. Si tu organización lo bloquea,
-actívalo a mano en *Settings → Pages → Source = GitHub Actions*.
+**Paso manual (una sola vez):** GitHub → *Settings → Pages → Build and
+deployment → Source* = **GitHub Actions**. El token del CI no puede crear el
+sitio de Pages por sí solo; tras activarlo, vuelve a correr el workflow
+(*Actions → Deploy web → Re-run*) y a partir de ahí cada push a `main` lo
+publica solo.
 
 La app usa `base: './'` + `HashRouter`, así que funciona bajo el subpath de
 Pages sin configuración extra.
