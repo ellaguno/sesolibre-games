@@ -12,10 +12,19 @@ export interface RewardData {
   lastClaim: string | null; // YYYY-MM-DD del último reclamo
   streak: number;
   achievements: string[]; // ids desbloqueados
+  ownedBacks: string[]; // reversos de carta comprados
+  cardBack: string; // reverso seleccionado
 }
 
 const KEY = 'rewards:state';
-const DEFAULTS: RewardData = { coins: 0, lastClaim: null, streak: 0, achievements: [] };
+const DEFAULTS: RewardData = {
+  coins: 0,
+  lastClaim: null,
+  streak: 0,
+  achievements: [],
+  ownedBacks: ['classic'],
+  cardBack: 'classic',
+};
 
 export interface Achievement {
   id: string;
@@ -72,7 +81,7 @@ export function applyDailyClaim(data: RewardData, today: string): DailyResult {
   };
 }
 
-export function canClaimToday(data: RewardData, today: string): boolean {
+export function canClaimToday(data: { lastClaim: string | null }, today: string): boolean {
   return data.lastClaim !== today;
 }
 
@@ -85,6 +94,8 @@ interface RewardState extends RewardData {
   addCoins: (n: number) => void;
   unlock: (id: string) => boolean; // true si era nuevo
   recordPlay: (gameId: string) => void;
+  buyBack: (id: string, cost: number) => boolean; // true si la compra fue exitosa
+  selectBack: (id: string) => void;
 }
 
 export const useRewards = create<RewardState>((set, get) => ({
@@ -127,10 +138,32 @@ export const useRewards = create<RewardState>((set, get) => ({
     const allPlayed = games.every((g) => get().achievements.includes(`play_${g.id}`));
     if (allPlayed) get().unlock('all_games');
   },
+
+  buyBack: (id, cost) => {
+    const s = get();
+    if (s.ownedBacks.includes(id)) return true;
+    if (s.coins < cost) return false;
+    set({ coins: s.coins - cost, ownedBacks: [...s.ownedBacks, id], cardBack: id });
+    void persist(get);
+    return true;
+  },
+
+  selectBack: (id) => {
+    if (!get().ownedBacks.includes(id)) return;
+    set({ cardBack: id });
+    void persist(get);
+  },
 }));
 
 function snapshot(s: RewardState): RewardData {
-  return { coins: s.coins, lastClaim: s.lastClaim, streak: s.streak, achievements: s.achievements };
+  return {
+    coins: s.coins,
+    lastClaim: s.lastClaim,
+    streak: s.streak,
+    achievements: s.achievements,
+    ownedBacks: s.ownedBacks,
+    cardBack: s.cardBack,
+  };
 }
 
 async function persist(get: () => RewardState) {

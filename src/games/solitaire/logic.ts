@@ -217,3 +217,50 @@ export function autoToFoundation(state: GameState): GameState | null {
   }
   return null;
 }
+
+/**
+ * Mejor destino automático para `count` cartas tomadas desde `from` (al tocar
+ * una carta). Prioriza una base (foundation), luego una pila del tableau no
+ * vacía y por último una vacía. Devuelve la ubicación destino o null.
+ */
+export function autoDestination(
+  state: GameState,
+  from: Location,
+  count = 1,
+): Location | null {
+  let cards: Card[] = [];
+  if (from.type === 'waste') {
+    const c = top(state.waste);
+    if (c) cards = [c];
+  } else if (from.type === 'foundation') {
+    const c = top(state.foundations[from.index]);
+    if (c) cards = [c];
+  } else if (from.type === 'tableau') {
+    const pile = state.tableau[from.index];
+    cards = pile.slice(pile.length - count);
+  }
+  if (cards.length === 0) return null;
+  const lead = cards[0];
+
+  if (count === 1) {
+    for (let f = 0; f < 4; f++) {
+      if (canMoveToFoundation(lead, state.foundations[f])) {
+        return { type: 'foundation', index: f };
+      }
+    }
+  }
+  if (!isValidRun(cards)) return null;
+  for (let i = 0; i < 7; i++) {
+    if (from.type === 'tableau' && from.index === i) continue;
+    if (state.tableau[i].length > 0 && canStackTableau(lead, state.tableau[i])) {
+      return { type: 'tableau', index: i };
+    }
+  }
+  for (let i = 0; i < 7; i++) {
+    if (from.type === 'tableau' && from.index === i) continue;
+    if (state.tableau[i].length === 0 && canStackTableau(lead, state.tableau[i])) {
+      return { type: 'tableau', index: i };
+    }
+  }
+  return null;
+}

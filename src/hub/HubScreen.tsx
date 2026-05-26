@@ -22,15 +22,7 @@ export default function HubScreen() {
   const [best, setBest] = useState<Record<string, ScoreEntry | null>>({});
   const rewards = useRewards();
   const motion = useSettings((s) => s.motion);
-  const dailyAvailable = canClaimToday(
-    {
-      coins: rewards.coins,
-      lastClaim: rewards.lastClaim,
-      streak: rewards.streak,
-      achievements: rewards.achievements,
-    },
-    dateKey(new Date()),
-  );
+  const dailyAvailable = canClaimToday({ lastClaim: rewards.lastClaim }, dateKey(new Date()));
 
   useEffect(() => {
     let active = true;

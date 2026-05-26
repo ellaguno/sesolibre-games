@@ -9,6 +9,7 @@ import {
   isValidRun,
   isWin,
   autoToFoundation,
+  autoDestination,
   type Card,
   type GameState,
 } from '../src/games/solitaire/logic';
@@ -172,6 +173,45 @@ describe('victoria y auto-completar', () => {
       moves: 0,
     };
     expect(isWin(s)).toBe(true);
+  });
+
+  it('autoDestination: prioriza base, luego tableau no vacío', () => {
+    const s: GameState = {
+      stock: [],
+      waste: [card('hearts', 2)],
+      foundations: [[card('hearts', 1)], [], [], []],
+      tableau: [[card('spades', 5)], [card('clubs', 9)], [], [], [], [], []],
+      drawCount: 1,
+      moves: 0,
+    };
+    // 2♥ del waste va a la base de corazones (A♥)
+    expect(autoDestination(s, { type: 'waste', index: 0 }, 1)).toEqual({
+      type: 'foundation',
+      index: 0,
+    });
+    // 8♠ de tableau[0]: no hay base; va sobre 9♣ (tableau[1])
+    const s2: GameState = {
+      ...s,
+      waste: [],
+      tableau: [[card('spades', 8)], [card('hearts', 9)], [], [], [], [], []],
+    };
+    expect(autoDestination(s2, { type: 'tableau', index: 0 }, 1)).toEqual({
+      type: 'tableau',
+      index: 1,
+    });
+  });
+
+  it('autoDestination devuelve null si no hay jugada', () => {
+    const s: GameState = {
+      stock: [],
+      waste: [card('hearts', 7)],
+      foundations: [[], [], [], []],
+      tableau: [[], [], [], [], [], [], []],
+      drawCount: 1,
+      moves: 0,
+    };
+    // 7♥ no es As (base vacía) y no hay tableau donde apilar (vacíos: solo Rey)
+    expect(autoDestination(s, { type: 'waste', index: 0 }, 1)).toBeNull();
   });
 
   it('autoToFoundation sube un As disponible', () => {

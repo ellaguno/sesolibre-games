@@ -114,7 +114,11 @@ const es: Dict = {
   'sol.auto': 'Auto',
   'sol.newGame': 'Nuevo juego',
   'sol.help':
-    'Toca una carta para seleccionar y otra pila para mover. «Auto» sube lo posible a las bases.',
+    'Toca una carta para enviarla al mejor lugar, o arrástrala. «Auto» sube todo a las bases.',
+  'cos.backs': 'Diseños de carta',
+  'cos.inUse': 'En uso',
+  'cos.use': 'Usar',
+  'cos.buy': 'Comprar',
 
   'fig.play': 'Jugar',
   'fig.best': 'Mejor: {n}',
@@ -235,7 +239,11 @@ const en: Dict = {
   'sol.undo': 'Undo',
   'sol.auto': 'Auto',
   'sol.newGame': 'New game',
-  'sol.help': 'Tap a card to select and another pile to move. "Auto" sends what it can to the foundations.',
+  'sol.help': 'Tap a card to send it to the best spot, or drag it. "Auto" sends everything to the foundations.',
+  'cos.backs': 'Card backs',
+  'cos.inUse': 'In use',
+  'cos.use': 'Use',
+  'cos.buy': 'Buy',
 
   'fig.play': 'Play',
   'fig.best': 'Best: {n}',

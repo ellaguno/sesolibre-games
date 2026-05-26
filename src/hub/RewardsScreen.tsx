@@ -11,14 +11,16 @@ import {
 import { AudioService } from '../core/AudioService';
 import { celebrate } from '../anim/particles';
 import { useT } from '../core/i18n';
+import { CARD_BACKS } from '../games/solitaire/cardBacks';
 
 export default function RewardsScreen() {
   const t = useT();
-  const { coins, streak, achievements, claimDaily, lastClaim } = useRewards();
+  const { coins, streak, achievements, claimDaily, lastClaim, ownedBacks, cardBack, buyBack, selectBack } =
+    useRewards();
   const [msg, setMsg] = useState<string | null>(null);
 
   const today = dateKey(new Date());
-  const claimable = canClaimToday({ coins, lastClaim, streak, achievements }, today);
+  const claimable = canClaimToday({ lastClaim }, today);
   const nextStreak =
     lastClaim &&
     (new Date(today + 'T00:00:00').getTime() - new Date(lastClaim + 'T00:00:00').getTime()) /
@@ -61,6 +63,52 @@ export default function RewardsScreen() {
           <p className="text-emerald-500">{t('rewards.claimedToday', { n: streak })}</p>
         )}
         {msg && <p className="text-sm text-amber-500">{msg}</p>}
+      </div>
+
+      {/* Reversos de carta (cosméticos) */}
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-app-muted">
+        🂠 {t('cos.backs')}
+      </h2>
+      <div className="mb-6 grid grid-cols-3 gap-3 sm:grid-cols-4">
+        {CARD_BACKS.map((b) => {
+          const owned = ownedBacks.includes(b.id);
+          const inUse = cardBack === b.id;
+          return (
+            <div key={b.id} className="flex flex-col items-center gap-1">
+              <div
+                className={`aspect-[5/7] w-full rounded-md border ${
+                  inUse ? 'border-brand ring-2 ring-brand' : 'border-white/20'
+                }`}
+                style={b.style}
+              />
+              {inUse ? (
+                <span className="text-[11px] font-semibold text-brand">{t('cos.inUse')}</span>
+              ) : owned ? (
+                <button
+                  onClick={() => selectBack(b.id)}
+                  className="text-[11px] font-semibold text-app-muted hover:text-app-text"
+                >
+                  {t('cos.use')}
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    if (buyBack(b.id, b.cost)) {
+                      AudioService.play('reward');
+                      celebrate();
+                    } else {
+                      AudioService.play('lose');
+                    }
+                  }}
+                  disabled={coins < b.cost}
+                  className="text-[11px] font-semibold text-amber-400 disabled:opacity-40"
+                >
+                  {b.cost} 🪙
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-app-muted">

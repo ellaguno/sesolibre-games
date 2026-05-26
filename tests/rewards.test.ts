@@ -7,7 +7,14 @@ import {
   type RewardData,
 } from '../src/core/RewardService';
 
-const base: RewardData = { coins: 0, lastClaim: null, streak: 0, achievements: [] };
+const base: RewardData = {
+  coins: 0,
+  lastClaim: null,
+  streak: 0,
+  achievements: [],
+  ownedBacks: ['classic'],
+  cardBack: 'classic',
+};
 
 describe('rewards: lógica diaria', () => {
   it('dateKey formatea YYYY-MM-DD', () => {
