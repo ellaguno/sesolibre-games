@@ -4,9 +4,11 @@ import { games } from '../core/registry';
 import { ScoreService, type ScoreEntry } from '../core/ScoreService';
 import { useRewards, canClaimToday, dateKey } from '../core/RewardService';
 import { useSettings } from '../core/settings';
+import { useT } from '../core/i18n';
 import GameCard from './GameCard';
 
 export default function HubScreen() {
+  const t = useT();
   const [best, setBest] = useState<Record<string, ScoreEntry | null>>({});
   const rewards = useRewards();
   const motion = useSettings((s) => s.motion);
@@ -35,30 +37,30 @@ export default function HubScreen() {
     <main className="mx-auto flex min-h-full max-w-2xl flex-col px-4 py-8">
       <header className="mb-8 flex items-center justify-between gap-2">
         <h1 className="bg-gradient-to-r from-indigo-400 to-fuchsia-400 bg-clip-text text-2xl font-extrabold tracking-tight text-transparent sm:text-3xl">
-          SesoLibre
+          {t('app.title')}
         </h1>
         <nav className="flex shrink-0 gap-1">
           <Link
             to="/rewards"
-            aria-label="Recompensas"
-            className="relative rounded-lg bg-slate-800 px-2.5 py-2 hover:bg-slate-700"
+            aria-label={t('nav.rewards')}
+            className="relative rounded-lg bg-app-surface px-2.5 py-2 hover:bg-app-surface2"
           >
             🎁
             {dailyAvailable && (
-              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-slate-900" />
+              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-app-bg" />
             )}
           </Link>
           <Link
             to="/records"
-            aria-label="Récords"
-            className="rounded-lg bg-slate-800 px-2.5 py-2 hover:bg-slate-700"
+            aria-label={t('nav.records')}
+            className="rounded-lg bg-app-surface px-2.5 py-2 hover:bg-app-surface2"
           >
             🏆
           </Link>
           <Link
             to="/settings"
-            aria-label="Ajustes"
-            className="rounded-lg bg-slate-800 px-2.5 py-2 hover:bg-slate-700"
+            aria-label={t('nav.settings')}
+            className="rounded-lg bg-app-surface px-2.5 py-2 hover:bg-app-surface2"
           >
             ⚙️
           </Link>
@@ -77,8 +79,17 @@ export default function HubScreen() {
         ))}
       </section>
 
-      <footer className="mt-auto pt-10 text-center text-xs text-slate-500">
-        v0.1.0 · offline-first
+      <footer className="mt-auto pt-10 text-center text-xs text-app-muted">
+        <a
+          href="https://sesolibre.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-brand hover:underline"
+        >
+          SesoLibre.com
+        </a>
+        <span className="mx-2">·</span>
+        v0.1.0 · {t('hub.footer')}
       </footer>
     </main>
   );

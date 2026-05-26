@@ -2,7 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Tokens de color como canales RGB (para soportar opacidad con /xx). */
 :root {
+  --c-bg: 238 242 247;
+  --c-surface: 255 255 255;
+  --c-surface-2: 226 232 240;
+  --c-border: 203 213 225;
+  --c-text: 15 23 42;
+  --c-muted: 100 116 139;
+  color-scheme: light;
+}
+
+.dark {
+  --c-bg: 15 23 42;
+  --c-surface: 30 41 59;
+  --c-surface-2: 51 65 85;
+  --c-border: 51 65 85;
+  --c-text: 241 245 249;
+  --c-muted: 148 163 184;
   color-scheme: dark;
 }
 
@@ -13,7 +30,7 @@ body,
 }
 
 body {
-  @apply bg-slate-900 text-slate-100 antialiased;
+  @apply bg-app-bg text-app-text antialiased;
   margin: 0;
   /* Respetar notch / safe areas en móvil */
   padding: env(safe-area-inset-top) env(safe-area-inset-right)

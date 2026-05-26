@@ -34,7 +34,7 @@ export default function CardView({ card, selected, onClick, className = '' }: Pr
     return (
       <button
         onClick={onClick}
-        className={`${base} border-slate-600 border-dashed bg-slate-800/40 ${className}`}
+        className={`${base} border-app-border border-dashed bg-app-surface/40 ${className}`}
       />
     );
   }

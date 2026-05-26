@@ -19,25 +19,15 @@ const DEFAULTS: RewardData = { coins: 0, lastClaim: null, streak: 0, achievement
 
 export interface Achievement {
   id: string;
-  title: string;
-  desc: string;
   coins: number;
+  gameId?: string; // si es un logro "jugaste <juego>"
 }
 
-// Logro "jugaste X" por cada juego + uno por completarlos todos.
+// Logro "jugaste X" por cada juego + uno por completarlos todos. El texto se
+// traduce en la pantalla de recompensas (ver i18n).
 export const ACHIEVEMENTS: Achievement[] = [
-  ...games.map((g) => ({
-    id: `play_${g.id}`,
-    title: `Probaste ${g.title}`,
-    desc: `Juega una partida de ${g.title}.`,
-    coins: 10,
-  })),
-  {
-    id: 'all_games',
-    title: 'Explorador',
-    desc: 'Juega los 5 juegos.',
-    coins: 50,
-  },
+  ...games.map((g) => ({ id: `play_${g.id}`, coins: 10, gameId: g.id })),
+  { id: 'all_games', coins: 50 },
 ];
 
 const ACHIEVEMENT_BY_ID = new Map(ACHIEVEMENTS.map((a) => [a.id, a]));

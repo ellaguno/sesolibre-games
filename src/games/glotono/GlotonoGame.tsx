@@ -9,6 +9,7 @@ import {
 } from './engine';
 import type { GameProps } from '../../core/registry';
 import { AudioService } from '../../core/AudioService';
+import { useT } from '../../core/i18n';
 import Button from '../../ui/Button';
 
 const TILE = 22; // px por celda al dibujar
@@ -228,6 +229,7 @@ function draw(ctx: CanvasRenderingContext2D, s: RenderState, t: number) {
 }
 
 export default function GlotonoGame({ onScore, onExit }: GameProps) {
+  const t = useT();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<Glotono | null>(null);
   const [seed, setSeed] = useState(() => Date.now());
@@ -348,14 +350,14 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
       <div className="mb-3 flex w-full items-center justify-between">
         <button
           onClick={onExit}
-          aria-label="Salir"
-          className="rounded-lg bg-slate-800 px-3 py-2 hover:bg-slate-700"
+          aria-label={t('common.exit')}
+          className="rounded-lg bg-app-surface px-3 py-2 hover:bg-app-surface2"
         >
           ←
         </button>
         <div className="font-mono text-sm">
           <span className="text-emerald-400">●</span> {hud.score}
-          <span className="ml-3 text-sky-400">Nv {hud.level}</span>
+          <span className="ml-3 text-sky-400">{t('glotono.hudLevel', { n: hud.level })}</span>
           <span className="ml-3 text-rose-400">♥</span> {hud.lives}
         </div>
       </div>
@@ -366,31 +368,28 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
         {levelFlash !== null && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <span className="route-enter rounded-xl bg-slate-950/70 px-5 py-2 text-2xl font-extrabold text-sky-300">
-              ¡Nivel {levelFlash}!
+              {t('glotono.levelBanner', { n: levelFlash })}
             </span>
           </div>
         )}
 
         {hud.status === 'lost' && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-xl bg-slate-950/80">
-            <p className="text-2xl font-bold">Te atraparon 💀</p>
+            <p className="text-2xl font-bold">{t('glotono.caught')}</p>
             <p className="font-mono text-emerald-400">
-              Nivel {hud.level} · {hud.score} pts
+              {t('glotono.levelPts', { lv: hud.level, pts: hud.score })}
             </p>
             <div className="flex gap-2">
-              <Button onClick={() => setSeed(Date.now())}>Jugar de nuevo</Button>
+              <Button onClick={() => setSeed(Date.now())}>{t('common.playAgain')}</Button>
               <Button variant="ghost" onClick={onExit}>
-                Salir
+                {t('common.exit')}
               </Button>
             </div>
           </div>
         )}
       </div>
 
-      <p className="mt-3 text-center text-xs text-slate-500">
-        Flechas / WASD o desliza para moverte. Absorbe un orbe grande para volverte
-        contra los virus. Limpia el laberinto para subir de nivel.
-      </p>
+      <p className="mt-3 text-center text-xs text-app-muted">{t('glotono.help')}</p>
     </main>
   );
 }

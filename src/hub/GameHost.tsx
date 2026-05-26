@@ -22,7 +22,7 @@ export default function GameHost() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-full items-center justify-center text-slate-400">
+        <div className="flex min-h-full items-center justify-center text-app-muted">
           Cargando…
         </div>
       }

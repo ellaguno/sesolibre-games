@@ -11,6 +11,7 @@ import {
 } from './generator';
 import type { GameProps } from '../../core/registry';
 import { AudioService } from '../../core/AudioService';
+import { useT } from '../../core/i18n';
 import Button from '../../ui/Button';
 
 type Notes = boolean[][][]; // [r][c][digit-1]
@@ -21,6 +22,7 @@ const emptyNotes = (): Notes =>
   );
 
 export default function SudokuGame({ onScore, onExit }: GameProps) {
+  const t = useT();
   const [difficulty, setDifficulty] = useState<Difficulty>(DIFFICULTIES[0]);
   const [game, setGame] = useState<Puzzle>(() => generatePuzzle(DIFFICULTIES[0]));
   const [board, setBoard] = useState<Board>(() => cloneBoard(game.puzzle));
@@ -134,8 +136,8 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
       <div className="mb-3 flex w-full items-center justify-between">
         <button
           onClick={onExit}
-          aria-label="Salir"
-          className="rounded-lg bg-slate-800 px-3 py-2 hover:bg-slate-700"
+          aria-label={t('common.exit')}
+          className="rounded-lg bg-app-surface px-3 py-2 hover:bg-app-surface2"
         >
           ←
         </button>
@@ -154,16 +156,16 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
             className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
               difficulty.id === d.id
                 ? 'bg-brand text-white'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                : 'bg-app-surface text-app-muted hover:bg-app-surface2'
             }`}
           >
-            {d.label}
+            {t(`difficulty.${d.id}`)}
           </button>
         ))}
       </div>
 
       <div className="relative w-full max-w-[min(92vw,380px)]">
-        <div className="grid aspect-square w-full grid-cols-9 rounded-md border-2 border-slate-400 bg-slate-800">
+        <div className="grid aspect-square w-full grid-cols-9 rounded-md border-2 border-slate-400 bg-app-surface">
           {board.map((row, r) =>
             row.map((v, c) => {
               const isSel = selected?.r === r && selected?.c === c;
@@ -181,7 +183,7 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
                 <button
                   key={`${r}-${c}`}
                   onClick={() => setSelected({ r, c })}
-                  className={`flex aspect-square items-center justify-center border border-slate-700/70 text-lg font-semibold transition-colors
+                  className={`flex aspect-square items-center justify-center border border-app-border/70 text-lg font-semibold transition-colors
                     ${c % 3 === 2 && c !== 8 ? 'border-r-2 border-r-slate-400' : ''}
                     ${r % 3 === 2 && r !== 8 ? 'border-b-2 border-b-slate-400' : ''}
                     ${
@@ -190,16 +192,16 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
                         : sameNum
                           ? 'bg-brand/20'
                           : peer
-                            ? 'bg-slate-700/40'
-                            : 'bg-slate-800'
+                            ? 'bg-app-surface2/40'
+                            : 'bg-app-surface'
                     }
-                    ${conflict ? 'text-rose-400' : given ? 'text-slate-100' : 'text-sky-300'}
+                    ${conflict ? 'text-rose-500' : given ? 'text-app-text' : 'text-indigo-500'}
                   `}
                 >
                   {v !== 0 ? (
                     v
                   ) : notes[r][c].some(Boolean) ? (
-                    <div className="grid h-full w-full grid-cols-3 grid-rows-3 p-px text-[9px] font-normal leading-none text-slate-400">
+                    <div className="grid h-full w-full grid-cols-3 grid-rows-3 p-px text-[9px] font-normal leading-none text-app-muted">
                       {notes[r][c].map((on, i) => (
                         <span key={i} className="flex items-center justify-center">
                           {on ? i + 1 : ''}
@@ -217,11 +219,11 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
 
         {solved && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-md bg-slate-950/85">
-            <p className="text-2xl font-bold">¡Resuelto en {seconds}s! 🎉</p>
+            <p className="text-2xl font-bold">{t('sudoku.solved', { s: seconds })}</p>
             <div className="flex gap-2">
-              <Button onClick={() => newGame(difficulty)}>Nuevo</Button>
+              <Button onClick={() => newGame(difficulty)}>{t('common.new')}</Button>
               <Button variant="ghost" onClick={onExit}>
-                Salir
+                {t('common.exit')}
               </Button>
             </div>
           </div>
@@ -235,7 +237,7 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
             key={n}
             onClick={() => placeDigit(n)}
             disabled={!selected}
-            className="flex aspect-square items-center justify-center rounded-lg bg-slate-800 text-lg font-bold hover:bg-slate-700 active:scale-95 disabled:opacity-40"
+            className="flex aspect-square items-center justify-center rounded-lg bg-app-surface text-lg font-bold hover:bg-app-surface2 active:scale-95 disabled:opacity-40"
           >
             {n}
           </button>
@@ -246,31 +248,28 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
         <button
           onClick={() => setNotesMode((m) => !m)}
           className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
-            notesMode ? 'bg-brand text-white' : 'bg-slate-800 hover:bg-slate-700'
+            notesMode ? 'bg-brand text-white' : 'bg-app-surface hover:bg-app-surface2'
           }`}
         >
-          ✏️ Notas {notesMode ? 'ON' : 'OFF'}
+          ✏️ {t('sudoku.notes')} {notesMode ? 'ON' : 'OFF'}
         </button>
         <button
           onClick={() => placeDigit(0)}
           disabled={!selected}
-          className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold hover:bg-slate-700 disabled:opacity-40"
+          className="rounded-lg bg-app-surface px-4 py-2 text-sm font-semibold hover:bg-app-surface2 disabled:opacity-40"
         >
-          ⌫ Borrar
+          ⌫ {t('sudoku.erase')}
         </button>
         <button
           onClick={hint}
           disabled={!selected}
-          className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold hover:bg-slate-700 disabled:opacity-40"
+          className="rounded-lg bg-app-surface px-4 py-2 text-sm font-semibold hover:bg-app-surface2 disabled:opacity-40"
         >
-          💡 Pista
+          💡 {t('sudoku.hint')}
         </button>
       </div>
 
-      <p className="mt-3 text-center text-xs text-slate-500">
-        Toca una celda y luego un número (o usa el teclado 1-9). «Notas» para
-        marcar candidatos.
-      </p>
+      <p className="mt-3 text-center text-xs text-app-muted">{t('sudoku.help')}</p>
     </main>
   );
 }

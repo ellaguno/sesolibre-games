@@ -1,8 +1,10 @@
 import { Link, useParams } from 'react-router-dom';
 import { games } from '../core/registry';
+import { useT } from '../core/i18n';
 
 export default function GamePlaceholder() {
   const { id } = useParams();
+  const t = useT();
   const game = games.find((g) => g.id === id);
 
   return (
@@ -10,13 +12,13 @@ export default function GamePlaceholder() {
       <span className="text-6xl" aria-hidden>
         {game?.emoji ?? '🎮'}
       </span>
-      <h1 className="text-2xl font-bold">{game?.title ?? 'Juego'}</h1>
-      <p className="text-slate-400">Este juego aún no está implementado.</p>
+      <h1 className="text-2xl font-bold">{game ? t(`game.${game.id}.title`) : '🎮'}</h1>
+      <p className="text-app-muted">{t('placeholder.notImplemented')}</p>
       <Link
         to="/"
         className="rounded-xl bg-brand px-5 py-2 font-semibold text-white transition hover:bg-brand-dark"
       >
-        ← Volver al inicio
+        ← {t('common.back')}
       </Link>
     </main>
   );

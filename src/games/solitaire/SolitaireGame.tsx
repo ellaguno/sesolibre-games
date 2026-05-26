@@ -12,6 +12,7 @@ import {
 import CardView from './CardView';
 import type { GameProps } from '../../core/registry';
 import { AudioService } from '../../core/AudioService';
+import { useT } from '../../core/i18n';
 import Button from '../../ui/Button';
 
 interface Selection {
@@ -20,6 +21,7 @@ interface Selection {
 }
 
 export default function SolitaireGame({ onScore, onExit }: GameProps) {
+  const t = useT();
   const [drawCount, setDrawCount] = useState<1 | 3>(1);
   const [game, setGame] = useState<GameState>(() => deal(1));
   const [history, setHistory] = useState<GameState[]>([]);
@@ -159,12 +161,12 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
       <div className="mb-2 flex items-center justify-between">
         <button
           onClick={onExit}
-          aria-label="Salir"
-          className="rounded-lg bg-slate-800 px-3 py-2 hover:bg-slate-700"
+          aria-label={t('common.exit')}
+          className="rounded-lg bg-app-surface px-3 py-2 hover:bg-app-surface2"
         >
           ←
         </button>
-        <span className="font-mono text-sm">Mov: {game.moves}</span>
+        <span className="font-mono text-sm">{t('sol.moves', { n: game.moves })}</span>
         <div className="flex gap-1">
           {([1, 3] as const).map((dc) => (
             <button
@@ -174,10 +176,10 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
                 newGame(dc);
               }}
               className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold ${
-                drawCount === dc ? 'bg-brand text-white' : 'bg-slate-800 text-slate-300'
+                drawCount === dc ? 'bg-brand text-white' : 'bg-app-surface text-app-muted'
               }`}
             >
-              {dc} carta{dc > 1 ? 's' : ''}
+              {dc === 1 ? t('sol.cards1') : t('sol.cards3')}
             </button>
           ))}
         </div>
@@ -243,11 +245,11 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
 
         {won && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-xl bg-slate-950/85">
-            <p className="text-2xl font-bold">¡Ganaste en {game.moves} movimientos! 🎉</p>
+            <p className="text-2xl font-bold">{t('sol.won', { n: game.moves })}</p>
             <div className="flex gap-2">
-              <Button onClick={() => newGame(drawCount)}>Nuevo juego</Button>
+              <Button onClick={() => newGame(drawCount)}>{t('sol.newGame')}</Button>
               <Button variant="ghost" onClick={onExit}>
-                Salir
+                {t('common.exit')}
               </Button>
             </div>
           </div>
@@ -258,28 +260,25 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
         <button
           onClick={undo}
           disabled={history.length === 0}
-          className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold hover:bg-slate-700 disabled:opacity-40"
+          className="rounded-lg bg-app-surface px-4 py-2 text-sm font-semibold hover:bg-app-surface2 disabled:opacity-40"
         >
-          ↶ Deshacer
+          ↶ {t('sol.undo')}
         </button>
         <button
           onClick={autoAll}
-          className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold hover:bg-slate-700"
+          className="rounded-lg bg-app-surface px-4 py-2 text-sm font-semibold hover:bg-app-surface2"
         >
-          ⤴ Auto
+          ⤴ {t('sol.auto')}
         </button>
         <button
           onClick={() => newGame(drawCount)}
-          className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold hover:bg-slate-700"
+          className="rounded-lg bg-app-surface px-4 py-2 text-sm font-semibold hover:bg-app-surface2"
         >
-          ↻ Nuevo
+          ↻ {t('common.new')}
         </button>
       </div>
 
-      <p className="mt-3 text-center text-xs text-slate-500">
-        Toca una carta para seleccionar y otra pila para mover. «Auto» sube lo posible
-        a las bases.
-      </p>
+      <p className="mt-3 text-center text-xs text-app-muted">{t('sol.help')}</p>
     </main>
   );
 }

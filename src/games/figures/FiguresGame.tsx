@@ -21,6 +21,7 @@ import {
 import type { GameProps } from '../../core/registry';
 import { ScoreService } from '../../core/ScoreService';
 import { AudioService } from '../../core/AudioService';
+import { useT, type TFn } from '../../core/i18n';
 import Button from '../../ui/Button';
 
 const MATCH_ANIM_MS = 500; // sincronizado con los keyframes
@@ -40,6 +41,7 @@ interface Config {
 }
 
 export default function FiguresGame({ onScore, onExit }: GameProps) {
+  const t = useT();
   const [board, setBoard] = useState<Board>([]);
   const [selected, setSelected] = useState<Pos | null>(null);
   const [score, setScore] = useState(0);
@@ -201,8 +203,8 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
       <div className="mb-3 flex w-full items-center justify-between">
         <button
           onClick={onExit}
-          aria-label="Salir"
-          className="rounded-lg bg-slate-800 px-3 py-2 hover:bg-slate-700"
+          aria-label={t('common.exit')}
+          className="rounded-lg bg-app-surface px-3 py-2 hover:bg-app-surface2"
         >
           ←
         </button>
@@ -212,6 +214,7 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
 
       {showConfig ? (
         <ConfigPanel
+          t={t}
           config={config}
           setConfig={setConfig}
           startGame={initializeBoard}
@@ -219,25 +222,27 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
         />
       ) : gameOver ? (
         <div className="flex flex-col items-center gap-3 text-center">
-          <h3 className="text-2xl font-bold">¡Fin del juego!</h3>
+          <h3 className="text-2xl font-bold">{t('fig.gameOver')}</h3>
           <p className="text-lg">
-            Puntuación: <strong className="text-brand">{score}</strong>
+            {t('fig.score', { n: '' })}
+            <strong className="text-brand">{score}</strong>
           </p>
-          <p className="text-sm text-slate-400">
-            Mejor: <strong>{best}</strong>
-            {score >= best && score > 0 ? ' — ¡Nuevo récord! 🎉' : ''}
+          <p className="text-sm text-app-muted">
+            {t('fig.bestShort', { n: '' })}
+            <strong>{best}</strong>
+            {score >= best && score > 0 ? t('fig.newRecord') : ''}
           </p>
           <div className="flex gap-2">
-            <Button onClick={initializeBoard}>Jugar de nuevo</Button>
+            <Button onClick={initializeBoard}>{t('common.playAgain')}</Button>
             <Button variant="ghost" onClick={() => setShowConfig(true)}>
-              Opciones
+              {t('common.options')}
             </Button>
           </div>
         </div>
       ) : (
         <>
           <div className="w-full">
-            <div className="mb-3 grid grid-cols-8 gap-1 rounded-xl bg-slate-800 p-2">
+            <div className="mb-3 grid grid-cols-8 gap-1 rounded-xl bg-app-surface p-2">
               {board.map((row, rowIndex) =>
                 row.map((gem, colIndex) => (
                   <Gem
@@ -264,20 +269,20 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
           </div>
           <div className="flex items-center gap-4 font-mono text-sm">
             <span>
-              Puntos: <strong className="text-brand">{score}</strong>
+              {t('fig.points')}: <strong className="text-brand">{score}</strong>
             </span>
-            <span className="text-slate-400">Mejor: {best}</span>
-            {config.limitedMoves && <span>Mov: {movesLeft}</span>}
+            <span className="text-app-muted">{t('fig.bestShort', { n: best })}</span>
+            {config.limitedMoves && <span>{t('fig.movesShort')}: {movesLeft}</span>}
           </div>
           {reshuffled && (
-            <div className="mt-2 font-semibold text-brand">Sin jugadas — ¡tablero rebarajado!</div>
+            <div className="mt-2 font-semibold text-brand">{t('fig.reshuffled')}</div>
           )}
-          {outOfMoves && <div className="mt-2 text-slate-400">No quedan movimientos.</div>}
+          {outOfMoves && <div className="mt-2 text-app-muted">{t('fig.noMoves')}</div>}
           <button
-            className="mt-3 rounded-lg bg-slate-800 px-4 py-2 text-sm hover:bg-slate-700"
+            className="mt-3 rounded-lg bg-app-surface px-4 py-2 text-sm hover:bg-app-surface2"
             onClick={() => setShowConfig(true)}
           >
-            Opciones
+            {t('common.options')}
           </button>
         </>
       )}
@@ -286,27 +291,29 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
 }
 
 function ConfigPanel({
+  t,
   config,
   setConfig,
   startGame,
   best,
 }: {
+  t: TFn;
   config: Config;
   setConfig: (c: Config) => void;
   startGame: () => void;
   best: number;
 }) {
   const selectClass =
-    'rounded-lg border border-slate-700 bg-slate-800 p-2 text-slate-100';
+    'rounded-lg border border-app-border bg-app-surface p-2 text-app-text';
   return (
     <div className="flex w-full flex-col items-center gap-4">
       <Button onClick={startGame} className="px-8">
-        Jugar
+        {t('fig.play')}
       </Button>
-      {best > 0 && <p className="text-sm text-slate-400">Mejor: {best}</p>}
+      {best > 0 && <p className="text-sm text-app-muted">{t('fig.bestShort', { n: best })}</p>}
 
       <div className="flex w-full flex-col gap-3">
-        <Row label="Figuras">
+        <Row label={t('fig.figures')}>
           <select
             value={config.figureType}
             onChange={(e) =>
@@ -314,14 +321,14 @@ function ConfigPanel({
             }
             className={selectClass}
           >
-            {FIGURE_SET_OPTIONS.map(({ value, label }) => (
+            {FIGURE_SET_OPTIONS.map(({ value }) => (
               <option key={value} value={value}>
-                {label}
+                {t(`figset.${value}`)}
               </option>
             ))}
           </select>
         </Row>
-        <Row label="Modo">
+        <Row label={t('fig.mode')}>
           <select
             value={config.limitedMoves ? 'limited' : 'unlimited'}
             onChange={(e) =>
@@ -329,11 +336,11 @@ function ConfigPanel({
             }
             className={selectClass}
           >
-            <option value="limited">{TOTAL_MOVES} movimientos</option>
-            <option value="unlimited">Ilimitado</option>
+            <option value="limited">{t('fig.movesN', { n: TOTAL_MOVES })}</option>
+            <option value="unlimited">{t('fig.unlimited')}</option>
           </select>
         </Row>
-        <Row label="Dirección">
+        <Row label={t('fig.direction')}>
           <select
             value={config.verticalMovement ? 'vertical' : 'horizontal'}
             onChange={(e) =>
@@ -341,8 +348,8 @@ function ConfigPanel({
             }
             className={selectClass}
           >
-            <option value="vertical">Vertical</option>
-            <option value="horizontal">Horizontal</option>
+            <option value="vertical">{t('fig.vertical')}</option>
+            <option value="horizontal">{t('fig.horizontal')}</option>
           </select>
         </Row>
       </div>
@@ -352,7 +359,7 @@ function ConfigPanel({
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3">
+    <div className="flex items-center justify-between rounded-xl border border-app-border bg-app-surface/50 px-4 py-3">
       <span className="font-medium">{label}</span>
       {children}
     </div>

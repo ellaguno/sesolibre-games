@@ -15,6 +15,7 @@ import {
 } from './logic';
 import type { GameProps } from '../../core/registry';
 import { AudioService } from '../../core/AudioService';
+import { useT } from '../../core/i18n';
 import Button from '../../ui/Button';
 
 const NUM_COLORS = [
@@ -32,6 +33,7 @@ const NUM_COLORS = [
 const LONG_PRESS_MS = 350;
 
 export default function MinesweeperGame({ onScore, onExit }: GameProps) {
+  const t = useT();
   const [difficulty, setDifficulty] = useState<Difficulty>(DIFFICULTIES[0]);
   const [grid, setGrid] = useState<Grid>(() =>
     createEmptyGrid(DIFFICULTIES[0].rows, DIFFICULTIES[0].cols),
@@ -142,8 +144,8 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
       <div className="mb-3 flex w-full items-center justify-between">
         <button
           onClick={onExit}
-          aria-label="Salir"
-          className="rounded-lg bg-slate-800 px-3 py-2 hover:bg-slate-700"
+          aria-label={t('common.exit')}
+          className="rounded-lg bg-app-surface px-3 py-2 hover:bg-app-surface2"
         >
           ←
         </button>
@@ -165,10 +167,10 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
             className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
               difficulty.id === d.id
                 ? 'bg-brand text-white'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                : 'bg-app-surface text-app-muted hover:bg-app-surface2'
             }`}
           >
-            {d.label}
+            {t(`difficulty.${d.id}`)}
           </button>
         ))}
       </div>
@@ -184,13 +186,13 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
                 'flex items-center justify-center font-bold select-none rounded-[3px]';
               const size = difficulty.cols > 12 ? 'h-6 w-6 text-[11px]' : 'h-8 w-8 text-sm';
               let content: React.ReactNode = '';
-              let cls = 'bg-slate-700 hover:bg-slate-600';
+              let cls = 'bg-app-surface2 hover:bg-app-surface2';
               if (cell.revealed) {
                 if (cell.mine) {
                   content = '💣';
                   cls = 'bg-rose-900/60';
                 } else {
-                  cls = 'bg-slate-800/60';
+                  cls = 'bg-app-surface/60';
                   if (cell.adjacent > 0) content = cell.adjacent;
                 }
               } else if (cell.flagged) {
@@ -222,21 +224,21 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
         {status !== 'playing' && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-xl bg-slate-950/80">
             <p className="text-2xl font-bold">
-              {status === 'won' ? `¡Despejado en ${seconds}s! 🎉` : '💥 ¡Boom!'}
+              {status === 'won' ? t('mines.cleared', { s: seconds }) : t('mines.boom')}
             </p>
             <div className="flex gap-2">
-              <Button onClick={() => reset(difficulty)}>Jugar de nuevo</Button>
+              <Button onClick={() => reset(difficulty)}>{t('common.playAgain')}</Button>
               <Button variant="ghost" onClick={onExit}>
-                Salir
+                {t('common.exit')}
               </Button>
             </div>
           </div>
         )}
       </div>
 
-      <p className="mt-3 text-center text-xs text-slate-500">
-        Toca para revelar · mantén pulsado (o clic derecho) para poner bandera.
-        {!started && ' El primer toque siempre es seguro.'}
+      <p className="mt-3 text-center text-xs text-app-muted">
+        {t('mines.help')}
+        {!started && ` ${t('mines.firstSafe')}`}
       </p>
     </main>
   );

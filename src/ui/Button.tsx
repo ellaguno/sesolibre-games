@@ -9,7 +9,7 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const styles: Record<Variant, string> = {
   primary: 'bg-brand text-white hover:bg-brand-dark',
-  ghost: 'bg-slate-800 text-slate-200 hover:bg-slate-700',
+  ghost: 'bg-app-surface text-app-text hover:bg-app-surface2',
 };
 
 export default function Button({
