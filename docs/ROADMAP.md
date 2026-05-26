@@ -34,13 +34,14 @@ Fases incrementales. Cada fase deja la app en estado utilizable y desplegable.
 **Entregable:** 2 juegos jugables e integrados con récords. ✔
 Pendientes de pulido (Glótono) anotados en [BACKLOG.md](./BACKLOG.md).
 
-## Fase 3 — Juegos de tablero nuevos
-- [ ] **Buscaminas**: tamaños/dificultades, primer clic seguro, flood-fill,
-      banderas, cronómetro; score por tiempo. Tests de lógica.
-- [ ] **Sudoku**: generador con solución única + solver, dificultades, notas,
-      validación, pistas; score por tiempo/errores. Tests de unicidad.
+## Fase 3 — Juegos de tablero nuevos ✅
+- [x] **Buscaminas**: 3 dificultades, primer clic seguro, flood-fill, banderas
+      (long-press / clic derecho), cronómetro; score por tiempo. 7 tests.
+- [x] **Sudoku**: generador con SOLUCIÓN ÚNICA + solver (backtracking),
+      3 dificultades, notas, resaltado de conflictos, pistas; score por tiempo.
+      5 tests (incluye unicidad).
 
-**Entregable:** 4 juegos disponibles.
+**Entregable:** 4 juegos disponibles (+ Figures = 5 jugables). ✔
 
 ## Fase 4 — Solitario + recompensas
 - [ ] **Solitario (Klondike)**: modo 1 y 3 cartas por turno, arrastrar/soltar,

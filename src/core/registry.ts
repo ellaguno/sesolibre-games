@@ -51,7 +51,8 @@ export const games: GameMeta[] = [
     emoji: '💣',
     scoreKind: 'time',
     higherIsBetter: false,
-    available: false,
+    available: true,
+    load: () => import('../games/minesweeper/MinesweeperGame'),
   },
   {
     id: 'sudoku',
@@ -60,7 +61,8 @@ export const games: GameMeta[] = [
     emoji: '🔢',
     scoreKind: 'time',
     higherIsBetter: false,
-    available: false,
+    available: true,
+    load: () => import('../games/sudoku/SudokuGame'),
   },
   {
     id: 'solitaire',
