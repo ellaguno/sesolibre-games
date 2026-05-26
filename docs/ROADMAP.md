@@ -22,14 +22,17 @@ Fases incrementales. Cada fase deja la app en estado utilizable y desplegable.
 
 **Entregable:** hub navegable y atractivo, sin juegos aún (placeholders). ✔
 
-## Fase 2 — Juegos arcade (existentes + maze-chase propio)
+## Fase 2 — Juegos arcade (existentes + maze-chase propio) ✅
 - [x] **Glótono** — maze-chase ORIGINAL (no clon de Pac-Man, por IP): laberinto
       procedural, slime vs. virus, orbes de poder, vidas, controles teclado +
       swipe táctil, integrado con `ScoreService`. Lógica testeada.
-- [ ] Portar **Figures** (match-3) al stack común; integrar score.
-- [ ] Verificar offline y arranque desde el hub.
+- [x] Portar **Figures** (match-3) al stack común: `board.ts`/`figures.ts`
+      tipados, `Gem.tsx`, `FiguresGame.tsx`, animaciones CSS, SVGs vía Vite,
+      integrado con `ScoreService` y `AudioService`. 9 tests de tablero.
+- [x] Offline (PWA precache de chunks + assets) y arranque desde el hub.
 
-**Entregable:** 2 juegos jugables e integrados con récords.
+**Entregable:** 2 juegos jugables e integrados con récords. ✔
+Pendientes de pulido (Glótono) anotados en [BACKLOG.md](./BACKLOG.md).
 
 ## Fase 3 — Juegos de tablero nuevos
 - [ ] **Buscaminas**: tamaños/dificultades, primer clic seguro, flood-fill,

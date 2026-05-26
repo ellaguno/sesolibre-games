@@ -31,7 +31,8 @@ export const games: GameMeta[] = [
     emoji: '💎',
     scoreKind: 'points',
     higherIsBetter: true,
-    available: false,
+    available: true,
+    load: () => import('../games/figures/FiguresGame'),
   },
   {
     id: 'glotono',

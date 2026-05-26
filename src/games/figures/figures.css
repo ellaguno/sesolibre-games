@@ -1,0 +1,42 @@
+/* Animaciones del tablero match-3 (portadas de la versión CRA). */
+@keyframes fig-destruction {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+.animate-destruction {
+  animation: fig-destruction 0.5s ease-out;
+}
+
+@keyframes fig-fall {
+  from {
+    transform: translateY(var(--fall-start));
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.animate-fall {
+  animation: fig-fall 0.5s ease-out;
+}
+
+@keyframes fig-slide {
+  from {
+    transform: translateX(var(--slide-start));
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+.animate-slide {
+  animation: fig-slide 0.5s ease-out;
+}
