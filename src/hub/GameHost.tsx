@@ -20,22 +20,31 @@ export default function GameHost() {
   if (!game || !game.available || !Lazy) return <GamePlaceholder />;
 
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-full items-center justify-center text-app-muted">
-          Cargando…
-        </div>
-      }
-    >
-      <Lazy
-        onScore={(score) => {
-          useRewards.getState().recordPlay(game.id);
-          void ScoreService.submit(game.id, score).then((isRecord) => {
-            if (isRecord) celebrate();
-          });
-        }}
-        onExit={() => navigate('/')}
+    <div className="relative min-h-full">
+      {/* Fondo temático del juego */}
+      <div
+        className="fixed inset-0 -z-10 bg-cover bg-center"
+        style={{ backgroundImage: `url(${game.bg})` }}
       />
-    </Suspense>
+      <div className="fixed inset-0 -z-10 bg-slate-950/55" />
+
+      <Suspense
+        fallback={
+          <div className="flex min-h-full items-center justify-center text-slate-300">
+            …
+          </div>
+        }
+      >
+        <Lazy
+          onScore={(score) => {
+            useRewards.getState().recordPlay(game.id);
+            void ScoreService.submit(game.id, score).then((isRecord) => {
+              if (isRecord) celebrate();
+            });
+          }}
+          onExit={() => navigate('/')}
+        />
+      </Suspense>
+    </div>
   );
 }

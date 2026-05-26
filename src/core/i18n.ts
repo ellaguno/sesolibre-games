@@ -20,6 +20,14 @@ type Dict = Record<string, string>;
 
 const es: Dict = {
   'app.title': 'Sesolibre Juegos',
+  'app.subtitle': 'JUEGOS',
+  'hub.tagline': 'Juegos rápidos para descansar la mente',
+  'hub.slogan': 'Diviértete. Supérate. Desconecta.',
+  'hub.daily': 'RETO DEL DÍA',
+  'hub.newGame': 'Nuevo juego',
+  'best.points': 'Mejor marca: {v}',
+  'best.time': 'Mejor tiempo: {v}',
+  'best.moves': 'Mejor: {v}',
   'hub.footer': 'offline-first',
   'nav.rewards': 'Recompensas',
   'nav.records': 'Récords',
@@ -65,14 +73,19 @@ const es: Dict = {
 
   'game.figures.title': 'Figures',
   'game.figures.desc': 'Match-3: combina 3 o más figuras.',
+  'game.figures.tagline': 'Combina formas y supera tu récord',
   'game.glotono.title': 'Glótono',
   'game.glotono.desc': 'Absorbe orbes en el laberinto y esquiva los virus.',
+  'game.glotono.tagline': 'Devora orbes y escapa de los virus',
   'game.minesweeper.title': 'Buscaminas',
   'game.minesweeper.desc': 'Despeja el campo sin pisar minas.',
+  'game.minesweeper.tagline': 'Evita las minas',
   'game.sudoku.title': 'Sudoku',
   'game.sudoku.desc': 'Completa la cuadrícula 9×9.',
+  'game.sudoku.tagline': 'Lógica, números y concentración',
   'game.solitaire.title': 'Solitario',
   'game.solitaire.desc': 'Klondike, 1 o 3 cartas por turno.',
+  'game.solitaire.tagline': 'Relájate y disfruta',
 
   'glotono.help':
     'Flechas / WASD o desliza para moverte. Absorbe un orbe grande para volverte contra los virus. Limpia el laberinto para subir de nivel.',
@@ -129,6 +142,14 @@ const es: Dict = {
 
 const en: Dict = {
   'app.title': 'Sesolibre Games',
+  'app.subtitle': 'GAMES',
+  'hub.tagline': 'Quick games to rest your mind',
+  'hub.slogan': 'Have fun. Improve. Disconnect.',
+  'hub.daily': 'DAILY CHALLENGE',
+  'hub.newGame': 'New game',
+  'best.points': 'Best: {v}',
+  'best.time': 'Best time: {v}',
+  'best.moves': 'Best: {v}',
   'hub.footer': 'offline-first',
   'nav.rewards': 'Rewards',
   'nav.records': 'Records',
@@ -174,14 +195,19 @@ const en: Dict = {
 
   'game.figures.title': 'Figures',
   'game.figures.desc': 'Match-3: line up 3 or more figures.',
+  'game.figures.tagline': 'Match shapes and beat your record',
   'game.glotono.title': 'Glótono',
   'game.glotono.desc': 'Absorb orbs in the maze and dodge the viruses.',
+  'game.glotono.tagline': 'Devour orbs and dodge the viruses',
   'game.minesweeper.title': 'Minesweeper',
   'game.minesweeper.desc': 'Clear the field without hitting mines.',
+  'game.minesweeper.tagline': 'Avoid the mines',
   'game.sudoku.title': 'Sudoku',
   'game.sudoku.desc': 'Fill the 9×9 grid.',
+  'game.sudoku.tagline': 'Logic, numbers and focus',
   'game.solitaire.title': 'Solitaire',
   'game.solitaire.desc': 'Klondike, 1 or 3 cards per turn.',
+  'game.solitaire.tagline': 'Relax and enjoy',
 
   'glotono.help':
     'Arrows / WASD or swipe to move. Absorb a big orb to turn on the viruses. Clear the maze to level up.',
