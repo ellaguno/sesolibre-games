@@ -12,7 +12,7 @@ Vite · React 18 · TypeScript · Tailwind CSS · React Router · Zustand · vit
 | Juego      | Estado     |
 |------------|------------|
 | Figures (match-3) | Por portar |
-| Pac-Man    | Por portar |
+| Glótono    | Por portar |
 | Buscaminas | Planificado |
 | Sudoku     | Planificado |
 | Solitario (Klondike) | Planificado |
