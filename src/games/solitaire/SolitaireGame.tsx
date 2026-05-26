@@ -50,8 +50,8 @@ const SIZE_VARS = {
 export default function SolitaireGame({ onScore, onExit }: GameProps) {
   const t = useT();
   const back = useRewards((s) => s.cardBack);
-  const [drawCount, setDrawCount] = useState<1 | 3>(1);
-  const [game, setGame] = useState<GameState>(() => deal(1));
+  const [drawCount, setDrawCount] = useState<1 | 3>(3);
+  const [game, setGame] = useState<GameState>(() => deal(3));
   const [history, setHistory] = useState<GameState[]>([]);
   const [won, setWon] = useState(false);
   const [drag, setDrag] = useState<Drag | null>(null);

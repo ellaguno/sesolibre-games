@@ -202,8 +202,11 @@ export interface RenderState {
 }
 
 const PLAYER_SPEED = 5.5; // celdas/seg
-const ENEMY_SPEED = 4.6;
-const ENEMY_FRIGHT_SPEED = 3.2;
+// Los virus arrancan lentos y torpes en el nivel 1 y se superan con cada nivel.
+const ENEMY_BASE_SPEED = 3.0; // nivel 1 (bastante más lento que el jugador)
+const ENEMY_SPEED_STEP = 0.4; // por nivel
+const ENEMY_SPEED_CAP = 5.3; // nunca más rápidos que el jugador
+const ENEMY_FRIGHT_SPEED = 2.6;
 const FRIGHT_TIME = 6;
 
 export class Glotono {
@@ -245,9 +248,9 @@ export class Glotono {
     }));
   }
 
-  /** Multiplicador de velocidad de enemigos según el nivel (con tope). */
-  private get levelSpeedMul(): number {
-    return Math.min(1 + (this.level - 1) * 0.1, 1.6);
+  /** Velocidad de los virus según el nivel (con tope, sin pasar al jugador). */
+  private get enemySpeed(): number {
+    return Math.min(ENEMY_BASE_SPEED + (this.level - 1) * ENEMY_SPEED_STEP, ENEMY_SPEED_CAP);
   }
 
   private nextLevel() {
@@ -357,8 +360,9 @@ export class Glotono {
     // (BFS por el laberinto, no distancia en línea recta), así te alcanza aunque
     // te quedes quieto y rodea las paredes. Si no, deambula. La inteligencia
     // sube por nivel y es mayor en los agresivos.
+    // Nivel 1: muy torpes (deambulan casi siempre). Suben con cada nivel.
     const intelligence = Math.min(
-      0.5 + (this.level - 1) * 0.12 + (e.aggressive ? 0.35 : 0),
+      0.2 + (this.level - 1) * 0.14 + (e.aggressive ? 0.3 : 0),
       1,
     );
     if (this.rng() < intelligence) {
@@ -399,8 +403,8 @@ export class Glotono {
     this.stepMover(this.player, PLAYER_SPEED, dt, this.choosePlayer);
     for (const e of this.enemies) {
       if (e.frightened > 0) e.frightened = Math.max(0, e.frightened - dt);
-      let speed = e.frightened > 0 ? ENEMY_FRIGHT_SPEED : ENEMY_SPEED * this.levelSpeedMul;
-      if (e.aggressive && e.frightened === 0) speed *= 1.15;
+      let speed = e.frightened > 0 ? ENEMY_FRIGHT_SPEED : this.enemySpeed;
+      if (e.aggressive && e.frightened === 0) speed *= 1.12;
       this.stepMover(e, speed, dt, () => this.chooseEnemy(e));
     }
 
