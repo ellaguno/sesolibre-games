@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import './figures.css';
 import logo from './assets/gemas3.png';
-import Gem, { type SwipeDir } from './Gem';
+import Gem from './Gem';
 import { FIGURE_SET_OPTIONS, type FigureType } from './figures';
 import {
   BOARD_SIZE,
@@ -27,12 +27,17 @@ import Button from '../../ui/Button';
 const MATCH_ANIM_MS = 500; // sincronizado con los keyframes
 const INVALID_REVERT_MS = 350;
 
-const DIRECTION_DELTA: Record<SwipeDir, Pos> = {
-  up: { row: -1, col: 0 },
-  down: { row: 1, col: 0 },
-  left: { row: 0, col: -1 },
-  right: { row: 0, col: 1 },
-};
+interface DragState {
+  row: number;
+  col: number;
+  sx: number;
+  sy: number;
+  dx: number;
+  dy: number;
+  dir: Pos | null; // dirección dominante (un paso)
+}
+
+const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
 interface Config {
   limitedMoves: boolean;
@@ -185,15 +190,78 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
     }
   };
 
-  const handleSwipe = (row: number, col: number, direction: SwipeDir) => {
+  // ---- Arrastre animado de fichas (sigue al dedo hacia un vecino) ----
+  const cellRef = useRef(0);
+  const dragRef = useRef<DragState | null>(null);
+  const [drag, setDrag] = useState<DragState | null>(null);
+
+  const inBounds = (r: number, c: number) =>
+    r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE;
+
+  const onGemDown = (row: number, col: number, e: React.PointerEvent<HTMLDivElement>) => {
     if (!canInteract) return;
-    setSelected(null);
-    const delta = DIRECTION_DELTA[direction];
-    const target = { row: row + delta.row, col: col + delta.col };
-    if (target.row < 0 || target.row >= BOARD_SIZE || target.col < 0 || target.col >= BOARD_SIZE) {
+    cellRef.current = e.currentTarget.getBoundingClientRect().width;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    const d: DragState = { row, col, sx: e.clientX, sy: e.clientY, dx: 0, dy: 0, dir: null };
+    dragRef.current = d;
+    setDrag(d);
+  };
+
+  const onGemMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const d = dragRef.current;
+    if (!d) return;
+    const cell = cellRef.current || 40;
+    const rdx = e.clientX - d.sx;
+    const rdy = e.clientY - d.sy;
+    let dx = 0;
+    let dy = 0;
+    let dir: Pos | null = null;
+    if (Math.abs(rdx) > Math.abs(rdy)) {
+      const dc = Math.sign(rdx);
+      if (Math.abs(rdx) > 4 && inBounds(d.row, d.col + dc)) {
+        dir = { row: 0, col: dc };
+        dx = clamp(rdx, -cell, cell);
+      }
+    } else {
+      const dr = Math.sign(rdy);
+      if (Math.abs(rdy) > 4 && inBounds(d.row + dr, d.col)) {
+        dir = { row: dr, col: 0 };
+        dy = clamp(rdy, -cell, cell);
+      }
+    }
+    const nd = { ...d, dx, dy, dir };
+    dragRef.current = nd;
+    setDrag(nd);
+  };
+
+  const onGemUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    const d = dragRef.current;
+    dragRef.current = null;
+    setDrag(null);
+    if (!d) return;
+    const movedFar = Math.abs(e.clientX - d.sx) > 6 || Math.abs(e.clientY - d.sy) > 6;
+    if (!movedFar) {
+      handleSelect(d.row, d.col);
       return;
     }
-    trySwap({ row, col }, target);
+    const cell = cellRef.current || 40;
+    const threshold = cell * 0.4;
+    if (d.dir && (Math.abs(d.dx) > threshold || Math.abs(d.dy) > threshold)) {
+      const target = { row: d.row + d.dir.row, col: d.col + d.dir.col };
+      if (inBounds(target.row, target.col)) {
+        setSelected(null);
+        trySwap({ row: d.row, col: d.col }, target);
+      }
+    }
+  };
+
+  const gemOffset = (r: number, c: number): { x: number; y: number } | null => {
+    if (!drag) return null;
+    if (drag.row === r && drag.col === c) return { x: drag.dx, y: drag.dy };
+    if (drag.dir && r === drag.row + drag.dir.row && c === drag.col + drag.dir.col) {
+      return { x: -drag.dx, y: -drag.dy };
+    }
+    return null;
   };
 
   const outOfMoves = config.limitedMoves && movesLeft <= 0;
@@ -250,8 +318,17 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
                     type={gem}
                     figureType={config.figureType}
                     vertical={config.verticalMovement}
-                    onSelect={() => handleSelect(rowIndex, colIndex)}
-                    onSwipe={(direction) => handleSwipe(rowIndex, colIndex, direction)}
+                    offset={gemOffset(rowIndex, colIndex)}
+                    noTransition={
+                      !!drag &&
+                      ((drag.row === rowIndex && drag.col === colIndex) ||
+                        (!!drag.dir &&
+                          rowIndex === drag.row + drag.dir.row &&
+                          colIndex === drag.col + drag.dir.col))
+                    }
+                    onPointerDown={(e) => onGemDown(rowIndex, colIndex, e)}
+                    onPointerMove={onGemMove}
+                    onPointerUp={onGemUp}
                     isDestroying={destroyingGems.some(
                       (g) => g.row === rowIndex && g.col === colIndex,
                     )}
