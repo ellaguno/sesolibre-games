@@ -86,6 +86,15 @@ const es: Dict = {
   'game.solitaire.title': 'Solitario',
   'game.solitaire.desc': 'Klondike, 1 o 3 cartas por turno.',
   'game.solitaire.tagline': 'Relájate y disfruta',
+  'game.bloques.title': 'Bloques',
+  'game.bloques.desc': 'Encaja piezas y completa líneas.',
+  'game.bloques.tagline': 'Gemas que caen, líneas que brillan',
+  'bloques.points': 'Puntos',
+  'bloques.level': 'Nivel',
+  'bloques.lines': 'Líneas',
+  'bloques.gemOnly': 'Solo gema',
+  'bloques.over': '¡Fin del juego!',
+  'bloques.help': '◀ ▶ mover · ⟳ girar · ▼ bajar · ⤓ soltar (o flechas y espacio)',
 
   'glotono.help':
     'Flechas / WASD o desliza para moverte. Absorbe un orbe grande para volverte contra los virus. Limpia el laberinto para subir de nivel.',
@@ -212,6 +221,15 @@ const en: Dict = {
   'game.solitaire.title': 'Solitaire',
   'game.solitaire.desc': 'Klondike, 1 or 3 cards per turn.',
   'game.solitaire.tagline': 'Relax and enjoy',
+  'game.bloques.title': 'Bloques',
+  'game.bloques.desc': 'Fit the pieces and clear lines.',
+  'game.bloques.tagline': 'Falling gems, glowing lines',
+  'bloques.points': 'Points',
+  'bloques.level': 'Level',
+  'bloques.lines': 'Lines',
+  'bloques.gemOnly': 'Gem only',
+  'bloques.over': 'Game over!',
+  'bloques.help': '◀ ▶ move · ⟳ rotate · ▼ drop · ⤓ hard drop (or arrows & space)',
 
   'glotono.help':
     'Arrows / WASD or swipe to move. Absorb a big orb to turn on the viruses. Clear the maze to level up.',

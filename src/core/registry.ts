@@ -4,6 +4,7 @@ import glotonoBg from '../assets/backgrounds/glotono.webp';
 import minesweeperBg from '../assets/backgrounds/minesweeper.webp';
 import sudokuBg from '../assets/backgrounds/sudoku.webp';
 import solitaireBg from '../assets/backgrounds/solitaire.webp';
+import bloquesBg from '../assets/backgrounds/bloques.webp';
 
 export type ScoreKind = 'points' | 'time' | 'moves';
 
@@ -79,5 +80,15 @@ export const games: GameMeta[] = [
     accent: '#a855f7',
     bg: solitaireBg,
     load: () => import('../games/solitaire/SolitaireGame'),
+  },
+  {
+    id: 'bloques',
+    emoji: '🧊',
+    scoreKind: 'points',
+    higherIsBetter: true,
+    available: true,
+    accent: '#22d3ee',
+    bg: bloquesBg,
+    load: () => import('../games/bloques/BloquesGame'),
   },
 ];
