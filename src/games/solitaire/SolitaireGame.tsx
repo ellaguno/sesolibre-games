@@ -177,7 +177,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
 
   return (
     <main
-      className="mx-auto flex min-h-full max-w-[480px] select-none flex-col px-2 py-3"
+      className="mx-auto flex min-h-screen max-w-[480px] select-none flex-col px-2 py-3"
       style={SIZE_VARS}
     >
       <div className="mb-2 flex items-center justify-between">
@@ -318,7 +318,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
         )}
       </div>
 
-      <div className="mt-4 flex justify-center gap-2">
+      <div className="mt-auto flex justify-center gap-2 pt-4">
         <button
           onClick={undo}
           disabled={history.length === 0}

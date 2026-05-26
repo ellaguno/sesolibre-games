@@ -52,16 +52,15 @@ export default function CardView({ card, back = 'classic', selected, placeholder
       }`}
       style={{ fontSize }}
     >
-      <div
-        className="absolute left-[0.1em] top-[0.05em] flex flex-col items-center font-extrabold leading-[0.95]"
+      <span
+        className="absolute left-[0.12em] top-[0.02em] font-extrabold leading-none"
         style={{ color }}
       >
-        <span>{rankLabel(card.rank)}</span>
-        <span className="text-[0.8em]">{sym}</span>
-      </div>
+        {rankLabel(card.rank)}
+      </span>
       <span
         className="absolute inset-0 flex items-center justify-center text-[1.7em] leading-none"
-        style={{ color: `${color}` }}
+        style={{ color }}
       >
         {sym}
       </span>

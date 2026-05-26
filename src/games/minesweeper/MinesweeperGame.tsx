@@ -46,6 +46,7 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
   const submittedRef = useRef(false);
   const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressedRef = useRef(false);
+  const pressTypeRef = useRef<string>('mouse');
 
   const reset = useCallback((d: Difficulty) => {
     setGrid(createEmptyGrid(d.rows, d.cols));
@@ -120,21 +121,35 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
     setGrid(next);
   };
 
-  // long-press => bandera (móvil); click normal => revelar
-  const onPointerDown = (r: number, c: number) => {
+  // Táctil: mantener pulsado => bandera (una sola vez por gesto), toque => revelar.
+  // Ratón: clic izq => revelar, clic der (contextmenu) => bandera. Sin timer para
+  // ratón (así no se "auto-marca" al sostener el clic), y el contextmenu táctil
+  // se ignora para no togglear dos veces.
+  const onPointerDown = (e: React.PointerEvent, r: number, c: number) => {
+    pressTypeRef.current = e.pointerType || 'mouse';
     longPressedRef.current = false;
-    longPressRef.current = setTimeout(() => {
-      longPressedRef.current = true;
-      handleFlag(r, c);
-    }, LONG_PRESS_MS);
-  };
-  const onPointerUp = (r: number, c: number) => {
     if (longPressRef.current) clearTimeout(longPressRef.current);
-    if (!longPressedRef.current) handleReveal(r, c);
+    if (e.pointerType !== 'mouse') {
+      longPressRef.current = setTimeout(() => {
+        longPressedRef.current = true;
+        handleFlag(r, c);
+      }, LONG_PRESS_MS);
+    }
+  };
+  const onPointerUp = (e: React.PointerEvent, r: number, c: number) => {
+    if (longPressRef.current) {
+      clearTimeout(longPressRef.current);
+      longPressRef.current = null;
+    }
+    if (e.pointerType === 'mouse') {
+      if (e.button === 0) handleReveal(r, c); // izq revela; der => contextmenu
+    } else if (!longPressedRef.current) {
+      handleReveal(r, c);
+    }
   };
   const onContextMenu = (e: React.MouseEvent, r: number, c: number) => {
     e.preventDefault();
-    handleFlag(r, c);
+    if (pressTypeRef.current === 'mouse') handleFlag(r, c);
   };
 
   const minesLeft = difficulty.mines - countFlags(grid);
@@ -207,11 +222,11 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
                       ? { color: NUM_COLORS[cell.adjacent] }
                       : undefined
                   }
-                  onPointerDown={() => onPointerDown(r, c)}
-                  onPointerUp={() => onPointerUp(r, c)}
-                  onPointerLeave={() =>
-                    longPressRef.current && clearTimeout(longPressRef.current)
-                  }
+                  onPointerDown={(e) => onPointerDown(e, r, c)}
+                  onPointerUp={(e) => onPointerUp(e, r, c)}
+                  onPointerLeave={() => {
+                    if (longPressRef.current) clearTimeout(longPressRef.current);
+                  }}
                   onContextMenu={(e) => onContextMenu(e, r, c)}
                 >
                   {content}

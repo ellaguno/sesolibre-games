@@ -346,7 +346,11 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
   };
 
   return (
-    <main className="mx-auto flex min-h-full max-w-2xl flex-col items-center px-4 py-4">
+    <main
+      className="mx-auto flex min-h-full max-w-2xl touch-none flex-col items-center px-4 py-4"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
       <div className="mb-3 flex w-full items-center justify-between">
         <button
           onClick={onExit}
@@ -362,7 +366,7 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
         </div>
       </div>
 
-      <div className="relative touch-none" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      <div className="relative">
         <canvas ref={canvasRef} className="max-w-full rounded-xl" />
 
         {levelFlash !== null && (
