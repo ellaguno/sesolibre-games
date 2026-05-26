@@ -6,17 +6,24 @@ import { formatScore } from '../core/format';
 export default function GameCard({
   game,
   best,
+  index = 0,
+  animate = false,
 }: {
   game: GameMeta;
   best: ScoreEntry | null;
+  index?: number;
+  animate?: boolean;
 }) {
   const card = (
     <div
       className={`relative flex aspect-square flex-col items-center justify-center gap-2 rounded-2xl border border-slate-700 bg-slate-800 p-4 text-center transition ${
+        animate ? 'hub-card' : ''
+      } ${
         game.available
           ? 'hover:-translate-y-1 hover:border-brand hover:shadow-lg hover:shadow-brand/20'
           : 'opacity-50'
       }`}
+      style={animate ? { animationDelay: `${index * 60}ms` } : undefined}
     >
       <span className="text-4xl" aria-hidden>
         {game.emoji}

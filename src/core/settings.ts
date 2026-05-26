@@ -6,10 +6,11 @@ export type Theme = 'light' | 'dark';
 export interface Settings {
   theme: Theme;
   sound: boolean;
+  motion: boolean;
 }
 
 const KEY = 'settings';
-const DEFAULTS: Settings = { theme: 'dark', sound: true };
+const DEFAULTS: Settings = { theme: 'dark', sound: true, motion: true };
 
 interface SettingsState extends Settings {
   loaded: boolean;
@@ -17,6 +18,7 @@ interface SettingsState extends Settings {
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
   setSound: (sound: boolean) => void;
+  setMotion: (motion: boolean) => void;
 }
 
 function applyTheme(theme: Theme) {
@@ -52,9 +54,23 @@ export const useSettings = create<SettingsState>((set, get) => ({
     set({ sound });
     void persist(get);
   },
+
+  setMotion: (motion) => {
+    set({ motion });
+    void persist(get);
+  },
 }));
 
 async function persist(get: () => SettingsState) {
-  const { theme, sound } = get();
-  await storage.set<Settings>(KEY, { theme, sound });
+  const { theme, sound, motion } = get();
+  await storage.set<Settings>(KEY, { theme, sound, motion });
+}
+
+/** ¿Deben reproducirse animaciones? Respeta el ajuste y prefers-reduced-motion. */
+export function animationsEnabled(): boolean {
+  if (!useSettings.getState().motion) return false;
+  if (typeof window !== 'undefined' && window.matchMedia) {
+    return !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+  return true;
 }

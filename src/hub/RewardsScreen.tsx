@@ -9,6 +9,7 @@ import {
   dailyReward,
 } from '../core/RewardService';
 import { AudioService } from '../core/AudioService';
+import { celebrate } from '../anim/particles';
 
 export default function RewardsScreen() {
   const { coins, streak, achievements, claimDaily, lastClaim } = useRewards();
@@ -28,6 +29,7 @@ export default function RewardsScreen() {
     const r = claimDaily();
     if (r.claimed) {
       AudioService.play('reward');
+      celebrate();
       setMsg(`+${r.reward} monedas · racha ${r.data.streak} 🔥`);
     }
   };

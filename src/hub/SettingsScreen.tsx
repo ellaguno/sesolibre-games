@@ -29,7 +29,7 @@ function Row({
 }
 
 export default function SettingsScreen() {
-  const { theme, sound, toggleTheme, setSound } = useSettings();
+  const { theme, sound, motion, toggleTheme, setSound, setMotion } = useSettings();
 
   return (
     <Screen title="Ajustes">
@@ -44,6 +44,7 @@ export default function SettingsScreen() {
             if (next) AudioService.play('pop');
           }}
         />
+        <Row label="Animaciones" checked={motion} onChange={() => setMotion(!motion)} />
       </div>
     </Screen>
   );

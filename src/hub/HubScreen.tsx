@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom';
 import { games } from '../core/registry';
 import { ScoreService, type ScoreEntry } from '../core/ScoreService';
 import { useRewards, canClaimToday, dateKey } from '../core/RewardService';
+import { useSettings } from '../core/settings';
 import GameCard from './GameCard';
 
 export default function HubScreen() {
   const [best, setBest] = useState<Record<string, ScoreEntry | null>>({});
   const rewards = useRewards();
+  const motion = useSettings((s) => s.motion);
   const dailyAvailable = canClaimToday(
     {
       coins: rewards.coins,
@@ -65,8 +67,14 @@ export default function HubScreen() {
       </header>
 
       <section className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        {games.map((game) => (
-          <GameCard key={game.id} game={game} best={best[game.id] ?? null} />
+        {games.map((game, i) => (
+          <GameCard
+            key={game.id}
+            game={game}
+            best={best[game.id] ?? null}
+            index={i}
+            animate={motion}
+          />
         ))}
       </section>
 

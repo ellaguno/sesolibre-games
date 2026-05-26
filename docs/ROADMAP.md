@@ -56,13 +56,18 @@ Pendientes de pulido (Glótono) anotados en [BACKLOG.md](./BACKLOG.md).
 **Entregable:** 5 juegos + sistema de recompensas. ✔
 (La tienda de cosméticos para gastar monedas queda como mejora futura.)
 
-## Fase 5 — Animaciones dinámicas / procedurales
-- [ ] Capa de transiciones de navegación (hub ↔ juego).
-- [ ] Partículas procedurales en eventos (match, victoria, recompensa).
-- [ ] Feedback de interacción (micro-animaciones, haptics en nativo).
-- [ ] Evaluar Framer Motion (UI) + canvas/WebGL ligero (partículas).
+## Fase 5 — Animaciones dinámicas / procedurales ✅
+- [x] Capa de transiciones de navegación (hub ↔ juego): `RouteTransition` + CSS.
+- [x] Partículas procedurales en eventos: `particles.ts` (canvas, sin deps,
+      RAF solo activo con partículas). Confeti en nuevo récord y al reclamar
+      recompensa diaria.
+- [x] Micro-animaciones: entrada escalonada de tarjetas del hub.
+- [x] Decisión: SIN Framer Motion — CSS + canvas propio (más ligero y offline).
+      Ajuste "Animaciones" en Settings + respeto a `prefers-reduced-motion`.
+- [ ] Haptics en nativo — pendiente (requiere Capacitor, Fase 6).
 
-**Entregable:** experiencia pulida y animada.
+**Entregable:** experiencia animada. ✔
+Ronda de pulido por juego pendiente (ver [BACKLOG.md](./BACKLOG.md), incl. bug de Sudoku).
 
 ## Fase 6 — Empaquetado nativo y publicación
 - [ ] Integrar Capacitor; `cap add android`; build AAB firmado.

@@ -3,6 +3,20 @@
 Mejoras detectadas durante pruebas, a abordar más adelante (varias encajan en la
 Fase 5 — animaciones procedurales).
 
+> **Nota:** al final de la Fase 5 toca una ronda de pulido de CADA juego
+> (feedback del usuario). Validar visualmente los 5 en `npm run dev`.
+
+## Sudoku (BUG, prioritario en pulido)
+
+- **La cuadrícula no se dibuja bien** y **no hay forma clara de escribir números
+  ni notas.** El input es por selección (tocar celda → tocar número del teclado),
+  pero la celda seleccionada no se distingue bien y el layout `grid-cols-9` con
+  anchos fijos + márgenes para separar las cajas 3×3 rompe la alineación.
+  *Fix:* rehacer la cuadrícula (bordes de caja con `border` real en vez de
+  márgenes; celdas que llenen el track con `aspect-square w-full`), resaltar
+  con claridad la celda activa, y revisar que el teclado numérico rellene la
+  celda seleccionada (y las notas en modo notas).
+
 ## Glótono
 
 1. **Bug — overlay de fin de partida al reiniciar.** Al ganar/perder aparece

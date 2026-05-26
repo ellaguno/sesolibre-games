@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { games } from '../core/registry';
 import { ScoreService } from '../core/ScoreService';
 import { useRewards } from '../core/RewardService';
+import { celebrate } from '../anim/particles';
 import GamePlaceholder from './GamePlaceholder';
 
 export default function GameHost() {
@@ -28,8 +29,10 @@ export default function GameHost() {
     >
       <Lazy
         onScore={(score) => {
-          void ScoreService.submit(game.id, score);
           useRewards.getState().recordPlay(game.id);
+          void ScoreService.submit(game.id, score).then((isRecord) => {
+            if (isRecord) celebrate();
+          });
         }}
         onExit={() => navigate('/')}
       />
