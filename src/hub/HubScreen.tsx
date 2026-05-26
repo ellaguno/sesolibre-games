@@ -33,12 +33,11 @@ export default function HubScreen() {
 
   return (
     <main className="mx-auto flex min-h-full max-w-2xl flex-col px-4 py-8">
-      <header className="mb-8 flex items-center justify-between">
-        <div className="w-28" />
-        <h1 className="bg-gradient-to-r from-indigo-400 to-fuchsia-400 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent">
+      <header className="mb-8 flex items-center justify-between gap-2">
+        <h1 className="bg-gradient-to-r from-indigo-400 to-fuchsia-400 bg-clip-text text-2xl font-extrabold tracking-tight text-transparent sm:text-3xl">
           SesoLibre
         </h1>
-        <nav className="flex w-28 justify-end gap-1">
+        <nav className="flex shrink-0 gap-1">
           <Link
             to="/rewards"
             aria-label="Recompensas"

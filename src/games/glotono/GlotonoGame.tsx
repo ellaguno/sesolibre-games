@@ -130,6 +130,7 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
     const engine = new Glotono(seed);
     engineRef.current = engine;
     submittedRef.current = false;
+    setHud({ score: 0, lives: 3, status: 'playing' }); // limpiar overlay al reiniciar
     const canvas = canvasRef.current!;
     canvas.width = engine.maze.tw * TILE;
     canvas.height = engine.maze.th * TILE;

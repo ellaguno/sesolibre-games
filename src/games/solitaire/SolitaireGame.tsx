@@ -215,7 +215,11 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
         {/* Tableau */}
         <div className="flex justify-between gap-1">
           {game.tableau.map((pile, p) => (
-            <div key={p} className="relative flex-1" style={{ minHeight: '4rem' }}>
+            <div
+              key={p}
+              className="relative flex-1"
+              style={{ height: `${Math.max(pile.length - 1, 0) * 1.35 + 4}rem` }}
+            >
               {pile.length === 0 ? (
                 <CardView onClick={() => onEmptyTableau(p)} />
               ) : (
