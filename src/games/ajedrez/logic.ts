@@ -301,11 +301,14 @@ export function status(state: State): Status {
   return inCheck(state, state.turn) ? 'check' : 'playing';
 }
 
+// ︎ (selector de variación de TEXTO) evita que el peón (♟) y demás
+// trebejos se rendericen como emoji a color; así respetan el `color` CSS.
+const TEXT = '︎';
 export const GLYPH: Record<PieceType, string> = {
-  p: '♟',
-  n: '♞',
-  b: '♝',
-  r: '♜',
-  q: '♛',
-  k: '♚',
+  p: '♟' + TEXT,
+  n: '♞' + TEXT,
+  b: '♝' + TEXT,
+  r: '♜' + TEXT,
+  q: '♛' + TEXT,
+  k: '♚' + TEXT,
 };
