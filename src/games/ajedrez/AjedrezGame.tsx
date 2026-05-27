@@ -12,7 +12,7 @@ import {
   type PieceType,
   type Color,
 } from './logic';
-import { bestMove } from './ai';
+import { chooseMove, type Level } from './ai';
 import type { GameProps } from '../../core/registry';
 import { AudioService } from '../../core/AudioService';
 import { useT } from '../../core/i18n';
@@ -23,8 +23,8 @@ import Button from '../../ui/Button';
 const SIZE = { '--cs': 'min(12.5vw, 56px)' } as CSSProperties;
 const PROMOS: PieceType[] = ['q', 'r', 'b', 'n'];
 type Mode = 'hotseat' | 'ai';
-const AI_DEPTH = 3; // IA básica
 const AI_COLOR: Color = 'b'; // la IA juega con negras; el humano, blancas
+const LEVELS: Level[] = ['easy', 'medium', 'hard'];
 
 export default function AjedrezGame({ onScore, onExit }: GameProps) {
   const t = useT();
@@ -36,8 +36,22 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
   const [slid, setSlid] = useState(false);
   const [seq, setSeq] = useState(0);
   const [mode, setMode] = useState<Mode>('hotseat');
+  const [level, setLevel] = useState<Level>('medium');
   const [thinking, setThinking] = useState(false);
   const submitted = useRef(false);
+  const workerRef = useRef<Worker | null>(null);
+
+  // Worker de IA (no congela la UI). Si falla, se calcula en el hilo principal.
+  useEffect(() => {
+    try {
+      workerRef.current = new Worker(new URL('./aiWorker.ts', import.meta.url), {
+        type: 'module',
+      });
+    } catch {
+      workerRef.current = null;
+    }
+    return () => workerRef.current?.terminate();
+  }, []);
 
   const moves = useMemo(() => legalMoves(game), [game]);
   const st = useMemo(() => status(game), [game]);
@@ -83,17 +97,32 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
     [game, history.length, onScore],
   );
 
-  // Turno de la IA (juega negras en modo "vs IA").
+  // Turno de la IA (juega negras en modo "vs IA"); calcula en el worker.
   useEffect(() => {
     if (mode !== 'ai' || over || game.turn !== AI_COLOR) return;
     setThinking(true);
-    const id = setTimeout(() => {
-      const m = bestMove(game, AI_DEPTH);
+    let cancelled = false;
+    const apply = (m: Move | null) => {
+      if (cancelled) return;
       if (m) doMove(m);
       setThinking(false);
-    }, 300);
-    return () => clearTimeout(id);
-  }, [game, mode, over, doMove]);
+    };
+    const w = workerRef.current;
+    if (w) {
+      w.onmessage = (e: MessageEvent<Move | null>) => apply(e.data);
+      w.postMessage({ state: game, level });
+      return () => {
+        cancelled = true;
+        w.onmessage = null;
+      };
+    }
+    // Respaldo en el hilo principal
+    const id = setTimeout(() => apply(chooseMove(game, level)), 50);
+    return () => {
+      cancelled = true;
+      clearTimeout(id);
+    };
+  }, [game, mode, over, level, doMove]);
 
   const onSquare = (i: number) => {
     if (pendingPromo || over || thinking) return;
@@ -188,6 +217,25 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
           </button>
         ))}
       </div>
+
+      {mode === 'ai' && (
+        <div className="mb-2 flex gap-2 px-3">
+          {LEVELS.map((lv) => (
+            <button
+              key={lv}
+              onClick={() => {
+                setLevel(lv);
+                newGame();
+              }}
+              className={`rounded-lg px-3 py-1 text-xs font-semibold transition ${
+                level === lv ? 'bg-brand text-white' : 'bg-app-surface/80 text-app-muted'
+              }`}
+            >
+              {t(`chess.level.${lv}`)}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="relative">
         <div

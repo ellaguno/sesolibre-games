@@ -77,17 +77,42 @@ function score(state: State, m: Move): number {
   return s;
 }
 
-function negamax(state: State, depth: number, alpha: number, beta: number): number {
+const persp = (state: State) => (state.turn === 'w' ? 1 : -1);
+const isCapture = (state: State, m: Move) =>
+  state.board[m.to] !== null ||
+  !!m.promo ||
+  (state.board[m.from]?.t === 'p' && col(m.from) !== col(m.to));
+
+/** Búsqueda de quiescencia: solo capturas/coronaciones hasta estabilizar. */
+function quiesce(state: State, alpha: number, beta: number, qd: number): number {
+  const standPat = persp(state) * evaluate(state);
+  if (qd === 0 || standPat >= beta) return standPat >= beta ? beta : standPat;
+  if (standPat > alpha) alpha = standPat;
+  const caps = ordered(
+    state,
+    legalMoves(state).filter((m) => isCapture(state, m)),
+  );
+  for (const m of caps) {
+    const v = -quiesce(applyMove(state, m), -beta, -alpha, qd - 1);
+    if (v >= beta) return beta;
+    if (v > alpha) alpha = v;
+  }
+  return alpha;
+}
+
+function search(
+  state: State,
+  depth: number,
+  alpha: number,
+  beta: number,
+  useQ: boolean,
+): number {
   const moves = legalMoves(state);
-  if (moves.length === 0) {
-    return inCheck(state, state.turn) ? -MATE - depth : 0; // mate (peor cuanto antes) / ahogado
-  }
-  if (depth === 0) {
-    return state.turn === 'w' ? evaluate(state) : -evaluate(state);
-  }
+  if (moves.length === 0) return inCheck(state, state.turn) ? -MATE - depth : 0;
+  if (depth === 0) return useQ ? quiesce(state, alpha, beta, 4) : persp(state) * evaluate(state);
   let best = -Infinity;
   for (const m of ordered(state, moves)) {
-    const v = -negamax(applyMove(state, m), depth - 1, -beta, -alpha);
+    const v = -search(applyMove(state, m), depth - 1, -beta, -alpha, useQ);
     if (v > best) best = v;
     if (best > alpha) alpha = best;
     if (alpha >= beta) break;
@@ -95,24 +120,49 @@ function negamax(state: State, depth: number, alpha: number, beta: number): numb
   return best;
 }
 
-/** Mejor jugada para el bando que mueve (o null si no hay). */
-export function bestMove(state: State, depth: number, rng: () => number = Math.random): Move | null {
+function rootSearch(
+  state: State,
+  depth: number,
+  useQ: boolean,
+  rng: () => number,
+): Move | null {
   const moves = ordered(state, legalMoves(state));
   if (moves.length === 0) return null;
   let best = -Infinity;
   let candidates: Move[] = [];
   let alpha = -Infinity;
   for (const m of moves) {
-    const v = -negamax(applyMove(state, m), depth - 1, -Infinity, -alpha);
-    if (v > best + 5) {
+    const v = -search(applyMove(state, m), depth - 1, -Infinity, -alpha, useQ);
+    if (v > best + 8) {
       best = v;
       candidates = [m];
-    } else if (v >= best - 5) {
+    } else if (v >= best - 8) {
       candidates.push(m);
       if (v > best) best = v;
     }
     if (v > alpha) alpha = v;
   }
-  // entre jugadas casi iguales, elegir al azar (variedad)
   return candidates[Math.floor(rng() * candidates.length)] ?? moves[0];
+}
+
+/** Mejor jugada a profundidad fija con quiescencia (usado en tests). */
+export function bestMove(state: State, depth: number, rng: () => number = Math.random): Move | null {
+  return rootSearch(state, depth, true, rng);
+}
+
+export type Level = 'easy' | 'medium' | 'hard';
+const LEVELS: Record<Level, { depth: number; q: boolean; blunder: number }> = {
+  easy: { depth: 2, q: false, blunder: 0.3 },
+  medium: { depth: 3, q: true, blunder: 0 },
+  hard: { depth: 4, q: true, blunder: 0 },
+};
+
+/** Elige jugada según el nivel de dificultad. */
+export function chooseMove(state: State, level: Level, rng: () => number = Math.random): Move | null {
+  const cfg = LEVELS[level];
+  const moves = ordered(state, legalMoves(state));
+  if (moves.length === 0) return null;
+  // En "fácil" a veces juega al azar (más vencible).
+  if (cfg.blunder > 0 && rng() < cfg.blunder) return moves[Math.floor(rng() * moves.length)];
+  return rootSearch(state, cfg.depth, cfg.q, rng);
 }

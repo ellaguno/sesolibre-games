@@ -109,6 +109,9 @@ const es: Dict = {
   'chess.hotseat': '2 jugadores',
   'chess.vsAI': 'vs IA',
   'chess.thinking': 'Pensando…',
+  'chess.level.easy': 'Fácil',
+  'chess.level.medium': 'Medio',
+  'chess.level.hard': 'Difícil',
 
   'glotono.help':
     'Flechas / WASD o desliza para moverte. Absorbe un orbe grande para volverte contra los virus. Limpia el laberinto para subir de nivel.',
@@ -258,6 +261,9 @@ const en: Dict = {
   'chess.hotseat': '2 players',
   'chess.vsAI': 'vs AI',
   'chess.thinking': 'Thinking…',
+  'chess.level.easy': 'Easy',
+  'chess.level.medium': 'Medium',
+  'chess.level.hard': 'Hard',
 
   'glotono.help':
     'Arrows / WASD or swipe to move. Absorb a big orb to turn on the viruses. Clear the maze to level up.',

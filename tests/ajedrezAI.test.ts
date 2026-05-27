@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { applyMove, status, type State } from '../src/games/ajedrez/logic';
-import { bestMove, evaluate } from '../src/games/ajedrez/ai';
+import { applyMove, legalMoves, status, type State } from '../src/games/ajedrez/logic';
+import { bestMove, chooseMove, evaluate } from '../src/games/ajedrez/ai';
 
 const sq = (r: number, c: number) => r * 8 + c;
 
@@ -40,5 +40,18 @@ describe('ajedrez IA', () => {
     const after = applyMove(s, m);
     // tras la mejor jugada negra, las blancas no tienen respuesta (mate)
     expect(status(after)).toBe('checkmate');
+  });
+
+  it('chooseMove "difícil" toma la dama colgada; "fácil" juega legal', () => {
+    const board = new Array(64).fill(null);
+    board[sq(7, 4)] = { t: 'k', c: 'w' };
+    board[sq(0, 4)] = { t: 'k', c: 'b' };
+    board[sq(2, 2)] = { t: 'n', c: 'b' };
+    board[sq(4, 3)] = { t: 'q', c: 'w' };
+    const s: State = { board, turn: 'b', castling: { wK: false, wQ: false, bK: false, bQ: false }, ep: null };
+    expect(chooseMove(s, 'hard', () => 0)!.to).toBe(sq(4, 3));
+    const easy = chooseMove(s, 'easy', () => 0.9)!; // 0.9 > blunder 0.3 => no aleatorio
+    const legal = legalMoves(s).some((m) => m.from === easy.from && m.to === easy.to);
+    expect(legal).toBe(true);
   });
 });
