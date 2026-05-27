@@ -183,6 +183,11 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
 
   const overlap = 'calc(var(--ch) * 0.34)';
 
+  // Descarte: en modo 3 se abanican (desfase) las últimas hasta 3 cartas.
+  const fanOff = 'calc(var(--cw) * 0.38)';
+  const wasteFan = Math.min(drawCount === 3 ? 3 : 1, game.waste.length);
+  const wasteShown = wasteFan > 0 ? game.waste.slice(game.waste.length - wasteFan) : [];
+
   return (
     <main
       className="mx-auto flex min-h-screen max-w-[480px] select-none flex-col px-2 py-3"
@@ -235,22 +240,41 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
                 </div>
               )}
             </div>
-            {/* Descarte */}
-            <div style={{ width: 'var(--cw)', height: 'var(--ch)' }}>
-              {game.waste.length > 0 ? (
-                <div
-                  className="h-full w-full touch-none"
-                  style={{ opacity: isDragged('waste', 0) ? 0 : 1 }}
-                  {...cardHandlers({ type: 'waste', index: 0 }, 1, [
-                    game.waste[game.waste.length - 1],
-                  ])}
-                >
-                  <CardView card={game.waste[game.waste.length - 1]} back={back} />
-                </div>
-              ) : (
+            {/* Descarte (en modo 3, las últimas hasta 3 cartas se abanican) */}
+            {game.waste.length === 0 ? (
+              <div style={{ width: 'var(--cw)', height: 'var(--ch)' }}>
                 <CardView />
-              )}
-            </div>
+              </div>
+            ) : (
+              <div
+                className="relative"
+                style={{
+                  width: `calc(var(--cw) + ${wasteFan - 1} * ${fanOff})`,
+                  height: 'var(--ch)',
+                }}
+              >
+                {wasteShown.map((card, i) => {
+                  const isTop = i === wasteFan - 1;
+                  return (
+                    <div
+                      key={card.id}
+                      className={isTop ? 'absolute top-0 touch-none' : 'absolute top-0'}
+                      style={{
+                        left: `calc(${i} * ${fanOff})`,
+                        width: 'var(--cw)',
+                        height: 'var(--ch)',
+                        zIndex: i,
+                        pointerEvents: isTop ? 'auto' : 'none',
+                        opacity: isTop && isDragged('waste', 0) ? 0 : 1,
+                      }}
+                      {...(isTop ? cardHandlers({ type: 'waste', index: 0 }, 1, [card]) : {})}
+                    >
+                      <CardView card={card} back={back} />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Bases */}
