@@ -18,7 +18,9 @@ import { AudioService } from '../../core/AudioService';
 import { useT } from '../../core/i18n';
 import Button from '../../ui/Button';
 
-const SIZE = { '--cs': 'min(11.5vw, 5.2vh)' } as CSSProperties;
+// Celda = 1/8 del ancho (tablero a pantalla completa en móvil), con tope para
+// escritorio (max-w-md / 8 ≈ 56px).
+const SIZE = { '--cs': 'min(12.5vw, 56px)' } as CSSProperties;
 const PROMOS: PieceType[] = ['q', 'r', 'b', 'n'];
 type Mode = 'hotseat' | 'ai';
 const AI_DEPTH = 3; // IA básica
@@ -156,8 +158,8 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
   };
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col items-center px-3 py-3" style={SIZE}>
-      <div className="mb-2 flex w-full items-center justify-between">
+    <main className="mx-auto flex min-h-screen max-w-md flex-col items-center py-3" style={SIZE}>
+      <div className="mb-2 flex w-full items-center justify-between px-3">
         <button
           onClick={onExit}
           aria-label={t('common.exit')}
@@ -173,7 +175,7 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
         <div className="w-10" />
       </div>
 
-      <div className="mb-2 flex gap-2">
+      <div className="mb-2 flex gap-2 px-3">
         {(['hotseat', 'ai'] as Mode[]).map((m) => (
           <button
             key={m}
@@ -189,7 +191,7 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
 
       <div className="relative">
         <div
-          className="grid overflow-hidden rounded-lg border-2 border-black/40 shadow-xl"
+          className="grid shadow-xl"
           style={{ gridTemplateColumns: `repeat(8, var(--cs))` }}
         >
           {game.board.map((p, i) => {
@@ -263,7 +265,7 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
         )}
       </div>
 
-      <div className="mt-auto flex justify-center gap-2 pt-4">
+      <div className="mt-auto flex justify-center gap-2 px-3 pt-4">
         <button
           onClick={undo}
           disabled={history.length === 0}
@@ -278,7 +280,7 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
           ↻ {t('common.new')}
         </button>
       </div>
-      <p className="mt-2 text-center text-xs text-white/70 drop-shadow">{t('chess.help')}</p>
+      <p className="mt-2 px-3 text-center text-xs text-white/70 drop-shadow">{t('chess.help')}</p>
     </main>
   );
 }
