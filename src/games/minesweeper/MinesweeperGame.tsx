@@ -15,6 +15,7 @@ import {
 } from './logic';
 import type { GameProps } from '../../core/registry';
 import { AudioService } from '../../core/AudioService';
+import { fireBurst, bigCelebrate } from '../../anim/particles';
 import { useT } from '../../core/i18n';
 import Button from '../../ui/Button';
 
@@ -47,6 +48,7 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
   const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressedRef = useRef(false);
   const pressTypeRef = useRef<string>('mouse');
+  const boardRef = useRef<HTMLDivElement>(null);
 
   const reset = useCallback((d: Difficulty) => {
     setGrid(createEmptyGrid(d.rows, d.cols));
@@ -70,12 +72,22 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
     timerRef.current = null;
   };
 
+  const cellCenter = (r: number, c: number): { x: number; y: number } | null => {
+    const el = boardRef.current;
+    if (!el) return null;
+    const rect = el.getBoundingClientRect();
+    const cw = rect.width / difficulty.cols;
+    const ch = rect.height / difficulty.rows;
+    return { x: rect.left + (c + 0.5) * cw, y: rect.top + (r + 0.5) * ch };
+  };
+
   const finish = useCallback(
-    (next: Grid, won: boolean, secs: number) => {
+    (next: Grid, won: boolean, secs: number, mine?: { r: number; c: number }) => {
       stopTimer();
       setStatus(won ? 'won' : 'lost');
       if (won) {
         AudioService.play('win');
+        bigCelebrate();
         if (!submittedRef.current) {
           submittedRef.current = true;
           onScore(secs); // tiempo en segundos: menor es mejor
@@ -83,9 +95,14 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
       } else {
         AudioService.play('lose');
         revealAllMines(next);
+        if (mine) {
+          const p = cellCenter(mine.r, mine.c);
+          if (p) fireBurst(p.x, p.y);
+        }
       }
       setGrid(next);
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [onScore],
   );
 
@@ -102,7 +119,7 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
       startTimer();
     }
     if (next[r][c].mine) {
-      finish(next, false, seconds);
+      finish(next, false, seconds, { r, c });
       return;
     }
     reveal(next, r, c);
@@ -190,16 +207,19 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
         ))}
       </div>
 
-      <div className="relative">
+      <div className="relative w-full max-w-[460px]">
         <div
-          className="grid touch-none gap-0.5"
-          style={{ gridTemplateColumns: `repeat(${difficulty.cols}, minmax(0, 1fr))` }}
+          ref={boardRef}
+          className="grid w-full touch-none gap-0.5"
+          style={{
+            gridTemplateColumns: `repeat(${difficulty.cols}, minmax(0, 1fr))`,
+            fontSize: `calc(min(92vw, 460px) / ${difficulty.cols} * 0.5)`,
+          }}
         >
           {grid.map((row, r) =>
             row.map((cell, c) => {
               const base =
-                'flex items-center justify-center font-bold select-none rounded-[3px]';
-              const size = difficulty.cols > 12 ? 'h-6 w-6 text-[11px]' : 'h-8 w-8 text-sm';
+                'flex aspect-square w-full items-center justify-center font-bold leading-none select-none rounded-[3px]';
               let content: React.ReactNode = '';
               let cls = 'bg-app-surface2 hover:bg-app-surface2';
               if (cell.revealed) {
@@ -216,7 +236,7 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
               return (
                 <button
                   key={`${r}-${c}`}
-                  className={`${base} ${size} ${cls}`}
+                  className={`${base} ${cls}`}
                   style={
                     cell.revealed && cell.adjacent > 0 && !cell.mine
                       ? { color: NUM_COLORS[cell.adjacent] }

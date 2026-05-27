@@ -69,9 +69,46 @@ body {
   animation: card-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Destello de luz al eliminar fichas en Figures */
+@keyframes match-flash {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  40% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+}
+.match-flash {
+  animation: match-flash 0.5s ease-out forwards;
+}
+
+/* Destellos aleatorios del dashboard */
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(0.7);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.15);
+  }
+}
+.twinkle {
+  animation: twinkle var(--tw-dur, 3s) ease-in-out infinite;
+  animation-delay: var(--tw-delay, 0s);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .route-enter,
-  .hub-card {
+  .hub-card,
+  .twinkle,
+  .match-flash {
     animation: none;
   }
 }

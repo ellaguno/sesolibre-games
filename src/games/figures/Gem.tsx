@@ -66,6 +66,15 @@ export default function Gem({
           } ${isSelected ? 'rounded-lg ring-2 ring-brand' : ''}`}
         />
       )}
+      {isDestroying && (
+        <span
+          className="match-flash pointer-events-none absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.4) 35%, rgba(255,255,255,0) 70%)',
+          }}
+        />
+      )}
     </div>
   );
 }

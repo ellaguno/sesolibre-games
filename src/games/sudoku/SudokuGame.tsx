@@ -11,10 +11,31 @@ import {
 } from './generator';
 import type { GameProps } from '../../core/registry';
 import { AudioService } from '../../core/AudioService';
+import { particles, bigCelebrate } from '../../anim/particles';
 import { useT } from '../../core/i18n';
 import Button from '../../ui/Button';
 
 type Notes = boolean[][][]; // [r][c][digit-1]
+
+/** ¿El dígito `d` está completo (sus 9 casillas, todas correctas)? */
+function digitComplete(board: Board, solution: Board, d: number): boolean {
+  let n = 0;
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      if (board[r][c] === d) {
+        if (board[r][c] !== solution[r][c]) return false;
+        n++;
+      }
+    }
+  }
+  return n === 9;
+}
+
+function burstAt(el: HTMLElement | null) {
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  particles.burst(r.left + r.width / 2, r.top + r.height / 2, 16);
+}
 
 const emptyNotes = (): Notes =>
   Array.from({ length: 9 }, () =>
@@ -53,18 +74,33 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
 
   const conflicts = findConflicts(board);
 
+  const keyRefs = useRef<Record<number, HTMLButtonElement | null>>({});
+
   const win = useCallback(
     (next: Board) => {
       if (!isSolved(next, game.solution)) return;
       setSolved(true);
       if (timerRef.current) clearInterval(timerRef.current);
       AudioService.play('win');
+      bigCelebrate();
       if (!submittedRef.current) {
         submittedRef.current = true;
         onScore(seconds);
       }
     },
     [game.solution, onScore, seconds],
+  );
+
+  // Destello pequeño + sonido al COMPLETAR un dígito en todo el tablero.
+  const checkDigitComplete = useCallback(
+    (prev: Board, next: Board, digit: number) => {
+      if (digit === 0) return;
+      if (digitComplete(next, game.solution, digit) && !digitComplete(prev, game.solution, digit)) {
+        AudioService.play('reward');
+        burstAt(keyRefs.current[digit]);
+      }
+    },
+    [game.solution],
   );
 
   const placeDigit = useCallback(
@@ -92,10 +128,11 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
           return cleared;
         });
         AudioService.play('pop');
+        checkDigitComplete(board, next, digit);
         win(next);
       }
     },
-    [selected, solved, game.givens, notesMode, board, win],
+    [selected, solved, game.givens, notesMode, board, win, checkDigitComplete],
   );
 
   const hint = () => {
@@ -106,6 +143,7 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
     next[r][c] = game.solution[r][c];
     setBoard(next);
     AudioService.play('pop');
+    checkDigitComplete(board, next, next[r][c]);
     win(next);
   };
 
@@ -230,18 +268,26 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
         )}
       </div>
 
-      {/* Teclado numérico */}
+      {/* Teclado numérico (los dígitos completos se deshabilitan) */}
       <div className="mt-4 grid w-full max-w-[min(92vw,380px)] grid-cols-9 gap-1">
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
-          <button
-            key={n}
-            onClick={() => placeDigit(n)}
-            disabled={!selected}
-            className="flex aspect-square items-center justify-center rounded-lg bg-app-surface text-lg font-bold hover:bg-app-surface2 active:scale-95 disabled:opacity-40"
-          >
-            {n}
-          </button>
-        ))}
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => {
+          const done = digitComplete(board, game.solution, n);
+          return (
+            <button
+              key={n}
+              ref={(el) => {
+                keyRefs.current[n] = el;
+              }}
+              onClick={() => placeDigit(n)}
+              disabled={!selected || done}
+              className={`flex aspect-square items-center justify-center rounded-lg text-lg font-bold active:scale-95 disabled:opacity-30 ${
+                done ? 'bg-emerald-700/40 text-emerald-300' : 'bg-app-surface hover:bg-app-surface2'
+              }`}
+            >
+              {done ? '✓' : n}
+            </button>
+          );
+        })}
       </div>
 
       <div className="mt-3 flex gap-2">

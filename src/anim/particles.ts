@@ -151,3 +151,24 @@ export function celebrate() {
   particles.confetti();
   particles.burst(window.innerWidth / 2, window.innerHeight / 2, 30);
 }
+
+/** Gran celebración: mucho confeti + estallidos en varios puntos. */
+export function bigCelebrate() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  particles.confetti(170);
+  const points: [number, number][] = [
+    [w * 0.25, h * 0.4],
+    [w * 0.5, h * 0.3],
+    [w * 0.75, h * 0.4],
+    [w * 0.5, h * 0.55],
+  ];
+  for (const [x, y] of points) particles.burst(x, y, 34);
+}
+
+const FIRE_COLORS = ['#fde68a', '#fbbf24', '#f97316', '#ef4444', '#dc2626', '#7c2d12'];
+
+/** Estallido de "fuego" (cálido) en (x, y) — para la mina al perder. */
+export function fireBurst(x: number, y: number) {
+  particles.burst(x, y, 46, FIRE_COLORS);
+}

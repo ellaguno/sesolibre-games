@@ -173,6 +173,14 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
     onPointerUp: endDrag,
   });
 
+  // ¿Esta carta es la que se está arrastrando? (para ocultar el origen)
+  const isDragged = (type: PileType, index: number, ci?: number) =>
+    !!drag &&
+    drag.moved &&
+    drag.from.type === type &&
+    drag.from.index === index &&
+    (type !== 'tableau' || ci === undefined || ci >= game.tableau[index].length - drag.count);
+
   const overlap = 'calc(var(--ch) * 0.34)';
 
   return (
@@ -232,6 +240,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
               {game.waste.length > 0 ? (
                 <div
                   className="h-full w-full touch-none"
+                  style={{ opacity: isDragged('waste', 0) ? 0 : 1 }}
                   {...cardHandlers({ type: 'waste', index: 0 }, 1, [
                     game.waste[game.waste.length - 1],
                   ])}
@@ -250,7 +259,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
               <div
                 key={i}
                 data-drop={`foundation:${i}`}
-                style={{ width: 'var(--cw)', height: 'var(--ch)' }}
+                style={{ width: 'var(--cw)', height: 'var(--ch)', opacity: isDragged('foundation', i) ? 0 : 1 }}
                 className="touch-none"
                 {...(f.length > 0
                   ? cardHandlers({ type: 'foundation', index: i }, 1, [f[f.length - 1]])
@@ -286,7 +295,12 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
                       <div
                         key={card.id}
                         className="absolute left-0 w-full"
-                        style={{ top: `calc(${ci} * ${overlap})`, height: 'var(--ch)', zIndex: ci }}
+                        style={{
+                          top: `calc(${ci} * ${overlap})`,
+                          height: 'var(--ch)',
+                          zIndex: ci,
+                          opacity: isDragged('tableau', p, ci) ? 0 : 1,
+                        }}
                         {...(canGrab
                           ? cardHandlers(
                               { type: 'tableau', index: p },

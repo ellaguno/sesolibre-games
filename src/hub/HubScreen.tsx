@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { games } from '../core/registry';
 import { ScoreService, type ScoreEntry } from '../core/ScoreService';
@@ -8,6 +8,17 @@ import { useT } from '../core/i18n';
 import dashboardBg from '../assets/backgrounds/dashboard.webp';
 import HeroCard from './HeroCard';
 import GameTile from './GameTile';
+
+// Destellos aleatorios (posición/tamaño/ritmo fijos por sesión).
+function makeTwinkles(n: number) {
+  return Array.from({ length: n }, () => ({
+    top: Math.random() * 92 + '%',
+    left: Math.random() * 94 + '%',
+    size: 2 + Math.random() * 4,
+    dur: 2.2 + Math.random() * 3.5,
+    delay: Math.random() * 4,
+  }));
+}
 
 /** Índice del juego destacado del día (rota cada día). */
 function dailyIndex(count: number): number {
@@ -22,6 +33,29 @@ export default function HubScreen() {
   const [best, setBest] = useState<Record<string, ScoreEntry | null>>({});
   const rewards = useRewards();
   const motion = useSettings((s) => s.motion);
+  const [par, setPar] = useState({ x: 0, y: 0 });
+  const twinkles = useMemo(() => (motion ? makeTwinkles(16) : []), [motion]);
+
+  // Parallax: puntero (escritorio) + giroscopio (Android).
+  useEffect(() => {
+    if (!motion) return;
+    const onPointer = (e: PointerEvent) => {
+      const x = (e.clientX / window.innerWidth - 0.5) * 2;
+      const y = (e.clientY / window.innerHeight - 0.5) * 2;
+      setPar({ x: -x * 12, y: -y * 12 });
+    };
+    const onTilt = (e: DeviceOrientationEvent) => {
+      const gx = Math.max(-1, Math.min(1, (e.gamma ?? 0) / 30));
+      const gy = Math.max(-1, Math.min(1, ((e.beta ?? 0) - 45) / 30));
+      setPar({ x: -gx * 14, y: -gy * 14 });
+    };
+    window.addEventListener('pointermove', onPointer);
+    window.addEventListener('deviceorientation', onTilt);
+    return () => {
+      window.removeEventListener('pointermove', onPointer);
+      window.removeEventListener('deviceorientation', onTilt);
+    };
+  }, [motion]);
   const dailyAvailable = canClaimToday({ lastClaim: rewards.lastClaim }, dateKey(new Date()));
 
   useEffect(() => {
@@ -41,12 +75,36 @@ export default function HubScreen() {
 
   return (
     <div className="relative min-h-full">
-      {/* Fondo del dashboard */}
+      {/* Fondo del dashboard (con parallax) */}
       <div
-        className="fixed inset-0 -z-10 bg-cover bg-center"
-        style={{ backgroundImage: `url(${dashboardBg})` }}
+        className="fixed inset-0 -z-10 bg-cover bg-center transition-transform duration-300 ease-out"
+        style={{
+          backgroundImage: `url(${dashboardBg})`,
+          transform: `scale(1.08) translate(${par.x}px, ${par.y}px)`,
+        }}
       />
       <div className="fixed inset-0 -z-10 bg-app-bg/55" />
+      {/* Destellos aleatorios */}
+      {twinkles.length > 0 && (
+        <div className="pointer-events-none fixed inset-0 -z-10">
+          {twinkles.map((tw, i) => (
+            <span
+              key={i}
+              className="twinkle absolute rounded-full bg-white shadow-[0_0_6px_2px_rgba(255,255,255,0.5)]"
+              style={
+                {
+                  top: tw.top,
+                  left: tw.left,
+                  width: tw.size,
+                  height: tw.size,
+                  '--tw-dur': `${tw.dur}s`,
+                  '--tw-delay': `${tw.delay}s`,
+                } as CSSProperties
+              }
+            />
+          ))}
+        </div>
+      )}
 
       <main className="mx-auto flex min-h-full max-w-2xl flex-col px-4 py-6">
         <header className="mb-6 flex items-start justify-between gap-2">
