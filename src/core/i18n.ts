@@ -105,7 +105,10 @@ const es: Dict = {
   'chess.checkmate': 'Jaque mate —',
   'chess.stalemate': 'Tablas (ahogado)',
   'chess.promote': 'Corona el peón',
-  'chess.help': 'Toca una pieza y luego su destino. Dos jugadores por turnos.',
+  'chess.help': 'Toca una pieza y luego su destino.',
+  'chess.hotseat': '2 jugadores',
+  'chess.vsAI': 'vs IA',
+  'chess.thinking': 'Pensando…',
 
   'glotono.help':
     'Flechas / WASD o desliza para moverte. Absorbe un orbe grande para volverte contra los virus. Limpia el laberinto para subir de nivel.',
@@ -251,7 +254,10 @@ const en: Dict = {
   'chess.checkmate': 'Checkmate —',
   'chess.stalemate': 'Stalemate (draw)',
   'chess.promote': 'Promote the pawn',
-  'chess.help': 'Tap a piece, then its destination. Two players take turns.',
+  'chess.help': 'Tap a piece, then its destination.',
+  'chess.hotseat': '2 players',
+  'chess.vsAI': 'vs AI',
+  'chess.thinking': 'Thinking…',
 
   'glotono.help':
     'Arrows / WASD or swipe to move. Absorb a big orb to turn on the viruses. Clear the maze to level up.',

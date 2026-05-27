@@ -12,6 +12,7 @@ import {
   type PieceType,
   type Color,
 } from './logic';
+import { bestMove } from './ai';
 import type { GameProps } from '../../core/registry';
 import { AudioService } from '../../core/AudioService';
 import { useT } from '../../core/i18n';
@@ -19,6 +20,9 @@ import Button from '../../ui/Button';
 
 const SIZE = { '--cs': 'min(11.5vw, 5.2vh)' } as CSSProperties;
 const PROMOS: PieceType[] = ['q', 'r', 'b', 'n'];
+type Mode = 'hotseat' | 'ai';
+const AI_DEPTH = 3; // IA básica
+const AI_COLOR: Color = 'b'; // la IA juega con negras; el humano, blancas
 
 export default function AjedrezGame({ onScore, onExit }: GameProps) {
   const t = useT();
@@ -29,6 +33,8 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
   const [anim, setAnim] = useState<{ to: number; tx: number; ty: number } | null>(null);
   const [slid, setSlid] = useState(false);
   const [seq, setSeq] = useState(0);
+  const [mode, setMode] = useState<Mode>('hotseat');
+  const [thinking, setThinking] = useState(false);
   const submitted = useRef(false);
 
   const moves = useMemo(() => legalMoves(game), [game]);
@@ -75,8 +81,21 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
     [game, history.length, onScore],
   );
 
+  // Turno de la IA (juega negras en modo "vs IA").
+  useEffect(() => {
+    if (mode !== 'ai' || over || game.turn !== AI_COLOR) return;
+    setThinking(true);
+    const id = setTimeout(() => {
+      const m = bestMove(game, AI_DEPTH);
+      if (m) doMove(m);
+      setThinking(false);
+    }, 300);
+    return () => clearTimeout(id);
+  }, [game, mode, over, doMove]);
+
   const onSquare = (i: number) => {
-    if (pendingPromo || over) return;
+    if (pendingPromo || over || thinking) return;
+    if (mode === 'ai' && game.turn === AI_COLOR) return;
     const p = game.board[i];
     if (sel === null) {
       if (p && p.c === game.turn) setSel(i);
@@ -129,6 +148,12 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
   if (st === 'check') statusText = `${t('chess.check')} · ${turnName(game.turn)}`;
   else if (st === 'checkmate') statusText = `${t('chess.checkmate')} ${turnName(game.turn === 'w' ? 'b' : 'w')}`;
   else if (st === 'stalemate') statusText = t('chess.stalemate');
+  if (thinking) statusText = t('chess.thinking');
+
+  const pickMode = (m: Mode) => {
+    setMode(m);
+    newGame();
+  };
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center px-3 py-3" style={SIZE}>
@@ -146,6 +171,20 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
           {statusText}
         </span>
         <div className="w-10" />
+      </div>
+
+      <div className="mb-2 flex gap-2">
+        {(['hotseat', 'ai'] as Mode[]).map((m) => (
+          <button
+            key={m}
+            onClick={() => pickMode(m)}
+            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+              mode === m ? 'bg-brand text-white' : 'bg-app-surface/80 text-app-muted'
+            }`}
+          >
+            {m === 'hotseat' ? t('chess.hotseat') : t('chess.vsAI')}
+          </button>
+        ))}
       </div>
 
       <div className="relative">
