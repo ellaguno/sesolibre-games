@@ -347,7 +347,7 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
 
   return (
     <main
-      className="mx-auto flex min-h-full max-w-2xl touch-none flex-col items-center px-4 py-4"
+      className="mx-auto flex min-h-screen max-w-2xl touch-none flex-col items-center px-4 py-4"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
