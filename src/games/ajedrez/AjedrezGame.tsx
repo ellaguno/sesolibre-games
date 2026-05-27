@@ -26,6 +26,42 @@ type Mode = 'hotseat' | 'ai';
 const AI_COLOR: Color = 'b'; // la IA juega con negras; el humano, blancas
 const LEVELS: Level[] = ['easy', 'medium', 'hard'];
 
+type ClockId = 'off' | '3+2' | '5' | '10';
+const TIME_CONTROLS: Record<ClockId, { base: number; inc: number }> = {
+  off: { base: 0, inc: 0 },
+  '3+2': { base: 180_000, inc: 2_000 },
+  '5': { base: 300_000, inc: 0 },
+  '10': { base: 600_000, inc: 0 },
+};
+const CLOCK_IDS: ClockId[] = ['off', '3+2', '5', '10'];
+const CLOCK_LABEL: Record<ClockId, string> = { off: '—', '3+2': '3+2', '5': '5m', '10': '10m' };
+const otherC = (c: Color): Color => (c === 'w' ? 'b' : 'w');
+const fmtClock = (ms: number) => {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+};
+
+// Relieve de la pieza: en vista 3D, sombra "extruida" para simular volumen.
+function pieceShadow(c: Color, view3d: boolean): string {
+  if (view3d) {
+    return c === 'w'
+      ? '0 1px 0 #99a, 0 2px 0 #778, 0 4px 6px rgba(0,0,0,0.6), 0 0 1px #000'
+      : '0 1px 0 #000, 0 2px 0 #000, 0 4px 6px rgba(0,0,0,0.65), 0 0 1px #888';
+  }
+  return c === 'w'
+    ? '0 0 1px #000, 0 1px 2px rgba(0,0,0,0.6)'
+    : '0 0 1px #fff, 0 1px 2px rgba(255,255,255,0.3)';
+}
+
+// Transform de la pieza: combina el deslizamiento (animación) con la vista 3D
+// (contra-rotación para que la pieza "se pare" y se eleve sobre el tablero).
+function pieceTransform(slide: { tx: number; ty: number } | null, view3d: boolean): string | undefined {
+  const parts: string[] = [];
+  if (slide) parts.push(`translate(${slide.tx}%, ${slide.ty}%)`);
+  if (view3d) parts.push('rotateX(-13deg) translateZ(calc(var(--cs) * 0.28))');
+  return parts.length ? parts.join(' ') : undefined;
+}
+
 export default function AjedrezGame({ onScore, onExit }: GameProps) {
   const t = useT();
   const [game, setGame] = useState<State>(() => initialState());
@@ -38,8 +74,24 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
   const [mode, setMode] = useState<Mode>('hotseat');
   const [level, setLevel] = useState<Level>('medium');
   const [thinking, setThinking] = useState(false);
+  const [clockId, setClockId] = useState<ClockId>('off');
+  const [clocks, setClocks] = useState({ w: 0, b: 0 });
+  const clocksRef = useRef(clocks);
+  const [timeoutLoser, setTimeoutLoser] = useState<Color | null>(null);
+  const [view3d, setView3d] = useState(false);
   const submitted = useRef(false);
   const workerRef = useRef<Worker | null>(null);
+
+  const setClk = (c: { w: number; b: number }) => {
+    clocksRef.current = c;
+    setClocks(c);
+  };
+  const resetClocks = useCallback((id: ClockId) => {
+    const base = TIME_CONTROLS[id].base;
+    clocksRef.current = { w: base, b: base };
+    setClocks(clocksRef.current);
+    setTimeoutLoser(null);
+  }, []);
 
   // Worker de IA (no congela la UI). Si falla, se calcula en el hilo principal.
   useEffect(() => {
@@ -55,7 +107,7 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
 
   const moves = useMemo(() => legalMoves(game), [game]);
   const st = useMemo(() => status(game), [game]);
-  const over = st === 'checkmate' || st === 'stalemate';
+  const over = st === 'checkmate' || st === 'stalemate' || timeoutLoser !== null;
 
   const targets = useMemo(() => {
     const set = new Set<number>();
@@ -93,9 +145,31 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
       } else {
         AudioService.play(capture ? 'pop' : 'click');
       }
+      // Incremento al jugador que acaba de mover
+      const inc = TIME_CONTROLS[clockId].inc;
+      if (inc > 0) {
+        const mv = game.turn;
+        setClk({ ...clocksRef.current, [mv]: clocksRef.current[mv] + inc });
+      }
     },
-    [game, history.length, onScore],
+    [game, history.length, onScore, clockId],
   );
+
+  // Reloj: descuenta el tiempo del bando que mueve.
+  useEffect(() => {
+    if (clockId === 'off' || over || pendingPromo) return;
+    let last = Date.now();
+    const id = setInterval(() => {
+      const now = Date.now();
+      const d = now - last;
+      last = now;
+      const side = game.turn;
+      const nv = Math.max(0, clocksRef.current[side] - d);
+      setClk({ ...clocksRef.current, [side]: nv });
+      if (nv === 0) setTimeoutLoser(side);
+    }, 200);
+    return () => clearInterval(id);
+  }, [game, clockId, over, pendingPromo]);
 
   // Turno de la IA (juega negras en modo "vs IA"); calcula en el worker.
   useEffect(() => {
@@ -172,6 +246,12 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
     setSel(null);
     setAnim(null);
     submitted.current = false;
+    resetClocks(clockId);
+  };
+
+  const pickClock = (id: ClockId) => {
+    setClockId(id);
+    resetClocks(id);
   };
 
   const turnName = (c: Color) => (c === 'w' ? t('chess.white') : t('chess.black'));
@@ -179,7 +259,8 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
   if (st === 'check') statusText = `${t('chess.check')} · ${turnName(game.turn)}`;
   else if (st === 'checkmate') statusText = `${t('chess.checkmate')} ${turnName(game.turn === 'w' ? 'b' : 'w')}`;
   else if (st === 'stalemate') statusText = t('chess.stalemate');
-  if (thinking) statusText = t('chess.thinking');
+  if (timeoutLoser) statusText = `${t('chess.timeout')} ${turnName(otherC(timeoutLoser))}`;
+  if (thinking && !over) statusText = t('chess.thinking');
 
   const pickMode = (m: Mode) => {
     setMode(m);
@@ -237,10 +318,54 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
         </div>
       )}
 
-      <div className="relative">
+      <div className="mb-2 flex w-full items-center gap-1.5 px-3 text-xs">
+        <span className="text-app-muted">{t('chess.clock')}</span>
+        {CLOCK_IDS.map((id) => (
+          <button
+            key={id}
+            onClick={() => pickClock(id)}
+            className={`rounded-lg px-2 py-1 font-semibold ${
+              clockId === id ? 'bg-brand text-white' : 'bg-app-surface/80 text-app-muted'
+            }`}
+          >
+            {id === 'off' ? t('chess.noClock') : CLOCK_LABEL[id]}
+          </button>
+        ))}
+        <button
+          onClick={() => setView3d((v) => !v)}
+          className={`ml-auto rounded-lg px-2 py-1 font-semibold ${
+            view3d ? 'bg-brand text-white' : 'bg-app-surface/80 text-app-muted'
+          }`}
+        >
+          🧊 {t('chess.view3d')}
+        </button>
+      </div>
+
+      {clockId !== 'off' && (
+        <div className="mb-2 flex w-full justify-between px-3 font-mono text-lg">
+          <span
+            className={`rounded px-3 py-1 ${game.turn === 'b' && !over ? 'bg-brand text-white' : 'bg-app-surface/70 text-app-text'}`}
+          >
+            ♚ {fmtClock(clocks.b)}
+          </span>
+          <span
+            className={`rounded px-3 py-1 ${game.turn === 'w' && !over ? 'bg-brand text-white' : 'bg-app-surface/70 text-app-text'}`}
+          >
+            ♔ {fmtClock(clocks.w)}
+          </span>
+        </div>
+      )}
+
+      <div className="relative" style={{ perspective: view3d ? '1100px' : undefined }}>
         <div
           className="grid shadow-xl"
-          style={{ gridTemplateColumns: `repeat(8, var(--cs))` }}
+          style={{
+            gridTemplateColumns: `repeat(8, var(--cs))`,
+            transform: view3d ? 'rotateX(13deg)' : undefined,
+            transformStyle: view3d ? 'preserve-3d' : undefined,
+            transformOrigin: 'center',
+            transition: 'transform 0.4s ease',
+          }}
         >
           {game.board.map((p, i) => {
             const dark = (row(i) + col(i)) % 2 === 1;
@@ -256,6 +381,7 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
                   width: 'var(--cs)',
                   height: 'var(--cs)',
                   backgroundColor: isSel ? '#fde68a' : dark ? '#9a6b43' : '#e9d2ad',
+                  transformStyle: view3d ? 'preserve-3d' : undefined,
                 }}
               >
                 {/* marca de destino */}
@@ -271,11 +397,8 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
                     style={{
                       fontSize: 'calc(var(--cs) * 0.82)',
                       color: p.c === 'w' ? '#fff' : '#1e1e1e',
-                      textShadow:
-                        p.c === 'w'
-                          ? '0 0 1px #000, 0 1px 2px rgba(0,0,0,0.6)'
-                          : '0 0 1px #fff, 0 1px 2px rgba(255,255,255,0.3)',
-                      transform: animating ? (slid ? 'none' : `translate(${anim.tx}%, ${anim.ty}%)`) : undefined,
+                      textShadow: pieceShadow(p.c, view3d),
+                      transform: pieceTransform(animating && !slid ? anim : null, view3d),
                       transition: animating ? 'transform 0.25s ease' : undefined,
                     }}
                   >

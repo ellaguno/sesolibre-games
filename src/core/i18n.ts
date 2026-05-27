@@ -112,6 +112,10 @@ const es: Dict = {
   'chess.level.easy': 'Fácil',
   'chess.level.medium': 'Medio',
   'chess.level.hard': 'Difícil',
+  'chess.clock': 'Reloj',
+  'chess.noClock': 'Sin',
+  'chess.view3d': '3D',
+  'chess.timeout': 'Tiempo —',
 
   'glotono.help':
     'Flechas / WASD o desliza para moverte. Absorbe un orbe grande para volverte contra los virus. Limpia el laberinto para subir de nivel.',
@@ -264,6 +268,10 @@ const en: Dict = {
   'chess.level.easy': 'Easy',
   'chess.level.medium': 'Medium',
   'chess.level.hard': 'Hard',
+  'chess.clock': 'Clock',
+  'chess.noClock': 'Off',
+  'chess.view3d': '3D',
+  'chess.timeout': 'Time —',
 
   'glotono.help':
     'Arrows / WASD or swipe to move. Absorb a big orb to turn on the viruses. Clear the maze to level up.',
