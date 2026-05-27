@@ -5,6 +5,7 @@ import minesweeperBg from '../assets/backgrounds/minesweeper.webp';
 import sudokuBg from '../assets/backgrounds/sudoku.webp';
 import solitaireBg from '../assets/backgrounds/solitaire.webp';
 import bloquesBg from '../assets/backgrounds/bloques.webp';
+import ajedrezBg from '../assets/backgrounds/ajedrez.webp';
 
 export type ScoreKind = 'points' | 'time' | 'moves';
 
@@ -90,5 +91,15 @@ export const games: GameMeta[] = [
     accent: '#22d3ee',
     bg: bloquesBg,
     load: () => import('../games/bloques/BloquesGame'),
+  },
+  {
+    id: 'ajedrez',
+    emoji: '♟️',
+    scoreKind: 'moves',
+    higherIsBetter: false,
+    available: true,
+    accent: '#d9a441',
+    bg: ajedrezBg,
+    load: () => import('../games/ajedrez/AjedrezGame'),
   },
 ];

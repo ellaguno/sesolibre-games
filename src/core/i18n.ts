@@ -63,7 +63,7 @@ const es: Dict = {
   'ach.play': 'Probaste {title}',
   'ach.playDesc': 'Juega una partida de {title}.',
   'ach.explorer': 'Explorador',
-  'ach.explorerDesc': 'Juega los 5 juegos.',
+  'ach.explorerDesc': 'Juega todos los juegos.',
 
   'placeholder.notImplemented': 'Este juego aún no está implementado.',
 
@@ -95,6 +95,17 @@ const es: Dict = {
   'bloques.gemOnly': 'Solo gema',
   'bloques.over': '¡Fin del juego!',
   'bloques.help': '◀ ▶ mover · ⟳ girar · ▼ bajar · ⤓ soltar (o flechas y espacio)',
+  'game.ajedrez.title': 'Ajedrez',
+  'game.ajedrez.desc': 'Dos jugadores por turnos.',
+  'game.ajedrez.tagline': 'Mueve, captura, jaque mate',
+  'chess.turn': 'Turno',
+  'chess.white': 'Blancas',
+  'chess.black': 'Negras',
+  'chess.check': '¡Jaque!',
+  'chess.checkmate': 'Jaque mate —',
+  'chess.stalemate': 'Tablas (ahogado)',
+  'chess.promote': 'Corona el peón',
+  'chess.help': 'Toca una pieza y luego su destino. Dos jugadores por turnos.',
 
   'glotono.help':
     'Flechas / WASD o desliza para moverte. Absorbe un orbe grande para volverte contra los virus. Limpia el laberinto para subir de nivel.',
@@ -198,7 +209,7 @@ const en: Dict = {
   'ach.play': 'You tried {title}',
   'ach.playDesc': 'Play a round of {title}.',
   'ach.explorer': 'Explorer',
-  'ach.explorerDesc': 'Play all 5 games.',
+  'ach.explorerDesc': 'Play every game.',
 
   'placeholder.notImplemented': "This game isn't available yet.",
 
@@ -230,6 +241,17 @@ const en: Dict = {
   'bloques.gemOnly': 'Gem only',
   'bloques.over': 'Game over!',
   'bloques.help': '◀ ▶ move · ⟳ rotate · ▼ drop · ⤓ hard drop (or arrows & space)',
+  'game.ajedrez.title': 'Chess',
+  'game.ajedrez.desc': 'Two players, hotseat.',
+  'game.ajedrez.tagline': 'Move, capture, checkmate',
+  'chess.turn': 'Turn',
+  'chess.white': 'White',
+  'chess.black': 'Black',
+  'chess.check': 'Check!',
+  'chess.checkmate': 'Checkmate —',
+  'chess.stalemate': 'Stalemate (draw)',
+  'chess.promote': 'Promote the pawn',
+  'chess.help': 'Tap a piece, then its destination. Two players take turns.',
 
   'glotono.help':
     'Arrows / WASD or swipe to move. Absorb a big orb to turn on the viruses. Clear the maze to level up.',
