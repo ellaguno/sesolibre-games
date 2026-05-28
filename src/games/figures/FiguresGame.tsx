@@ -268,16 +268,15 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
 
   return (
     <main className="mx-auto flex min-h-full w-full max-w-md flex-col items-center px-3 py-4">
-      <div className="mb-3 flex w-full items-center justify-between">
+      <div className="mb-3 w-full">
         <button
           onClick={onExit}
           aria-label={t('common.exit')}
-          className="rounded-lg bg-app-surface px-3 py-2 hover:bg-app-surface2"
+          className="mb-2 rounded-lg bg-app-surface px-3 py-2 hover:bg-app-surface2"
         >
           ←
         </button>
-        <img src={logo} alt="Figures" className="h-10 w-auto" />
-        <div className="w-10" />
+        <img src={logo} alt="Figures" className="block w-full" />
       </div>
 
       {showConfig ? (
