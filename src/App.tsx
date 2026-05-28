@@ -5,6 +5,7 @@ import GameHost from './hub/GameHost';
 import SettingsScreen from './hub/SettingsScreen';
 import RecordsScreen from './hub/RecordsScreen';
 import RewardsScreen from './hub/RewardsScreen';
+import SpritePreview from './hub/SpritePreview';
 import { useSettings } from './core/settings';
 import { useRewards } from './core/RewardService';
 import ParticleOverlay from './anim/ParticleOverlay';
@@ -27,6 +28,7 @@ export default function App() {
           <Route path="/settings" element={<SettingsScreen />} />
           <Route path="/records" element={<RecordsScreen />} />
           <Route path="/rewards" element={<RewardsScreen />} />
+          <Route path="/sprites" element={<SpritePreview />} />
           <Route path="/game/:id" element={<GameHost />} />
         </Routes>
       </RouteTransition>
