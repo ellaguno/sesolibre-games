@@ -109,10 +109,15 @@ export default function HubScreen() {
       <main className="mx-auto flex min-h-full max-w-2xl flex-col px-4 py-6">
         <header className="mb-6 flex items-start justify-between gap-2">
           <div>
-            <h1 className="bg-gradient-to-r from-indigo-300 via-fuchsia-300 to-sky-300 bg-clip-text text-4xl font-extrabold leading-none tracking-tight text-transparent drop-shadow">
-              SesoLibre
-            </h1>
-            <p className="mt-1 text-sm font-bold tracking-[0.45em] text-sky-300/90">
+            <img
+              src={`${import.meta.env.BASE_URL}art/sesolibre.png`}
+              alt="SesoLibre"
+              className="h-12 w-auto drop-shadow"
+            />
+            <p
+              className="mt-1.5 bg-clip-text text-xl font-extrabold leading-none tracking-tight text-transparent"
+              style={{ backgroundImage: 'linear-gradient(90deg, #f49101, #e5017e)' }}
+            >
               {t('app.subtitle')}
             </p>
             <p className="mt-1 text-xs text-slate-300/80">{t('hub.tagline')}</p>

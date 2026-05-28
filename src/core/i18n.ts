@@ -20,7 +20,7 @@ type Dict = Record<string, string>;
 
 const es: Dict = {
   'app.title': 'Sesolibre Juegos',
-  'app.subtitle': 'JUEGOS',
+  'app.subtitle': 'SesoLibre Juegos',
   'hub.tagline': 'Juegos rápidos para descansar la mente',
   'hub.slogan': 'Diviértete. Supérate. Desconecta.',
   'hub.daily': 'RETO DEL DÍA',
@@ -123,6 +123,10 @@ const es: Dict = {
   'glotono.levelPts': 'Nivel {lv} · {pts} pts',
   'glotono.levelBanner': '¡Nivel {n}!',
   'glotono.hudLevel': 'Nv {n}',
+  'glotono.up': 'Arriba',
+  'glotono.down': 'Abajo',
+  'glotono.left': 'Izquierda',
+  'glotono.right': 'Derecha',
 
   'mines.help': 'Toca para revelar · mantén pulsado (o clic derecho) para poner bandera.',
   'mines.firstSafe': 'El primer toque siempre es seguro.',
@@ -176,7 +180,7 @@ const es: Dict = {
 
 const en: Dict = {
   'app.title': 'Sesolibre Games',
-  'app.subtitle': 'GAMES',
+  'app.subtitle': 'SesoLibre Games',
   'hub.tagline': 'Quick games to rest your mind',
   'hub.slogan': 'Have fun. Improve. Disconnect.',
   'hub.daily': 'DAILY CHALLENGE',
@@ -279,6 +283,10 @@ const en: Dict = {
   'glotono.levelPts': 'Level {lv} · {pts} pts',
   'glotono.levelBanner': 'Level {n}!',
   'glotono.hudLevel': 'Lv {n}',
+  'glotono.up': 'Up',
+  'glotono.down': 'Down',
+  'glotono.left': 'Left',
+  'glotono.right': 'Right',
 
   'mines.help': 'Tap to reveal · long-press (or right-click) to flag.',
   'mines.firstSafe': 'The first tap is always safe.',

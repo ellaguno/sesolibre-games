@@ -228,6 +228,45 @@ function draw(ctx: CanvasRenderingContext2D, s: RenderState, t: number) {
   drawPlayer(ctx, s, t);
 }
 
+// Joystick visual (D-pad): deja claro que se controla arriba/abajo/izq/der.
+// U+FE0E (selector de TEXTO) evita que las flechas salgan como emoji a color y
+// respeten el color CSS (igual que los trebejos del ajedrez).
+const TXT = '︎';
+function DPad({ onDir, t }: { onDir: (d: Dir) => void; t: (k: string) => string }) {
+  const press = (d: Dir) => (e: React.PointerEvent) => {
+    e.preventDefault();
+    onDir(d);
+  };
+  const btn =
+    'flex h-14 w-14 items-center justify-center rounded-2xl bg-app-surface/90 text-2xl text-emerald-300 shadow-md ring-1 ring-emerald-400/30 transition select-none active:scale-95 active:bg-emerald-500/30';
+  return (
+    <div
+      className="mt-4 grid grid-cols-3 grid-rows-3 gap-1.5"
+      style={{ touchAction: 'none' }}
+      onTouchStart={(e) => e.stopPropagation()}
+      onTouchEnd={(e) => e.stopPropagation()}
+    >
+      <span />
+      <button className={btn} aria-label={t('glotono.up')} onPointerDown={press({ x: 0, y: -1 })}>
+        {'▲' + TXT}
+      </button>
+      <span />
+      <button className={btn} aria-label={t('glotono.left')} onPointerDown={press({ x: -1, y: 0 })}>
+        {'◀' + TXT}
+      </button>
+      <span className="flex items-center justify-center text-xl text-emerald-400/70">{'●' + TXT}</span>
+      <button className={btn} aria-label={t('glotono.right')} onPointerDown={press({ x: 1, y: 0 })}>
+        {'▶' + TXT}
+      </button>
+      <span />
+      <button className={btn} aria-label={t('glotono.down')} onPointerDown={press({ x: 0, y: 1 })}>
+        {'▼' + TXT}
+      </button>
+      <span />
+    </div>
+  );
+}
+
 export default function GlotonoGame({ onScore, onExit }: GameProps) {
   const t = useT();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -392,6 +431,8 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
           </div>
         )}
       </div>
+
+      <DPad onDir={setDir} t={t} />
 
       <p className="mt-3 text-center text-xs text-app-muted">{t('glotono.help')}</p>
     </main>

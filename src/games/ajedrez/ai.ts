@@ -59,7 +59,10 @@ export function evaluate(state: State): number {
   for (let i = 0; i < 64; i++) {
     const p = state.board[i];
     if (!p) continue;
-    const idx = p.c === 'w' ? (7 - row(i)) * 8 + col(i) : row(i) * 8 + col(i);
+    // Las PST están escritas con el índice 0 = fila 8 (lado negro arriba) y el
+    // índice 56 = fila 1 (base blanca). El tablero tiene fila 0 arriba: por eso
+    // las blancas usan row*8+col y las negras el espejo vertical (7-row)*8+col.
+    const idx = p.c === 'w' ? row(i) * 8 + col(i) : (7 - row(i)) * 8 + col(i);
     const v = VALUE[p.t] + PST[p.t][idx];
     s += p.c === 'w' ? v : -v;
   }
@@ -124,37 +127,41 @@ function rootSearch(
   state: State,
   depth: number,
   useQ: boolean,
+  jitter: number,
   rng: () => number,
 ): Move | null {
   const moves = ordered(state, legalMoves(state));
   if (moves.length === 0) return null;
   let best = -Infinity;
-  let candidates: Move[] = [];
+  let bestMove: Move = moves[0];
   let alpha = -Infinity;
+  const scored: { m: Move; v: number }[] = [];
   for (const m of moves) {
     const v = -search(applyMove(state, m), depth - 1, -Infinity, -alpha, useQ);
-    if (v > best + 8) {
+    scored.push({ m, v });
+    if (v > best) {
       best = v;
-      candidates = [m];
-    } else if (v >= best - 8) {
-      candidates.push(m);
-      if (v > best) best = v;
+      bestMove = m;
     }
     if (v > alpha) alpha = v;
   }
-  return candidates[Math.floor(rng() * candidates.length)] ?? moves[0];
+  // Con jitter 0 (difícil) juega siempre la mejor. Con jitter > 0 elige al azar
+  // entre jugadas casi tan buenas, para dar variedad en niveles bajos.
+  if (jitter <= 0) return bestMove;
+  const near = scored.filter((s) => s.v >= best - jitter).map((s) => s.m);
+  return near[Math.floor(rng() * near.length)] ?? bestMove;
 }
 
 /** Mejor jugada a profundidad fija con quiescencia (usado en tests). */
 export function bestMove(state: State, depth: number, rng: () => number = Math.random): Move | null {
-  return rootSearch(state, depth, true, rng);
+  return rootSearch(state, depth, true, 0, rng);
 }
 
 export type Level = 'easy' | 'medium' | 'hard';
-const LEVELS: Record<Level, { depth: number; q: boolean; blunder: number }> = {
-  easy: { depth: 2, q: false, blunder: 0.3 },
-  medium: { depth: 3, q: true, blunder: 0 },
-  hard: { depth: 4, q: true, blunder: 0 },
+const LEVELS: Record<Level, { depth: number; q: boolean; blunder: number; jitter: number }> = {
+  easy: { depth: 2, q: false, blunder: 0.3, jitter: 40 },
+  medium: { depth: 3, q: true, blunder: 0, jitter: 12 },
+  hard: { depth: 4, q: true, blunder: 0, jitter: 0 },
 };
 
 /** Elige jugada según el nivel de dificultad. */
@@ -164,5 +171,5 @@ export function chooseMove(state: State, level: Level, rng: () => number = Math.
   if (moves.length === 0) return null;
   // En "fácil" a veces juega al azar (más vencible).
   if (cfg.blunder > 0 && rng() < cfg.blunder) return moves[Math.floor(rng() * moves.length)];
-  return rootSearch(state, cfg.depth, cfg.q, rng);
+  return rootSearch(state, cfg.depth, cfg.q, cfg.jitter, rng);
 }
