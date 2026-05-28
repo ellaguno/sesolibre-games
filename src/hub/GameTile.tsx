@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import type { GameMeta } from '../core/registry';
 import type { ScoreEntry } from '../core/ScoreService';
@@ -13,11 +14,13 @@ export default function GameTile({
   best,
   index = 0,
   animate = false,
+  fxClass = '',
 }: {
   game: GameMeta;
   best: ScoreEntry | null;
   index?: number;
   animate?: boolean;
+  fxClass?: string;
 }) {
   const t = useT();
   const label = bestLabel(t, game, best);
@@ -53,8 +56,13 @@ export default function GameTile({
         onError={(e) => {
           e.currentTarget.style.display = 'none';
         }}
-        className="pointer-events-none absolute left-1/2 top-2 h-[56%] -translate-x-1/2 object-contain transition-transform duration-500 group-hover:scale-105"
-        style={{ filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.5))' }}
+        className={`pointer-events-none absolute left-1/2 top-2 h-[56%] -translate-x-1/2 object-contain transition-transform duration-500 group-hover:scale-105 ${fxClass}`}
+        style={
+          {
+            filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.5))',
+            '--fx-accent': game.accent,
+          } as CSSProperties
+        }
       />
 
       <div className="relative z-10">

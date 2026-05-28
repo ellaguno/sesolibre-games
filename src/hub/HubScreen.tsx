@@ -73,6 +73,33 @@ export default function HubScreen() {
   const featured = playable[dailyIndex(playable.length)];
   const rest = playable.filter((g) => g.id !== featured?.id);
 
+  // Efecto aleatorio sobre la figura de un juego al azar (brinco, crecer,
+  // brillo, destello o "todos"). Una a la vez, con pausas variables.
+  const [fx, setFx] = useState<{ id: string; cls: string } | null>(null);
+  const playableIds = useMemo(() => playable.map((g) => g.id), [playable]);
+  useEffect(() => {
+    if (!motion || playableIds.length === 0) return;
+    const effects = ['art-fx-jump', 'art-fx-grow', 'art-fx-glow', 'art-fx-sparkle', 'art-fx-all'];
+    let alive = true;
+    let next: ReturnType<typeof setTimeout>;
+    let clear: ReturnType<typeof setTimeout>;
+    const tick = () => {
+      if (!alive) return;
+      const id = playableIds[Math.floor(Math.random() * playableIds.length)];
+      const cls = effects[Math.floor(Math.random() * effects.length)];
+      setFx({ id, cls });
+      // Limpia tras la animación para poder volver a dispararla luego.
+      clear = setTimeout(() => alive && setFx(null), 1300);
+      next = setTimeout(tick, 1600 + Math.random() * 2600);
+    };
+    next = setTimeout(tick, 1400);
+    return () => {
+      alive = false;
+      clearTimeout(next);
+      clearTimeout(clear);
+    };
+  }, [motion, playableIds]);
+
   return (
     <div className="relative min-h-full">
       {/* Fondo del dashboard (con parallax) */}
@@ -152,7 +179,11 @@ export default function HubScreen() {
 
         {featured && (
           <div className="mb-4">
-            <HeroCard game={featured} best={best[featured.id] ?? null} />
+            <HeroCard
+              game={featured}
+              best={best[featured.id] ?? null}
+              fxClass={fx?.id === featured.id ? fx.cls : ''}
+            />
           </div>
         )}
 
@@ -164,6 +195,7 @@ export default function HubScreen() {
               best={best[game.id] ?? null}
               index={i}
               animate={motion}
+              fxClass={fx?.id === game.id ? fx.cls : ''}
             />
           ))}
         </section>

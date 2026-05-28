@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import type { GameMeta } from '../core/registry';
 import type { ScoreEntry } from '../core/ScoreService';
@@ -11,9 +12,11 @@ const artUrl = (id: string) => `${import.meta.env.BASE_URL}art/${id}.png`;
 export default function HeroCard({
   game,
   best,
+  fxClass = '',
 }: {
   game: GameMeta;
   best: ScoreEntry | null;
+  fxClass?: string;
 }) {
   const t = useT();
   const label = bestLabel(t, game, best);
@@ -46,8 +49,13 @@ export default function HeroCard({
         onError={(e) => {
           e.currentTarget.style.display = 'none';
         }}
-        className="pointer-events-none absolute bottom-0 right-1 top-0 h-full w-[48%] object-contain transition-transform duration-500 group-hover:scale-105"
-        style={{ filter: 'drop-shadow(0 6px 14px rgba(0,0,0,0.55))' }}
+        className={`pointer-events-none absolute bottom-0 right-1 top-0 h-full w-[48%] object-contain transition-transform duration-500 group-hover:scale-105 ${fxClass}`}
+        style={
+          {
+            filter: 'drop-shadow(0 6px 14px rgba(0,0,0,0.55))',
+            '--fx-accent': game.accent,
+          } as CSSProperties
+        }
       />
 
       <div className="relative z-10">
