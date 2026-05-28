@@ -142,7 +142,7 @@ export default function HubScreen() {
               className="h-12 w-auto drop-shadow"
             />
             <p
-              className="mt-1.5 bg-clip-text text-xl font-extrabold leading-none tracking-tight text-transparent"
+              className="mt-1.5 whitespace-nowrap bg-clip-text text-xl font-extrabold leading-none tracking-tight text-transparent"
               style={{ backgroundImage: 'linear-gradient(90deg, #f49101, #e5017e)' }}
             >
               {t('app.subtitle')}
