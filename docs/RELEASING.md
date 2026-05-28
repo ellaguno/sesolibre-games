@@ -46,10 +46,57 @@ Esto dispara el workflow y crea el Release con `sesolibre-games-v0.1.0.apk`.
 Descárgalo del Release o del artefacto y ábrelo en Android (hay que permitir
 "instalar apps de orígenes desconocidos").
 
+## Google Play (AAB firmado)
+
+Workflow: [`.github/workflows/play-aab.yml`](../.github/workflows/play-aab.yml)
+
+Genera un **Android App Bundle (`.aab`) de release** firmado con la *upload key*,
+listo para subir a Google Play. Se ejecuta a mano (Actions → *Play AAB* → *Run
+workflow*) o al publicar un tag `vX.Y.Z`. El `.aab` queda como **artefacto** del
+run (se descarga desde la pestaña Actions; no se publica como Release).
+
+- `versionCode` = número de run (incremental, requisito de Play).
+- `versionName` = `version` de `package.json`.
+- Local (sin firmar): `npm run android:aab`.
+
+### 1) Crear la upload key (una sola vez, guárdala MUY bien)
+
+```bash
+keytool -genkeypair -v -keystore upload-keystore.jks \
+  -alias upload -keyalg RSA -keysize 2048 -validity 9125
+```
+
+Anota la contraseña del almacén y de la clave. **No subas el `.jks` al repo.**
+Con **Play App Signing** (recomendado, se activa al crear la app), Google
+custodia la clave de firma final y esta solo es la *llave de subida*.
+
+### 2) Cargar los secrets en GitHub
+
+`Settings → Secrets and variables → Actions → New repository secret`:
+
+| Secret | Valor |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | `base64 -w0 upload-keystore.jks` (todo el texto) |
+| `ANDROID_KEYSTORE_PASSWORD` | contraseña del almacén |
+| `ANDROID_KEY_ALIAS` | `upload` |
+| `ANDROID_KEY_PASSWORD` | contraseña de la clave |
+
+Sin estos secrets el workflow genera el AAB **sin firmar** (solo para validar).
+
+### 3) Subir a Play
+
+Actions → *Play AAB* → *Run workflow* → descarga el artefacto
+`sesolibre-games-aab` → súbelo en Play Console (prueba interna o cerrada).
+
+> **Pendiente posible:** Play puede exigir `targetSdkVersion` reciente. Hoy es
+> **34** (`android/variables.gradle`, vía Capacitor 6). Si Play lo rechaza, hay
+> que subir el target (o actualizar Capacitor).
+
 ## Pendiente para tiendas (después)
 
-- **Firma de producción** (keystore) y `assembleRelease` / `bundleRelease` (AAB)
-  para Google Play. La clave NO se versiona: se guarda como *secret* del repo y
-  se inyecta en el workflow.
-- Íconos y splash definitivos (hoy hay placeholders en `public/icons`).
-- Credenciales y ficha en **Google Play Console** (y luego App Store / iOS).
+- Ficha de **Play Console**: política de privacidad (URL), Seguridad de los
+  datos, clasificación de contenido, público objetivo, ícono 512×512, gráfico de
+  funciones 1024×500 y capturas.
+- Prueba **cerrada** con 12 testers durante 14 días (requisito de cuentas
+  personales nuevas) antes de pedir acceso a producción.
+- iOS / App Store.

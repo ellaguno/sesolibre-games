@@ -1,0 +1,93 @@
+name: Play AAB (release firmado)
+
+# Construye un Android App Bundle (.aab) de RELEASE para subir a Google Play.
+# Se ejecuta a mano (workflow_dispatch) o al publicar un tag vX.Y.Z.
+#
+# Firma con la "upload key" (Play App Signing): la app la re-firma Google con la
+# clave de la app. La upload key NO se versiona; se guarda como secrets del repo:
+#   ANDROID_KEYSTORE_BASE64   -> el .jks codificado en base64 (base64 -w0)
+#   ANDROID_KEYSTORE_PASSWORD -> contraseña del almacén
+#   ANDROID_KEY_ALIAS         -> alias (p. ej. "upload")
+#   ANDROID_KEY_PASSWORD      -> contraseña de la clave
+# Si faltan los secrets, el AAB se genera SIN firmar (no apto para Play) para
+# poder validar el pipeline. El AAB queda como artefacto del run (no como Release).
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+jobs:
+  aab:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Añadir plataforma Android (se genera en CI, no se versiona)
+        run: npx cap add android
+
+      - name: Sincronizar web -> nativo
+        run: npx cap sync android
+
+      - name: Generar íconos del launcher (desde assets/ con @capacitor/assets)
+        run: npx @capacitor/assets generate --android
+
+      - name: Fijar versionCode (incremental) y versionName
+        run: |
+          VC="${{ github.run_number }}"
+          VN="$(node -p "require('./package.json').version")"
+          sed -i "s/versionCode 1/versionCode ${VC}/" android/app/build.gradle
+          sed -i "s/versionName \"1.0\"/versionName \"${VN}\"/" android/app/build.gradle
+          echo "versionCode=${VC} versionName=${VN}"
+          grep -nE "versionCode|versionName" android/app/build.gradle
+
+      - name: Compilar AAB (release)
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew bundleRelease --no-daemon
+
+      - name: Firmar AAB con la upload key (si hay secrets)
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -e
+          AAB="$(find android/app/build/outputs/bundle/release -name '*.aab' | head -1)"
+          if [ -z "$AAB" ]; then echo "::error::No se encontró el .aab"; exit 1; fi
+          if [ -z "$KS_B64" ]; then
+            echo "::warning::Sin ANDROID_KEYSTORE_BASE64: AAB SIN FIRMAR (no apto para Play)."
+            cp "$AAB" "sesolibre-games-${GITHUB_REF_NAME}-unsigned.aab"
+            exit 0
+          fi
+          echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          jarsigner -sigalg SHA256withRSA -digestalg SHA-256 \
+            -keystore "$RUNNER_TEMP/upload.jks" \
+            -storepass "$KS_PASS" -keypass "$KEY_PASS" \
+            "$AAB" "$KEY_ALIAS"
+          jarsigner -verify "$AAB"
+          cp "$AAB" "sesolibre-games-${GITHUB_REF_NAME}.aab"
+          rm -f "$RUNNER_TEMP/upload.jks"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sesolibre-games-aab
+          path: sesolibre-games-*.aab
+          if-no-files-found: error
