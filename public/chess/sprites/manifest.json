@@ -1,0 +1,14 @@
+{
+  "frameW": 256,
+  "frameH": 256,
+  "facing": "right",
+  "anims": {
+    "idle": { "frames": 2, "fps": 4, "loop": true },
+    "walk": { "frames": 8, "fps": 12, "loop": true },
+    "attack": { "frames": 10, "fps": 14, "loop": false },
+    "death": { "frames": 8, "fps": 12, "loop": false }
+  },
+  "colors": ["w", "b"],
+  "pieces": ["p", "n", "b", "r", "q", "k"],
+  "file": "{color}_{piece}_{anim}.png"
+}
