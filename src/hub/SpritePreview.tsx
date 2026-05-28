@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import SpritePlayer from '../games/ajedrez/SpritePlayer';
 
@@ -25,6 +25,124 @@ const PIECE_NAME: Record<string, string> = {
   k: 'Rey',
 };
 const COLOR_NAME: Record<string, string> = { w: 'Blanca', b: 'Negra' };
+
+type Phase = 'ready' | 'walking' | 'fighting' | 'done';
+
+/** Mini-tablero a ESCALA REAL del juego (celda = min(12.5vw, 56px)): el peón
+ * blanco camina por la fila y captura al negro. */
+function BoardDemo({ m }: { m: Manifest }) {
+  const TILES = 8; // ancho real del tablero
+  const target = TILES - 1; // casilla destino (en celdas)
+  const WALK_MS = 2000;
+  const FIGHT_MS = 850;
+  const [phase, setPhase] = useState<Phase>('ready');
+  const [run, setRun] = useState(0);
+  const [big, setBig] = useState(false); // lupa opcional para ver el detalle
+  const timers = useRef<number[]>([]);
+
+  const play = () => {
+    timers.current.forEach(clearTimeout);
+    timers.current = [];
+    setRun((r) => r + 1);
+    setPhase('ready');
+    timers.current.push(window.setTimeout(() => setPhase('walking'), 60));
+    timers.current.push(window.setTimeout(() => setPhase('fighting'), 60 + WALK_MS));
+    timers.current.push(window.setTimeout(() => setPhase('done'), 60 + WALK_MS + FIGHT_MS));
+  };
+
+  useEffect(() => {
+    play();
+    return () => timers.current.forEach(clearTimeout);
+  }, []);
+
+  const a = (name: string) => m.anims[name];
+  const whiteAnim = phase === 'walking' ? 'walk' : phase === 'fighting' ? 'attack' : 'idle';
+  const blackAnim = phase === 'fighting' || phase === 'done' ? 'death' : 'idle';
+  const cell = (i: number) => `calc(${i} * var(--cs))`;
+  const walkX = phase === 'ready' ? '0px' : cell(target);
+
+  const sprite = (color: 'w' | 'b', anim: string, flip: boolean) => (
+    <SpritePlayer
+      sheet={`${base}chess/sprites/${color}_p_${anim}.png`}
+      frames={a(anim).frames}
+      fps={a(anim).fps}
+      loop={a(anim).loop}
+      frameW={m.frameW}
+      frameH={m.frameH}
+      flip={flip}
+      playKey={`${color}-${anim}-${run}`}
+      style={{ width: '100%', height: '100%' }}
+    />
+  );
+
+  return (
+    <div
+      className="mb-5 rounded-xl border border-app-border/60 bg-black/20 p-3"
+      style={{ '--cs': big ? 'min(22vw, 100px)' : 'min(12.5vw, 56px)' } as CSSProperties}
+    >
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="text-sm font-semibold text-app-muted">
+          Demo en tablero (peón come peón) · tamaño real
+        </p>
+        <div className="flex gap-1">
+          <button
+            onClick={() => setBig((v) => !v)}
+            className={`rounded-lg px-2.5 py-1.5 text-sm font-semibold ${
+              big ? 'bg-brand text-white' : 'bg-app-surface hover:bg-app-surface2'
+            }`}
+          >
+            🔍
+          </button>
+          <button
+            onClick={play}
+            className="rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-white"
+          >
+            ▶ Reproducir
+          </button>
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <div
+          className="relative mx-auto"
+          style={{ width: `calc(${TILES} * var(--cs))`, height: 'var(--cs)' }}
+        >
+          {Array.from({ length: TILES }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute top-0"
+              style={{
+                left: cell(i),
+                width: 'var(--cs)',
+                height: 'var(--cs)',
+                backgroundColor: i % 2 === 0 ? '#e9d2ad' : '#9a6b43',
+              }}
+            />
+          ))}
+          {/* Peón negro (víctima); tras la captura queda en el último cuadro de 'death'. */}
+          <div
+            className="absolute top-0"
+            style={{ left: cell(target), width: 'var(--cs)', height: 'var(--cs)' }}
+          >
+            {sprite('b', blackAnim, true)}
+          </div>
+          {/* Peón blanco que camina y ataca */}
+          <div
+            className="absolute top-0"
+            style={{
+              left: 0,
+              width: 'var(--cs)',
+              height: 'var(--cs)',
+              transform: `translateX(${walkX})`,
+              transition: `transform ${phase === 'ready' ? 0 : WALK_MS}ms linear`,
+            }}
+          >
+            {sprite('w', whiteAnim, false)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /**
  * Pantalla de utilidad (ruta /sprites, sin enlace en el hub) para previsualizar
@@ -62,67 +180,67 @@ export default function SpritePreview() {
         </button>
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        {(m?.pieces ?? ['p', 'n', 'b', 'r', 'q', 'k']).map((p) => (
-          <button
-            key={p}
-            onClick={() => setPiece(p)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${
-              piece === p ? 'bg-brand text-white' : 'bg-app-surface hover:bg-app-surface2'
-            }`}
-          >
-            {PIECE_NAME[p] ?? p}
-          </button>
-        ))}
-      </div>
-
       {!m ? (
         <p className="text-app-muted">Cargando manifest…</p>
       ) : (
-        <div className="space-y-4">
-          {anims.map(([anim, cfg]) => (
-            <div key={anim}>
-              <p className="mb-1 text-sm font-semibold capitalize text-app-muted">
-                {anim} · {cfg.frames} cuadros · {cfg.fps} fps
-              </p>
-              <div className="flex gap-4">
-                {m.colors.map((c) => (
-                  <div key={c} className="flex flex-col items-center gap-1">
-                    <div
-                      className="overflow-hidden rounded-lg"
-                      style={{
-                        width: 128,
-                        height: 128,
-                        // Cuadros tipo tablero para juzgar la transparencia.
-                        backgroundColor: c === 'w' ? '#e9d2ad' : '#9a6b43',
-                        backgroundImage:
-                          'linear-gradient(45deg, rgba(0,0,0,0.12) 25%, transparent 25%, transparent 75%, rgba(0,0,0,0.12) 75%), linear-gradient(45deg, rgba(0,0,0,0.12) 25%, transparent 25%, transparent 75%, rgba(0,0,0,0.12) 75%)',
-                        backgroundSize: '32px 32px',
-                        backgroundPosition: '0 0, 16px 16px',
-                      }}
-                    >
-                      <SpritePlayer
-                        sheet={`${base}chess/sprites/${c}_${piece}_${anim}.png`}
-                        frames={cfg.frames}
-                        fps={cfg.fps}
-                        loop
-                        frameW={m.frameW}
-                        frameH={m.frameH}
-                        flip={flip}
-                        style={{ width: '100%', height: '100%' }}
-                      />
+        <>
+          <BoardDemo m={m} />
+
+          <div className="mb-4 flex flex-wrap gap-2">
+            {m.pieces.map((p) => (
+              <button
+                key={p}
+                onClick={() => setPiece(p)}
+                className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${
+                  piece === p ? 'bg-brand text-white' : 'bg-app-surface hover:bg-app-surface2'
+                }`}
+              >
+                {PIECE_NAME[p] ?? p}
+              </button>
+            ))}
+          </div>
+
+          <div className="space-y-4">
+            {anims.map(([anim, cfg]) => (
+              <div key={anim}>
+                <p className="mb-1 text-sm font-semibold capitalize text-app-muted">
+                  {anim} · {cfg.frames} cuadros · {cfg.fps} fps
+                </p>
+                <div className="flex gap-4">
+                  {m.colors.map((c) => (
+                    <div key={c} className="flex flex-col items-center gap-1">
+                      <div
+                        className="overflow-hidden rounded-lg"
+                        style={{
+                          width: 128,
+                          height: 128,
+                          backgroundColor: c === 'w' ? '#e9d2ad' : '#9a6b43',
+                        }}
+                      >
+                        <SpritePlayer
+                          sheet={`${base}chess/sprites/${c}_${piece}_${anim}.png`}
+                          frames={cfg.frames}
+                          fps={cfg.fps}
+                          loop
+                          frameW={m.frameW}
+                          frameH={m.frameH}
+                          flip={flip}
+                          style={{ width: '100%', height: '100%' }}
+                        />
+                      </div>
+                      <span className="text-xs text-app-muted">{COLOR_NAME[c] ?? c}</span>
                     </div>
-                    <span className="text-xs text-app-muted">{COLOR_NAME[c] ?? c}</span>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
-          <p className="pt-2 text-xs text-app-muted">
-            En el juego, <strong>attack</strong> y <strong>death</strong> se reproducen una sola
-            vez; aquí se repiten para revisarlos. Las hojas con marco tenue aún no existen.
-          </p>
-        </div>
+            ))}
+            <p className="pt-2 text-xs text-app-muted">
+              En el juego, <strong>attack</strong> y <strong>death</strong> se reproducen una sola
+              vez; aquí (salvo la demo) se repiten para revisarlos. Las hojas con marco tenue aún no
+              existen.
+            </p>
+          </div>
+        </>
       )}
     </main>
   );
