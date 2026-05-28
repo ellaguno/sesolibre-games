@@ -202,8 +202,9 @@ export interface RenderState {
 }
 
 const PLAYER_SPEED = 5.5; // celdas/seg
-// Los virus arrancan lentos y torpes en el nivel 1 y se superan con cada nivel.
-const ENEMY_BASE_SPEED = 3.0; // nivel 1 (bastante más lento que el jugador)
+// Los virus arrancan MUY lentos y torpes en los primeros niveles y se superan
+// con cada nivel (los niveles 1-2 deben ser fáciles de pasar).
+const ENEMY_BASE_SPEED = 2.2; // nivel 1 (mucho más lento que el jugador)
 const ENEMY_SPEED_STEP = 0.4; // por nivel
 const ENEMY_SPEED_CAP = 5.3; // nunca más rápidos que el jugador
 const ENEMY_FRIGHT_SPEED = 2.6;
@@ -237,8 +238,9 @@ export class Glotono {
     this.player = this.spawnMover(this.maze.playerSpawn);
     this.desired = { ...ZERO };
     this.combo = 1;
-    // A más nivel, más "hunters" (agresivos): 1 desde el nivel 2.
-    const aggressiveCount = Math.min(Math.max(this.level - 1, 0), this.maze.enemySpawns.length);
+    // A más nivel, más "hunters" (agresivos): el primero aparece en el nivel 3,
+    // así los niveles 1-2 no tienen perseguidores rápidos.
+    const aggressiveCount = Math.min(Math.max(this.level - 2, 0), this.maze.enemySpawns.length);
     const startAggressive = this.maze.enemySpawns.length - aggressiveCount;
     this.enemies = this.maze.enemySpawns.map((s, i) => ({
       ...this.spawnMover(s),
@@ -360,9 +362,9 @@ export class Glotono {
     // (BFS por el laberinto, no distancia en línea recta), así te alcanza aunque
     // te quedes quieto y rodea las paredes. Si no, deambula. La inteligencia
     // sube por nivel y es mayor en los agresivos.
-    // Nivel 1: muy torpes (deambulan casi siempre). Suben con cada nivel.
+    // Niveles 1-2: muy torpes (deambulan casi siempre). Suben con cada nivel.
     const intelligence = Math.min(
-      0.2 + (this.level - 1) * 0.14 + (e.aggressive ? 0.3 : 0),
+      0.08 + (this.level - 1) * 0.12 + (e.aggressive ? 0.3 : 0),
       1,
     );
     if (this.rng() < intelligence) {
