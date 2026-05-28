@@ -40,6 +40,9 @@ jobs:
       - name: Sincronizar web -> nativo
         run: npx cap sync android
 
+      - name: Generar íconos del launcher (desde assets/ con @capacitor/assets)
+        run: npx @capacitor/assets generate --android
+
       - name: Compilar APK (debug)
         run: |
           cd android
