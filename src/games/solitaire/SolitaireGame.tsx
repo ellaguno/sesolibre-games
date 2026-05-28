@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
+import { useCallback, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import {
   deal,
   draw,
@@ -7,6 +7,7 @@ import {
   autoDestination,
   isValidRun,
   isWin,
+  hasAnyMove,
   type Card,
   type GameState,
   type Location,
@@ -54,6 +55,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
   const [game, setGame] = useState<GameState>(() => deal(3));
   const [history, setHistory] = useState<GameState[]>([]);
   const [won, setWon] = useState(false);
+  const [leftHanded, setLeftHanded] = useState(false);
   const [drag, setDrag] = useState<Drag | null>(null);
   const dragRef = useRef<Drag | null>(null);
   const submittedRef = useRef(false);
@@ -181,6 +183,9 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
     drag.from.index === index &&
     (type !== 'tableau' || ci === undefined || ci >= game.tableau[index].length - drag.count);
 
+  // Sin más jugadas posibles (y no es victoria): se acabó.
+  const noMoves = useMemo(() => !won && !isWin(game) && !hasAnyMove(game), [won, game]);
+
   const overlap = 'calc(var(--ch) * 0.34)';
 
   // Descarte: en modo 3 se abanican (desfase) las últimas hasta 3 cartas.
@@ -223,9 +228,12 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
       </div>
 
       <div className="relative">
-        {/* Fila superior */}
-        <div className="mb-3 flex items-start justify-between">
-          <div className="flex gap-1">
+        {/* Fila superior. Por defecto (diestro): bases a la izquierda, mazo/descarte
+            a la derecha. En modo zurdo se invierte (mazo/descarte a la izquierda). */}
+        <div
+          className={`mb-3 flex items-start justify-between ${leftHanded ? '' : 'flex-row-reverse'}`}
+        >
+          <div className={`flex gap-1 ${leftHanded ? '' : 'flex-row-reverse'}`}>
             {/* Mazo */}
             <div
               onClick={handleDraw}
@@ -354,9 +362,22 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
             </div>
           </div>
         )}
+
+        {noMoves && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-xl bg-slate-950/85">
+            <p className="text-2xl font-bold text-white">{t('sol.noMoves')}</p>
+            <p className="text-sm text-white/70">{t('sol.noMovesHint')}</p>
+            <div className="flex gap-2">
+              <Button onClick={() => newGame(drawCount)}>{t('sol.newGame')}</Button>
+              <Button variant="ghost" onClick={onExit}>
+                {t('common.exit')}
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="mt-auto flex justify-center gap-2 pt-4">
+      <div className="mt-auto flex flex-wrap justify-center gap-2 pt-4">
         <button
           onClick={undo}
           disabled={history.length === 0}
@@ -375,6 +396,15 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
           className="rounded-lg bg-app-surface/80 px-4 py-2 text-sm font-semibold backdrop-blur hover:bg-app-surface2"
         >
           ↻ {t('common.new')}
+        </button>
+        <button
+          onClick={() => setLeftHanded((v) => !v)}
+          aria-pressed={leftHanded}
+          className={`rounded-lg px-4 py-2 text-sm font-semibold backdrop-blur ${
+            leftHanded ? 'bg-brand text-white' : 'bg-app-surface/80 hover:bg-app-surface2'
+          }`}
+        >
+          🤚 {t('sol.leftHand')}
         </button>
       </div>
 

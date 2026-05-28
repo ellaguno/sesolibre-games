@@ -10,6 +10,7 @@ import {
   isWin,
   autoToFoundation,
   autoDestination,
+  hasAnyMove,
   type Card,
   type GameState,
 } from '../src/games/solitaire/logic';
@@ -226,5 +227,49 @@ describe('victoria y auto-completar', () => {
     const r = autoToFoundation(s);
     expect(r).not.toBeNull();
     expect(r!.foundations.some((f) => f.length === 1)).toBe(true);
+  });
+});
+
+describe('solitaire hasAnyMove', () => {
+  it('un reparto inicial siempre tiene jugadas', () => {
+    expect(hasAnyMove(deal(3, seededRng(7)))).toBe(true);
+  });
+
+  it('detecta posición sin jugadas (mazo/descarte vacíos, 7 rojas no apilables)', () => {
+    const s: GameState = {
+      stock: [],
+      waste: [],
+      foundations: [[], [], [], []],
+      // 7 columnas con una sola carta roja (2..8): mismo color => no apilan; no hay
+      // As para subir a base; sin mazo/descarte que robar.
+      tableau: [2, 3, 4, 5, 6, 7, 8].map((r) => [card('hearts', r)]),
+      drawCount: 1,
+      moves: 0,
+    };
+    expect(hasAnyMove(s)).toBe(false);
+  });
+
+  it('hay jugada si una cima es As (sube a base)', () => {
+    const s: GameState = {
+      stock: [],
+      waste: [],
+      foundations: [[], [], [], []],
+      tableau: [[card('hearts', 1)], [card('hearts', 3)], [], [], [], [], []],
+      drawCount: 1,
+      moves: 0,
+    };
+    expect(hasAnyMove(s)).toBe(true);
+  });
+
+  it('hay jugada si una carta alcanzable en el mazo puede jugarse', () => {
+    const s: GameState = {
+      stock: [card('clubs', 1, false)], // un As en el mazo
+      waste: [],
+      foundations: [[], [], [], []],
+      tableau: [2, 3, 4, 5, 6, 7, 8].map((r) => [card('hearts', r)]),
+      drawCount: 1,
+      moves: 0,
+    };
+    expect(hasAnyMove(s)).toBe(true);
   });
 });

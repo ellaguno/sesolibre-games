@@ -196,6 +196,59 @@ export function isWin(state: GameState): boolean {
 }
 
 /**
+ * ¿Queda alguna jugada posible? Considera: subir a una base, mover una secuencia
+ * entre columnas, jugar el descarte, y las cartas alcanzables robando/reciclando
+ * el mazo. Conservadora: solo devuelve false cuando NINGUNA carta puede moverse
+ * (evita declarar "fin" antes de tiempo). No cuenta mover de base a tablero ni el
+ * "rey solo" a una columna vacía (movimientos nulos).
+ */
+export function hasAnyMove(state: GameState): boolean {
+  const tops: Card[] = [];
+  const w = top(state.waste);
+  if (w) tops.push(w);
+  for (const pile of state.tableau) {
+    const tcard = top(pile);
+    if (tcard) tops.push(tcard);
+  }
+  // Cima jugable a una base
+  for (const c of tops) {
+    for (const f of state.foundations) if (canMoveToFoundation(c, f)) return true;
+  }
+  // Descarte -> columna
+  if (w) {
+    for (const pile of state.tableau) if (canStackTableau(w, pile)) return true;
+  }
+  // Secuencia válida de una columna -> otra columna
+  for (let i = 0; i < state.tableau.length; i++) {
+    const pile = state.tableau[i];
+    const firstFaceUp = pile.findIndex((c) => c.faceUp);
+    if (firstFaceUp === -1) continue;
+    for (let k = firstFaceUp; k < pile.length; k++) {
+      const run = pile.slice(k);
+      if (!isValidRun(run)) continue;
+      const lead = run[0];
+      for (let j = 0; j < state.tableau.length; j++) {
+        if (j === i) continue;
+        if (!canStackTableau(lead, state.tableau[j])) continue;
+        // Rey que ya es el fondo de su columna a una vacía: no aporta nada.
+        if (lead.rank === 13 && k === 0 && state.tableau[j].length === 0) continue;
+        return true;
+      }
+    }
+  }
+  // Cartas alcanzables robando/reciclando (asume que cualquiera puede llegar a
+  // la cima del descarte; optimista a propósito para no declarar "fin" de más).
+  if (state.stock.length > 0 || state.waste.length > 0) {
+    for (const c of [...state.stock, ...state.waste]) {
+      const up: Card = { ...c, faceUp: true };
+      for (const f of state.foundations) if (canMoveToFoundation(up, f)) return true;
+      for (const pile of state.tableau) if (canStackTableau(up, pile)) return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Intenta subir automáticamente una carta a una foundation (waste o cima de
  * tableau). Devuelve el nuevo estado o null si no hubo jugada.
  */

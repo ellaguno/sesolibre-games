@@ -21,7 +21,7 @@ interface Props {
 /** Carta (cara/dorso) o hueco. Ocupa todo su contenedor; el tamaño lo fija el
  * padre vía las variables CSS --cw/--ch. La tipografía escala con --cw. */
 export default function CardView({ card, back = 'classic', selected, placeholder }: Props) {
-  const fontSize = 'calc(var(--cw) * 0.34)';
+  const fontSize = 'calc(var(--cw) * 0.42)';
 
   if (!card) {
     return (
@@ -52,14 +52,17 @@ export default function CardView({ card, back = 'classic', selected, placeholder
       }`}
       style={{ fontSize }}
     >
-      <span
-        className="absolute left-[0.12em] top-[0.02em] font-extrabold leading-none"
+      {/* Esquina: número grande + símbolo pequeño a su derecha (se ve al apilar). */}
+      <div
+        className="absolute left-[0.1em] top-[0.04em] flex items-center leading-none"
         style={{ color }}
       >
-        {rankLabel(card.rank)}
-      </span>
+        <span className="font-extrabold">{rankLabel(card.rank)}</span>
+        <span className="ml-[0.06em] text-[0.58em] font-bold">{sym}</span>
+      </div>
+      {/* Símbolo grande, justificado al fondo de la carta. */}
       <span
-        className="absolute inset-0 flex items-center justify-center text-[1.7em] leading-none"
+        className="pointer-events-none absolute inset-x-0 bottom-[0.05em] text-center text-[2.05em] font-bold leading-none"
         style={{ color }}
       >
         {sym}
