@@ -44,6 +44,14 @@ jobs:
       - name: Sincronizar web -> nativo
         run: npx cap sync android
 
+      - name: Fijar compileSdk/targetSdk 35 (requisito de Play para apps nuevas)
+        run: |
+          sed -i 's/compileSdkVersion = 34/compileSdkVersion = 35/' android/variables.gradle
+          sed -i 's/targetSdkVersion = 34/targetSdkVersion = 35/' android/variables.gradle
+          # AGP 8.2 (Capacitor 6) no reconoce API 35 oficialmente; la bandera lo permite.
+          echo "android.suppressUnsupportedCompileSdk=35" >> android/gradle.properties
+          grep -E "compileSdkVersion|targetSdkVersion" android/variables.gradle
+
       - name: Generar íconos del launcher (desde assets/ con @capacitor/assets)
         run: npx @capacitor/assets generate --android
 
