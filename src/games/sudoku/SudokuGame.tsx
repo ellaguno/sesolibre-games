@@ -50,6 +50,11 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
   const [notes, setNotes] = useState<Notes>(emptyNotes);
   const [selected, setSelected] = useState<{ r: number; c: number } | null>(null);
   const [notesMode, setNotesMode] = useState(false);
+  // Modo rápido: dígito fijado (con pulsación larga en la barra) que se aplica al tocar celdas.
+  const [activeDigit, setActiveDigit] = useState<number | null>(null);
+  // Pistas: sugerencia (sin colocar) y cuántas quedan.
+  const [hintCell, setHintCell] = useState<{ r: number; c: number; digit: number } | null>(null);
+  const [hintsLeft, setHintsLeft] = useState(2);
   const [solved, setSolved] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -61,6 +66,9 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
     setBoard(cloneBoard(g.puzzle));
     setNotes(emptyNotes());
     setSelected(null);
+    setActiveDigit(null);
+    setHintCell(null);
+    setHintsLeft(2);
     setSolved(false);
     setSeconds(0);
     submittedRef.current = false;
@@ -98,15 +106,24 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
       if (digitComplete(next, game.solution, digit) && !digitComplete(prev, game.solution, digit)) {
         AudioService.play('reward');
         burstAt(keyRefs.current[digit]);
+        // El dígito quedó completo (su botón se deshabilita): ya no se pueden
+        // borrar a mano sus notas, así que las limpiamos de todo el tablero.
+        setNotes((prevNotes) => {
+          const cleared = prevNotes.map((row) => row.map((cell) => [...cell]));
+          for (let r = 0; r < 9; r++) {
+            for (let c = 0; c < 9; c++) cleared[r][c][digit - 1] = false;
+          }
+          return cleared;
+        });
       }
     },
     [game.solution],
   );
 
-  const placeDigit = useCallback(
-    (digit: number) => {
-      if (!selected || solved) return;
-      const { r, c } = selected;
+  // Aplica un dígito (o 0 = borrar) en una celda concreta. Respeta el modo notas.
+  const applyDigit = useCallback(
+    (r: number, c: number, digit: number) => {
+      if (solved) return;
       if (game.givens[r][c]) return;
 
       if (notesMode && digit !== 0) {
@@ -130,21 +147,83 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
         AudioService.play('pop');
         checkDigitComplete(board, next, digit);
         win(next);
+        // Si había una sugerencia en esta celda, ya cumplió su función.
+        setHintCell((h) => (h && h.r === r && h.c === c ? null : h));
       }
     },
-    [selected, solved, game.givens, notesMode, board, win, checkDigitComplete],
+    [solved, game.givens, notesMode, board, win, checkDigitComplete],
   );
 
-  const hint = () => {
-    if (!selected || solved) return;
-    const { r, c } = selected;
-    if (game.givens[r][c]) return;
-    const next = cloneBoard(board);
-    next[r][c] = game.solution[r][c];
-    setBoard(next);
+  const placeDigit = useCallback(
+    (digit: number) => {
+      if (!selected) return;
+      applyDigit(selected.r, selected.c, digit);
+    },
+    [selected, applyDigit],
+  );
+
+  // --- Modo rápido: pulsación larga en la barra de números fija un dígito ---
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressFired = useRef(false);
+
+  const startKeyPress = (n: number) => {
+    longPressFired.current = false;
+    longPressTimer.current = setTimeout(() => {
+      longPressFired.current = true;
+      setActiveDigit(n);
+      AudioService.play('pop');
+    }, 450);
+  };
+
+  const endKeyPress = (n: number) => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    if (longPressFired.current) return; // ya gestionado por la pulsación larga
+    if (activeDigit !== null) {
+      // En modo rápido una pulsación corta cambia de dígito fijo, o lo suelta si es el mismo.
+      setActiveDigit((cur) => (cur === n ? null : n));
+    } else {
+      placeDigit(n); // comportamiento clásico: rellena la celda seleccionada
+    }
+  };
+
+  const cancelKeyPress = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  // Toque de celda: selecciona y, si hay un dígito fijo, lo aplica (nota o valor según el modo).
+  const handleCellTap = (r: number, c: number) => {
+    setSelected({ r, c });
+    if (activeDigit !== null) applyDigit(r, c, activeDigit);
+  };
+
+  // Pista: sugiere (sin colocar) el número correcto en una celda vacía.
+  const giveHint = () => {
+    if (solved || hintsLeft <= 0) return;
+    // Celda objetivo: la seleccionada si está vacía; si no, la primera vacía del tablero.
+    let target: { r: number; c: number } | null =
+      selected && board[selected.r][selected.c] === 0 ? selected : null;
+    if (!target) {
+      for (let r = 0; r < 9 && !target; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (board[r][c] === 0) {
+            target = { r, c };
+            break;
+          }
+        }
+      }
+    }
+    if (!target) return; // tablero lleno
+    const { r, c } = target;
+    setSelected({ r, c });
+    setHintCell({ r, c, digit: game.solution[r][c] });
+    setHintsLeft((n) => n - 1);
     AudioService.play('pop');
-    checkDigitComplete(board, next, next[r][c]);
-    win(next);
   };
 
   // Teclado físico (escritorio)
@@ -208,7 +287,9 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
             row.map((v, c) => {
               const isSel = selected?.r === r && selected?.c === c;
               const given = game.givens[r][c];
-              const conflict = conflicts[r][c];
+              // Error = choca con fila/col/caja, o no coincide con la solución única.
+              const wrong = v !== 0 && !given && v !== game.solution[r][c];
+              const conflict = conflicts[r][c] || wrong;
               const peer =
                 selected &&
                 !isSel &&
@@ -220,7 +301,7 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
               return (
                 <button
                   key={`${r}-${c}`}
-                  onClick={() => setSelected({ r, c })}
+                  onClick={() => handleCellTap(r, c)}
                   className={`flex aspect-square items-center justify-center border border-app-border/70 text-lg font-semibold transition-colors
                     ${c % 3 === 2 && c !== 8 ? 'border-r-2 border-r-slate-400' : ''}
                     ${r % 3 === 2 && r !== 8 ? 'border-b-2 border-b-slate-400' : ''}
@@ -238,6 +319,8 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
                 >
                   {v !== 0 ? (
                     v
+                  ) : hintCell && hintCell.r === r && hintCell.c === c ? (
+                    <span className="animate-pulse italic text-amber-400">{hintCell.digit}</span>
                   ) : notes[r][c].some(Boolean) ? (
                     <div className="grid h-full w-full grid-cols-3 grid-rows-3 p-px text-[9px] font-normal leading-none text-app-muted">
                       {notes[r][c].map((on, i) => (
@@ -278,10 +361,18 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
               ref={(el) => {
                 keyRefs.current[n] = el;
               }}
-              onClick={() => placeDigit(n)}
-              disabled={!selected || done}
-              className={`flex aspect-square items-center justify-center rounded-lg text-lg font-bold active:scale-95 disabled:opacity-30 ${
-                done ? 'bg-emerald-700/40 text-emerald-300' : 'bg-app-surface hover:bg-app-surface2'
+              onPointerDown={() => startKeyPress(n)}
+              onPointerUp={() => endKeyPress(n)}
+              onPointerLeave={cancelKeyPress}
+              onPointerCancel={cancelKeyPress}
+              onContextMenu={(e) => e.preventDefault()}
+              disabled={done}
+              className={`flex aspect-square touch-none select-none items-center justify-center rounded-lg text-lg font-bold transition active:scale-95 disabled:opacity-30 ${
+                done
+                  ? 'bg-emerald-700/40 text-emerald-300'
+                  : activeDigit === n
+                    ? 'bg-brand/40 text-white ring-2 ring-brand'
+                    : 'bg-app-surface hover:bg-app-surface2'
               }`}
             >
               {done ? '✓' : n}
@@ -307,11 +398,11 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
           ⌫ {t('sudoku.erase')}
         </button>
         <button
-          onClick={hint}
-          disabled={!selected}
+          onClick={giveHint}
+          disabled={solved || hintsLeft <= 0}
           className="rounded-lg bg-app-surface px-4 py-2 text-sm font-semibold hover:bg-app-surface2 disabled:opacity-40"
         >
-          💡 {t('sudoku.hint')}
+          💡 {t('sudoku.hint')} ({hintsLeft})
         </button>
       </div>
 

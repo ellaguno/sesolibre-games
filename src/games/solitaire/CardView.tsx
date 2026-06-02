@@ -58,11 +58,11 @@ export default function CardView({ card, back = 'classic', selected, placeholder
         style={{ color }}
       >
         <span className="font-extrabold">{rankLabel(card.rank)}</span>
-        <span className="ml-[0.06em] text-[0.58em] font-bold">{sym}</span>
+        <span className="ml-[0.06em] text-[1em] font-bold">{sym}</span>
       </div>
       {/* Símbolo grande, justificado al fondo de la carta. */}
       <span
-        className="pointer-events-none absolute inset-x-0 bottom-[0.05em] text-center text-[2.05em] font-bold leading-none"
+        className="pointer-events-none absolute inset-x-0 bottom-[0.05em] text-center text-[1.85em] font-bold leading-none"
         style={{ color }}
       >
         {sym}

@@ -1,4 +1,12 @@
-import { useCallback, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent,
+} from 'react';
 import {
   deal,
   draw,
@@ -13,9 +21,11 @@ import {
   type Location,
   type PileType,
 } from './logic';
+import { analyzeWinnable, looksStuck, type Verdict } from './solver';
 import CardView from './CardView';
 import type { GameProps } from '../../core/registry';
 import { AudioService } from '../../core/AudioService';
+import { bigCelebrate } from '../../anim/particles';
 import { useRewards } from '../../core/RewardService';
 import { useT } from '../../core/i18n';
 import Button from '../../ui/Button';
@@ -55,15 +65,20 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
   const [game, setGame] = useState<GameState>(() => deal(3));
   const [history, setHistory] = useState<GameState[]>([]);
   const [won, setWon] = useState(false);
+  // Partida sin solución posible (probada por el solver, aunque queden barajeos).
+  const [dead, setDead] = useState(false);
   const [leftHanded, setLeftHanded] = useState(false);
   const [drag, setDrag] = useState<Drag | null>(null);
   const dragRef = useRef<Drag | null>(null);
   const submittedRef = useRef(false);
+  const workerRef = useRef<Worker | null>(null);
+  const solveSeq = useRef(0);
 
   const newGame = useCallback((dc: 1 | 3) => {
     setGame(deal(dc));
     setHistory([]);
     setWon(false);
+    setDead(false);
     submittedRef.current = false;
   }, []);
 
@@ -77,6 +92,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
         setWon(true);
         submittedRef.current = true;
         AudioService.play('win');
+        bigCelebrate();
         onScore(next.moves);
       }
       return true;
@@ -117,6 +133,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
         setWon(true);
         submittedRef.current = true;
         AudioService.play('win');
+        bigCelebrate();
         onScore(cur.moves);
       }
     }
@@ -185,6 +202,47 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
 
   // Sin más jugadas posibles (y no es victoria): se acabó.
   const noMoves = useMemo(() => !won && !isWin(game) && !hasAnyMove(game), [won, game]);
+
+  // Solver de fondo: crea el worker una vez (con respaldo en el hilo principal).
+  useEffect(() => {
+    try {
+      workerRef.current = new Worker(new URL('./solverWorker.ts', import.meta.url), {
+        type: 'module',
+      });
+    } catch {
+      workerRef.current = null;
+    }
+    return () => workerRef.current?.terminate();
+  }, []);
+
+  // Cuando la posición parece atascada, pregunta al solver si aún se puede ganar.
+  // Solo marca "sin solución" si lo PRUEBA (veredicto 'lost'); nunca por sospecha.
+  useEffect(() => {
+    setDead(false);
+    if (won || isWin(game) || !hasAnyMove(game) || !looksStuck(game)) return;
+    const seq = ++solveSeq.current;
+    const handle = (v: Verdict) => {
+      if (seq === solveSeq.current && v === 'lost') setDead(true);
+    };
+    const timer = setTimeout(() => {
+      const w = workerRef.current;
+      if (w) {
+        const onMsg = (e: MessageEvent<Verdict>) => {
+          w.removeEventListener('message', onMsg);
+          handle(e.data);
+        };
+        w.addEventListener('message', onMsg);
+        w.postMessage(game);
+      } else {
+        handle(analyzeWinnable(game)); // respaldo síncrono (rápido en posiciones atascadas)
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [game, won]);
+
+  const gameOver = (noMoves || dead) && !won;
+  // 'dead' sin 'noMoves' = quedan barajeos, pero ya no hay forma de ganar.
+  const unwinnable = dead && !noMoves;
 
   const overlap = 'calc(var(--ch) * 0.34)';
 
@@ -352,26 +410,39 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
         </div>
 
         {won && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-xl bg-slate-950/85">
-            <p className="text-2xl font-bold text-white">{t('sol.won', { n: game.moves })}</p>
-            <div className="flex gap-2">
-              <Button onClick={() => newGame(drawCount)}>{t('sol.newGame')}</Button>
-              <Button variant="ghost" onClick={onExit}>
-                {t('common.exit')}
-              </Button>
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-slate-950/70 backdrop-blur-sm">
+            <div className="overlay-pop flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-gradient-to-b from-slate-800/95 to-slate-900/95 px-8 py-7 text-center shadow-2xl">
+              <div className="animate-bounce text-6xl drop-shadow-lg">🎉</div>
+              <p className="bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 bg-clip-text text-3xl font-extrabold text-transparent">
+                {t('sol.wonTitle')}
+              </p>
+              <p className="text-sm text-white/70">{t('sol.won', { n: game.moves })}</p>
+              <div className="mt-1 flex gap-2">
+                <Button onClick={() => newGame(drawCount)}>{t('sol.newGame')}</Button>
+                <Button variant="ghost" onClick={onExit}>
+                  {t('common.exit')}
+                </Button>
+              </div>
             </div>
           </div>
         )}
 
-        {noMoves && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-xl bg-slate-950/85">
-            <p className="text-2xl font-bold text-white">{t('sol.noMoves')}</p>
-            <p className="text-sm text-white/70">{t('sol.noMovesHint')}</p>
-            <div className="flex gap-2">
-              <Button onClick={() => newGame(drawCount)}>{t('sol.newGame')}</Button>
-              <Button variant="ghost" onClick={onExit}>
-                {t('common.exit')}
-              </Button>
+        {gameOver && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-slate-950/70 backdrop-blur-sm">
+            <div className="overlay-pop flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-gradient-to-b from-slate-800/95 to-slate-900/95 px-8 py-7 text-center shadow-2xl">
+              <div className="text-5xl drop-shadow-lg">{unwinnable ? '🏳️' : '🃏'}</div>
+              <p className="text-2xl font-bold text-white">
+                {t(unwinnable ? 'sol.unwinnableTitle' : 'sol.noMovesTitle')}
+              </p>
+              <p className="max-w-[15rem] text-sm text-white/70">
+                {t(unwinnable ? 'sol.unwinnableHint' : 'sol.noMovesHint')}
+              </p>
+              <div className="mt-1 flex gap-2">
+                <Button onClick={() => newGame(drawCount)}>{t('sol.newGame')}</Button>
+                <Button variant="ghost" onClick={onExit}>
+                  {t('common.exit')}
+                </Button>
+              </div>
             </div>
           </div>
         )}

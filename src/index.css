@@ -54,6 +54,24 @@ body {
   animation: route-enter 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Entrada del panel de fin de partida (victoria / sin jugadas) */
+@keyframes overlay-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.85);
+  }
+  60% {
+    transform: scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+.overlay-pop {
+  animation: overlay-pop 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* Entrada escalonada de las tarjetas del hub */
 @keyframes card-in {
   from {

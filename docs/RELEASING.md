@@ -92,11 +92,48 @@ Actions → *Play AAB* → *Run workflow* → descarga el artefacto
 > **34** (`android/variables.gradle`, vía Capacitor 6). Si Play lo rechaza, hay
 > que subir el target (o actualizar Capacitor).
 
-## Pendiente para tiendas (después)
+## Estado de la ficha de Play (v1.0.0)
 
-- Ficha de **Play Console**: política de privacidad (URL), Seguridad de los
-  datos, clasificación de contenido, público objetivo, ícono 512×512, gráfico de
-  funciones 1024×500 y capturas.
-- Prueba **cerrada** con 12 testers durante 14 días (requisito de cuentas
-  personales nuevas) antes de pedir acceso a producción.
+Ficha de **Play Console** — todo lo de abajo ya está cargado:
+
+- ✅ **Política de privacidad (URL):** <https://sesolibre.com/politica-de-privacidad-sesolibre-games/>
+  (200, pública, bilingüe es/en). Texto fuente en [`PRIVACY.md`](PRIVACY.md).
+- ✅ **Seguridad de los datos:** "No se recopilan datos" (respuestas en
+  [`PLAY-LISTING.md`](PLAY-LISTING.md)).
+- ✅ **Clasificación de contenido (IARC):** "Para todos".
+- ✅ **Ícono 512×512:** subido manualmente en la consola (NO se referencia por
+  URL; Play lo guarda en sus servidores).
+- ✅ **Gráfico de funciones 1024×500:** `assets/play/feature-graphic.png`.
+- ✅ **Capturas de teléfono:** 4 subidas (mínimo de Play = 2).
+- ✅ **AAB v1.0.0** subido al track de prueba cerrada (versionCode incremental
+  por el workflow; p. ej. `4 (1.0.0)` = versionCode 4 / versionName 1.0.0).
+
+## Prueba cerrada: cómo se unen los testers
+
+Cuenta personal nueva ⇒ **obligatorio**: prueba **cerrada con ≥12 testers que
+hagan opt-in y se mantengan 14 días seguidos** antes de poder *solicitar* acceso
+a producción. El contador de 14 días sólo corre mientras haya ≥12 opted-in.
+
+> **Google NO manda invitaciones automáticas. El enlace lo compartes tú.**
+
+1. **Agregar testers** — *Pruebas → Prueba cerrada → pestaña "Testers"*: lista de
+   correos o un Grupo de Google. Esto sólo autoriza esas cuentas; no notifica nada.
+2. **Copiar el enlace de aceptación** — misma pestaña, sección *"Cómo se unen los
+   testers"*: enlace web tipo
+   `https://play.google.com/apps/testing/com.sesolibre.sesolibregames`.
+   Ese enlace lo mandas tú (WhatsApp/correo) a los testers.
+3. **Cada tester** (en el teléfono, con la **misma cuenta Google** que está en su
+   Play Store): abre el enlace → *Become a tester / Aceptar* → instala desde Play
+   → deja la app instalada ~14 días.
+
+Avisos:
+- ⏳ El enlace de aceptación **tarda en activarse** (horas–1 día) tras publicar la
+  versión en el track. Abrirlo antes da error; reintentar.
+- 🔑 Error #1: el correo agregado debe ser **la cuenta Google del teléfono** del
+  tester. Por eso conviene pedirles su correo de Google *antes* de agregarlos.
+- 📊 Sólo cuentan los que aceptan (opt-in). Tener ~17 listados da colchón sobre los 12.
+- Al cumplir 12 opted-in × 14 días, aparece el botón para **solicitar producción**.
+
+## Pendiente (después)
+
 - iOS / App Store.
