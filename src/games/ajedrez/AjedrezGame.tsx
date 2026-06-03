@@ -13,6 +13,7 @@ import {
   type Color,
 } from './logic';
 import { chooseMove, type Level } from './ai';
+import { pieceSprite } from './pieces';
 import type { GameProps } from '../../core/registry';
 import { AudioService } from '../../core/AudioService';
 import { useT } from '../../core/i18n';
@@ -391,20 +392,60 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
                 {isTarget && p && (
                   <span className="absolute inset-[6%] rounded-full ring-4 ring-black/35" />
                 )}
-                {p && (
-                  <span
-                    className="leading-none"
-                    style={{
-                      fontSize: 'calc(var(--cs) * 0.82)',
-                      color: p.c === 'w' ? '#fff' : '#1e1e1e',
-                      textShadow: pieceShadow(p.c, view3d),
-                      transform: pieceTransform(animating && !slid ? anim : null, view3d),
-                      transition: animating ? 'transform 0.25s ease' : undefined,
-                    }}
-                  >
-                    {GLYPH[p.t]}
-                  </span>
-                )}
+                {p &&
+                  (() => {
+                    // Los sprites (standee) son SOLO para la vista 3D; en 2D se
+                    // mantienen los glifos Unicode de siempre.
+                    const sprite = view3d ? pieceSprite(p.c, p.t) : undefined;
+                    // El wrapper (tamaño de celda) lleva SOLO el deslizamiento: así
+                    // translate(100%) = exactamente una casilla. La pieza interior
+                    // lleva el "ponerse de pie" 3D (contra-rotación + elevación).
+                    const slide = pieceTransform(animating && !slid ? anim : null, false);
+                    const standUp = view3d
+                      ? 'rotateX(-13deg) translateZ(calc(var(--cs) * 0.30))'
+                      : undefined;
+                    return (
+                      <div
+                        className="pointer-events-none absolute inset-0"
+                        style={{
+                          transform: slide,
+                          transition: animating ? 'transform 0.25s ease' : undefined,
+                          transformStyle: view3d ? 'preserve-3d' : undefined,
+                        }}
+                      >
+                        {sprite ? (
+                          <img
+                            src={sprite}
+                            alt=""
+                            draggable={false}
+                            className="absolute bottom-0 left-1/2 select-none"
+                            style={{
+                              height: 'calc(var(--cs) * 1.5)',
+                              width: 'auto',
+                              transformOrigin: 'bottom center',
+                              transform: standUp ? `translateX(-50%) ${standUp}` : 'translateX(-50%)',
+                              filter: view3d
+                                ? 'drop-shadow(0 5px 4px rgba(0,0,0,0.5))'
+                                : 'drop-shadow(0 2px 2px rgba(0,0,0,0.45))',
+                            }}
+                          />
+                        ) : (
+                          <span
+                            className="absolute inset-0 flex items-center justify-center leading-none"
+                            style={{
+                              fontSize: 'calc(var(--cs) * 0.82)',
+                              color: p.c === 'w' ? '#fff' : '#1e1e1e',
+                              textShadow: pieceShadow(p.c, view3d),
+                              transformOrigin: 'bottom center',
+                              transform: standUp,
+                            }}
+                          >
+                            {GLYPH[p.t]}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
               </button>
             );
           })}
@@ -414,16 +455,33 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-slate-950/85">
             <p className="text-sm font-semibold text-white">{t('chess.promote')}</p>
             <div className="flex gap-2">
-              {PROMOS.map((pr) => (
-                <button
-                  key={pr}
-                  onClick={() => choosePromo(pr)}
-                  className="flex h-12 w-12 items-center justify-center rounded-lg bg-app-surface text-3xl hover:bg-app-surface2"
-                  style={{ color: game.turn === 'w' ? '#fff' : '#1e1e1e', textShadow: '0 0 1px #000' }}
-                >
-                  {GLYPH[pr]}
-                </button>
-              ))}
+              {PROMOS.map((pr) => {
+                const sprite = view3d ? pieceSprite(game.turn, pr) : undefined;
+                return (
+                  <button
+                    key={pr}
+                    onClick={() => choosePromo(pr)}
+                    className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg bg-app-surface hover:bg-app-surface2"
+                  >
+                    {sprite ? (
+                      <img
+                        src={sprite}
+                        alt=""
+                        draggable={false}
+                        className="h-11 w-auto select-none"
+                        style={{ filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.5))' }}
+                      />
+                    ) : (
+                      <span
+                        className="text-3xl"
+                        style={{ color: game.turn === 'w' ? '#fff' : '#1e1e1e', textShadow: '0 0 1px #000' }}
+                      >
+                        {GLYPH[pr]}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
