@@ -238,7 +238,7 @@ export default function BloquesGame({ onScore, onExit }: GameProps) {
 
       <div className="relative">
         <div
-          className="grid rounded-lg border border-white/15 bg-black/30 p-1"
+          className="grid rounded-lg border-2 border-white/45 bg-black/40 p-1 shadow-[0_0_0_1px_rgba(0,0,0,0.55),0_0_12px_rgba(255,255,255,0.08)]"
           style={{ gridTemplateColumns: `repeat(${COLS}, var(--bs))` }}
         >
           {view.flatMap((row, r) =>
@@ -264,7 +264,7 @@ export default function BloquesGame({ onScore, onExit }: GameProps) {
                   ) : cell.ghost ? (
                     <div className="absolute inset-[2px] rounded-[2px] border border-white/30" />
                   ) : (
-                    <div className="absolute inset-0 rounded-[2px] bg-white/[0.03]" />
+                    <div className="absolute inset-0 rounded-[2px] bg-white/[0.04] ring-1 ring-inset ring-white/[0.06]" />
                   )}
                 </div>
               );

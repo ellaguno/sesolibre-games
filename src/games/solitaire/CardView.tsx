@@ -21,7 +21,7 @@ interface Props {
 /** Carta (cara/dorso) o hueco. Ocupa todo su contenedor; el tamaño lo fija el
  * padre vía las variables CSS --cw/--ch. La tipografía escala con --cw. */
 export default function CardView({ card, back = 'classic', selected, placeholder }: Props) {
-  const fontSize = 'calc(var(--cw) * 0.42)';
+  const fontSize = 'calc(var(--cw) * 0.36)';
 
   if (!card) {
     return (
@@ -47,14 +47,18 @@ export default function CardView({ card, back = 'classic', selected, placeholder
   const sym = SUIT_SYMBOL[card.suit];
   return (
     <div
-      className={`relative h-full w-full overflow-hidden rounded-md bg-white shadow ${
+      className={`relative h-full w-full overflow-hidden rounded-md border border-slate-300 bg-white ${
         selected ? 'ring-2 ring-brand' : ''
       }`}
-      style={{ fontSize }}
+      style={{
+        fontSize,
+        // Sombra superior (separa la carta de la que tiene debajo al apilarse) + sombra inferior suave.
+        boxShadow: '0 -1px 2px rgba(0,0,0,0.22), 0 2px 4px rgba(0,0,0,0.30)',
+      }}
     >
       {/* Esquina: número grande + símbolo pequeño a su derecha (se ve al apilar). */}
       <div
-        className="absolute left-[0.1em] top-[0.04em] flex items-center leading-none"
+        className="absolute left-[0.14em] top-[0.1em] flex items-center leading-none"
         style={{ color }}
       >
         <span className="font-extrabold">{rankLabel(card.rank)}</span>
@@ -62,7 +66,7 @@ export default function CardView({ card, back = 'classic', selected, placeholder
       </div>
       {/* Símbolo grande, justificado al fondo de la carta. */}
       <span
-        className="pointer-events-none absolute inset-x-0 bottom-[0.05em] text-center text-[1.85em] font-bold leading-none"
+        className="pointer-events-none absolute inset-x-0 bottom-[0.12em] text-center text-[1.6em] font-bold leading-none"
         style={{ color }}
       >
         {sym}
