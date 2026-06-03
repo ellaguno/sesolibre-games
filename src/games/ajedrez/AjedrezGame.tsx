@@ -54,13 +54,11 @@ function pieceShadow(c: Color, view3d: boolean): string {
     : '0 0 1px #fff, 0 1px 2px rgba(255,255,255,0.3)';
 }
 
-// Transform de la pieza: combina el deslizamiento (animación) con la vista 3D
-// (contra-rotación para que la pieza "se pare" y se eleve sobre el tablero).
-function pieceTransform(slide: { tx: number; ty: number } | null, view3d: boolean): string | undefined {
-  const parts: string[] = [];
-  if (slide) parts.push(`translate(${slide.tx}%, ${slide.ty}%)`);
-  if (view3d) parts.push('rotateX(-13deg) translateZ(calc(var(--cs) * 0.28))');
-  return parts.length ? parts.join(' ') : undefined;
+// Transform del deslizamiento (animación de movimiento). Lo lleva el wrapper del
+// tamaño de la celda, así translate(100%) = exactamente una casilla. El "ponerse
+// de pie" 3D se aplica aparte, en la pieza interior.
+function slideTransform(slide: { tx: number; ty: number } | null): string | undefined {
+  return slide ? `translate(${slide.tx}%, ${slide.ty}%)` : undefined;
 }
 
 export default function AjedrezGame({ onScore, onExit }: GameProps) {
@@ -400,10 +398,13 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
                     // El wrapper (tamaño de celda) lleva SOLO el deslizamiento: así
                     // translate(100%) = exactamente una casilla. La pieza interior
                     // lleva el "ponerse de pie" 3D (contra-rotación + elevación).
-                    const slide = pieceTransform(animating && !slid ? anim : null, false);
-                    const standUp = view3d
-                      ? 'rotateX(-13deg) translateZ(calc(var(--cs) * 0.30))'
-                      : undefined;
+                    const slide = slideTransform(animating && !slid ? anim : null);
+                    // Solo contra-rotación para "ponerse de pie" sobre la casilla.
+                    // NO se eleva con translateZ: al estar el origen de perspectiva en el
+                    // centro del tablero, una elevación constante proyecta la base por
+                    // encima de la línea en filas lejanas y por debajo en las cercanas
+                    // (apoyo inconsistente). Bisagrada en el borde inferior, ya se para.
+                    const standUp = view3d ? 'rotateX(-13deg)' : undefined;
                     return (
                       <div
                         className="pointer-events-none absolute inset-0"
