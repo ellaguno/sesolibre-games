@@ -29,6 +29,18 @@ body,
   height: 100%;
 }
 
+/* Altura mínima de pantalla de juego: el viewport visible menos las safe
+   areas (que ya ocupa el padding del body). A diferencia de min-h-screen no
+   desborda en móviles con notch, y a diferencia de min-h-full no se colapsa
+   cuando el contenedor padre no tiene altura definida (permite anclar los
+   controles abajo con mt-auto). */
+@layer utilities {
+  .min-h-app {
+    min-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+}
+
 body {
   @apply bg-app-bg text-app-text antialiased;
   margin: 0;

@@ -211,7 +211,7 @@ export default function BloquesGame({ onScore, onExit }: GameProps) {
   const figKeys = fig !== 'none' ? Object.keys(figureTypes[fig]) : [];
 
   return (
-    <main className="mx-auto flex min-h-full max-w-md flex-col items-center px-3 py-3" style={SIZE_VARS}>
+    <main className="mx-auto flex min-h-app max-w-md flex-col items-center px-3 py-3" style={SIZE_VARS}>
       <div className="mb-2 flex w-full items-center justify-between">
         <button
           onClick={onExit}

@@ -331,7 +331,7 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
   };
 
   return (
-    <main className="mx-auto flex min-h-full max-w-md flex-col items-center py-3" style={SIZE}>
+    <main className="mx-auto flex min-h-app max-w-md flex-col items-center py-3" style={SIZE}>
       <div className="mb-2 flex w-full items-center justify-between px-3">
         <button
           onClick={onExit}

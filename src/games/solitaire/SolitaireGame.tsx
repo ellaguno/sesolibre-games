@@ -288,7 +288,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
 
   return (
     <main
-      className="mx-auto flex min-h-full max-w-[480px] select-none flex-col px-2 py-3"
+      className="mx-auto flex min-h-app max-w-[480px] select-none flex-col px-2 py-3"
       style={SIZE_VARS}
     >
       <div className="mb-2 flex items-center justify-between">
