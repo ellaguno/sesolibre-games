@@ -73,37 +73,74 @@ export default function RewardsScreen() {
         {CARD_BACKS.map((b) => {
           const owned = ownedBacks.includes(b.id);
           const inUse = cardBack === b.id;
+          const isPrize = !!b.achievement; // se gana con un logro, no se compra
+          const affordable = coins >= b.cost;
+          const buyable = !owned && !isPrize && affordable;
+
+          const buy = () => {
+            if (buyBack(b.id, b.cost)) {
+              AudioService.play('reward');
+              celebrate();
+            } else {
+              AudioService.play('lose');
+            }
+          };
+          // Toda la carta es tocable: usar si ya es tuya, comprar si alcanza.
+          const onTap = () => {
+            if (inUse) return;
+            if (owned) selectBack(b.id);
+            else if (buyable) buy();
+          };
+
           return (
-            <div key={b.id} className="flex flex-col items-center gap-1">
-              <div
-                className={`aspect-[5/7] w-full rounded-md border ${
+            <div key={b.id} className="flex flex-col items-center gap-1.5">
+              <button
+                onClick={onTap}
+                disabled={!owned && !buyable}
+                aria-label={
+                  inUse ? t('cos.inUse') : owned ? t('cos.use') : `${t('cos.buy')} ${b.cost} 🪙`
+                }
+                className={`relative aspect-[5/7] w-full overflow-hidden rounded-md border transition ${
                   inUse ? 'border-brand ring-2 ring-brand' : 'border-white/20'
-                }`}
+                } ${!owned && !buyable ? 'opacity-60' : 'hover:scale-[1.03] active:scale-95'}`}
                 style={b.style}
-              />
+              >
+                {b.img && (
+                  <img
+                    src={b.img}
+                    alt=""
+                    draggable={false}
+                    className="pointer-events-none absolute inset-0 m-auto h-[62%] max-w-[72%] select-none object-contain drop-shadow"
+                  />
+                )}
+                {!owned && (
+                  <span className="absolute right-1 top-1 text-sm drop-shadow">
+                    {isPrize ? '🏅' : '🔒'}
+                  </span>
+                )}
+              </button>
               {inUse ? (
-                <span className="text-[11px] font-semibold text-brand">{t('cos.inUse')}</span>
+                <span className="rounded-full bg-brand/15 px-2.5 py-1 text-[11px] font-semibold text-brand">
+                  ✓ {t('cos.inUse')}
+                </span>
               ) : owned ? (
                 <button
                   onClick={() => selectBack(b.id)}
-                  className="text-[11px] font-semibold text-app-muted hover:text-app-text"
+                  className="rounded-full bg-app-surface2 px-2.5 py-1 text-[11px] font-semibold hover:bg-app-border"
                 >
                   {t('cos.use')}
                 </button>
+              ) : isPrize ? (
+                <span className="rounded-full bg-app-surface2 px-2.5 py-1 text-[11px] font-semibold text-app-muted">
+                  🏅 {t('ach.explorer')}
+                </span>
               ) : (
                 <button
-                  onClick={() => {
-                    if (buyBack(b.id, b.cost)) {
-                      AudioService.play('reward');
-                      celebrate();
-                    } else {
-                      AudioService.play('lose');
-                    }
-                  }}
-                  disabled={coins < b.cost}
-                  className="text-[11px] font-semibold text-amber-400 disabled:opacity-40"
+                  onClick={buy}
+                  disabled={!affordable}
+                  className="rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-semibold text-amber-500 hover:bg-amber-500/25 disabled:opacity-50"
                 >
-                  {b.cost} 🪙
+                  {t('cos.buy')} · {b.cost} 🪙
                 </button>
               )}
             </div>

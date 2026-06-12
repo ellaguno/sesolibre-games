@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { storage } from './storage';
 import { games } from './registry';
+import { CARD_BACKS } from '../games/solitaire/cardBacks';
 
 /**
  * Recompensas: moneda virtual, recompensa diaria con racha y logros. Todo local
@@ -40,6 +41,13 @@ export const ACHIEVEMENTS: Achievement[] = [
 ];
 
 const ACHIEVEMENT_BY_ID = new Map(ACHIEVEMENTS.map((a) => [a.id, a]));
+
+/** Reversos de carta que regalan los logros indicados (además de monedas). */
+function backsGrantedBy(achievements: string[]): string[] {
+  return CARD_BACKS.filter((b) => b.achievement && achievements.includes(b.achievement)).map(
+    (b) => b.id,
+  );
+}
 
 // ---------- Lógica pura (testeable) ----------
 
@@ -104,7 +112,13 @@ export const useRewards = create<RewardState>((set, get) => ({
 
   hydrate: async () => {
     const saved = await storage.get<RewardData>(KEY);
-    set({ ...DEFAULTS, ...saved, loaded: true });
+    const merged = { ...DEFAULTS, ...saved };
+    // Reversos-premio de logros ya desbloqueados (también cubre guardados
+    // anteriores a que existiera el premio).
+    merged.ownedBacks = [
+      ...new Set([...merged.ownedBacks, ...backsGrantedBy(merged.achievements)]),
+    ];
+    set({ ...merged, loaded: true });
   },
 
   claimDaily: () => {
@@ -125,9 +139,12 @@ export const useRewards = create<RewardState>((set, get) => ({
   unlock: (id) => {
     if (get().achievements.includes(id)) return false;
     const reward = ACHIEVEMENT_BY_ID.get(id);
+    const achievements = [...get().achievements, id];
     set({
-      achievements: [...get().achievements, id],
+      achievements,
       coins: get().coins + (reward?.coins ?? 0),
+      // Algunos logros regalan además un reverso de carta.
+      ownedBacks: [...new Set([...get().ownedBacks, ...backsGrantedBy([id])])],
     });
     void persist(get);
     return true;

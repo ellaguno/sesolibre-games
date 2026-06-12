@@ -15,7 +15,9 @@ import {
 } from './logic';
 import type { GameProps } from '../../core/registry';
 import { AudioService } from '../../core/AudioService';
+import { useGameSave } from '../../core/saves';
 import { fireBurst, bigCelebrate } from '../../anim/particles';
+import { formatDuration } from '../../core/format';
 import { useT } from '../../core/i18n';
 import Button from '../../ui/Button';
 
@@ -33,6 +35,14 @@ const NUM_COLORS = [
 
 const LONG_PRESS_MS = 350;
 
+// Partida guardada (solo tableros empezados y aún en juego).
+interface MinesSave {
+  v: 1;
+  difficultyId: string;
+  grid: Grid;
+  seconds: number;
+}
+
 export default function MinesweeperGame({ onScore, onExit }: GameProps) {
   const t = useT();
   const [difficulty, setDifficulty] = useState<Difficulty>(DIFFICULTIES[0]);
@@ -40,6 +50,9 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
     createEmptyGrid(DIFFICULTIES[0].rows, DIFFICULTIES[0].cols),
   );
   const [status, setStatus] = useState<GameStatus>('playing');
+  // Panel de fin de partida oculto a petición del jugador (para ver el
+  // tablero final, p. ej. dónde estaban las minas).
+  const [endHidden, setEndHidden] = useState(false);
   const [started, setStarted] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const startedRef = useRef(false);
@@ -53,6 +66,7 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
   const reset = useCallback((d: Difficulty) => {
     setGrid(createEmptyGrid(d.rows, d.cols));
     setStatus('playing');
+    setEndHidden(false);
     setStarted(false);
     startedRef.current = false;
     submittedRef.current = false;
@@ -71,6 +85,26 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = null;
   };
+
+  // Conservar la partida al salir al menú o al perder el foco la app.
+  useGameSave<MinesSave>(
+    'minesweeper',
+    1,
+    () =>
+      started && status === 'playing'
+        ? { v: 1, difficultyId: difficulty.id, grid, seconds }
+        : null,
+    (s) => {
+      const d = DIFFICULTIES.find((x) => x.id === s.difficultyId);
+      if (d) setDifficulty(d);
+      setGrid(s.grid);
+      setSeconds(s.seconds);
+      setStarted(true);
+      startedRef.current = true;
+      startTimer();
+    },
+    [started, status, grid, seconds, difficulty],
+  );
 
   const cellCenter = (r: number, c: number): { x: number; y: number } | null => {
     const el = boardRef.current;
@@ -183,7 +217,7 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
         </button>
         <div className="flex items-center gap-4 font-mono text-sm">
           <span>💣 {minesLeft}</span>
-          <span>⏱ {seconds}s</span>
+          <span>⏱ {formatDuration(seconds)}</span>
         </div>
         <div className="w-10" />
       </div>
@@ -256,10 +290,10 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
           )}
         </div>
 
-        {status !== 'playing' && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-xl bg-slate-950/80">
+        {status !== 'playing' && !endHidden && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-xl bg-slate-950/80 text-white">
             <p className="text-2xl font-bold">
-              {status === 'won' ? t('mines.cleared', { s: seconds }) : t('mines.boom')}
+              {status === 'won' ? t('mines.cleared', { s: formatDuration(seconds) }) : t('mines.boom')}
             </p>
             <div className="flex gap-2">
               <Button onClick={() => reset(difficulty)}>{t('common.playAgain')}</Button>
@@ -267,9 +301,25 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
                 {t('common.exit')}
               </Button>
             </div>
+            {/* Quitar el panel para ver el tablero final (dónde estaban las minas). */}
+            <button
+              onClick={() => setEndHidden(true)}
+              className="text-sm text-white/70 underline underline-offset-2 hover:text-white"
+            >
+              👁 {t('common.viewBoard')}
+            </button>
           </div>
         )}
       </div>
+
+      {status !== 'playing' && endHidden && (
+        <div className="mt-3 flex gap-2">
+          <Button onClick={() => reset(difficulty)}>{t('common.playAgain')}</Button>
+          <Button variant="ghost" onClick={onExit}>
+            {t('common.exit')}
+          </Button>
+        </div>
+      )}
 
       <p className="mt-3 text-center text-xs text-app-muted">
         {t('mines.help')}

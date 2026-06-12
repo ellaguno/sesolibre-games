@@ -1,5 +1,5 @@
 import { isRed, type Card, type Suit } from './logic';
-import { backStyle } from './cardBacks';
+import { getBack } from './cardBacks';
 
 const SUIT_SYMBOL: Record<Suit, string> = {
   spades: '♠',
@@ -26,7 +26,7 @@ export default function CardView({ card, back = 'classic', selected, placeholder
   if (!card) {
     return (
       <div
-        className="flex h-full w-full items-center justify-center rounded-md border border-dashed border-white/25 bg-black/20 font-bold text-white/30"
+        className="flex h-full w-full items-center justify-center rounded-md border border-dashed border-slate-900/30 bg-slate-900/10 font-bold text-slate-900/30 dark:border-white/25 dark:bg-black/20 dark:text-white/30"
         style={{ fontSize }}
       >
         {placeholder ?? ''}
@@ -35,16 +35,30 @@ export default function CardView({ card, back = 'classic', selected, placeholder
   }
 
   if (!card.faceUp) {
+    const b = getBack(back);
     return (
       <div
-        className="h-full w-full rounded-md border border-white/20 shadow-sm"
-        style={{ ...backStyle(back), boxShadow: 'inset 0 0 0 0.12em rgba(255,255,255,0.18)' }}
-      />
+        className="relative h-full w-full overflow-hidden rounded-md border border-white/20 shadow-sm"
+        style={{ ...b.style, boxShadow: 'inset 0 0 0 0.12em rgba(255,255,255,0.18)' }}
+      >
+        {b.img && (
+          <img
+            src={b.img}
+            alt=""
+            draggable={false}
+            className="pointer-events-none absolute inset-0 m-auto h-[62%] max-w-[72%] select-none object-contain drop-shadow"
+          />
+        )}
+      </div>
     );
   }
 
   const color = isRed(card.suit) ? '#dc2626' : '#0f172a';
   const sym = SUIT_SYMBOL[card.suit];
+  const label = rankLabel(card.rank);
+  // El «10» es el único valor de dos cifras: se compacta (espaciado negativo y
+  // cuerpo algo menor) para que el símbolo del palo no se salga de la carta.
+  const twoDigits = label.length > 1;
   return (
     <div
       className={`relative h-full w-full overflow-hidden rounded-md border border-slate-300 bg-white ${
@@ -61,8 +75,15 @@ export default function CardView({ card, back = 'classic', selected, placeholder
         className="absolute left-[0.14em] top-[0.1em] flex items-center leading-none"
         style={{ color }}
       >
-        <span className="font-extrabold">{rankLabel(card.rank)}</span>
-        <span className="ml-[0.06em] text-[1em] font-bold">{sym}</span>
+        <span
+          className="font-extrabold"
+          style={twoDigits ? { letterSpacing: '-0.14em', fontSize: '0.85em' } : undefined}
+        >
+          {label}
+        </span>
+        <span className={`text-[1em] font-bold ${twoDigits ? 'ml-[0.12em]' : 'ml-[0.06em]'}`}>
+          {sym}
+        </span>
       </div>
       {/* Símbolo grande, justificado al fondo de la carta. */}
       <span

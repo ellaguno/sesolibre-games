@@ -39,6 +39,7 @@ const es: Dict = {
   'common.playAgain': 'Jugar de nuevo',
   'common.options': 'Opciones',
   'common.soon': 'Pronto',
+  'common.viewBoard': 'Ver tablero',
 
   'settings.title': 'Ajustes',
   'settings.darkTheme': 'Tema oscuro',
@@ -130,10 +131,10 @@ const es: Dict = {
 
   'mines.help': 'Toca para revelar · mantén pulsado (o clic derecho) para poner bandera.',
   'mines.firstSafe': 'El primer toque siempre es seguro.',
-  'mines.cleared': '¡Despejado en {s}s! 🎉',
+  'mines.cleared': '¡Despejado en {s}! 🎉',
   'mines.boom': '💥 ¡Boom!',
 
-  'sudoku.solved': '¡Resuelto en {s}s! 🎉',
+  'sudoku.solved': '¡Resuelto en {s}! 🎉',
   'sudoku.notes': 'Notas',
   'sudoku.erase': 'Borrar',
   'sudoku.hint': 'Pista',
@@ -206,6 +207,7 @@ const en: Dict = {
   'common.playAgain': 'Play again',
   'common.options': 'Options',
   'common.soon': 'Soon',
+  'common.viewBoard': 'View board',
 
   'settings.title': 'Settings',
   'settings.darkTheme': 'Dark theme',
@@ -297,10 +299,10 @@ const en: Dict = {
 
   'mines.help': 'Tap to reveal · long-press (or right-click) to flag.',
   'mines.firstSafe': 'The first tap is always safe.',
-  'mines.cleared': 'Cleared in {s}s! 🎉',
+  'mines.cleared': 'Cleared in {s}! 🎉',
   'mines.boom': '💥 Boom!',
 
-  'sudoku.solved': 'Solved in {s}s! 🎉',
+  'sudoku.solved': 'Solved in {s}! 🎉',
   'sudoku.notes': 'Notes',
   'sudoku.erase': 'Erase',
   'sudoku.hint': 'Hint',

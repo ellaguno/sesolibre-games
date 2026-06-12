@@ -16,6 +16,7 @@ import { chooseMove, type Level } from './ai';
 import { pieceSprite } from './pieces';
 import type { GameProps } from '../../core/registry';
 import { AudioService } from '../../core/AudioService';
+import { useGameSave } from '../../core/saves';
 import { useT } from '../../core/i18n';
 import Button from '../../ui/Button';
 
@@ -37,6 +38,20 @@ const TIME_CONTROLS: Record<ClockId, { base: number; inc: number }> = {
 const CLOCK_IDS: ClockId[] = ['off', '3+2', '5', '10'];
 const CLOCK_LABEL: Record<ClockId, string> = { off: '—', '3+2': '3+2', '5': '5m', '10': '10m' };
 const otherC = (c: Color): Color => (c === 'w' ? 'b' : 'w');
+
+// Partida guardada (continuar al volver). El historial se limita para acotar
+// el tamaño del JSON; basta para los últimos deshacer.
+interface ChessSave {
+  v: 1;
+  game: State;
+  history: State[];
+  mode: Mode;
+  level: Level;
+  clockId: ClockId;
+  clocks: { w: number; b: number };
+  view3d: boolean;
+}
+const SAVE_HISTORY = 30;
 const fmtClock = (ms: number) => {
   const s = Math.max(0, Math.ceil(ms / 1000));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -78,6 +93,8 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
   const clocksRef = useRef(clocks);
   const [timeoutLoser, setTimeoutLoser] = useState<Color | null>(null);
   const [view3d, setView3d] = useState(false);
+  // Panel de fin de partida oculto a petición del jugador (para ver la posición final).
+  const [endHidden, setEndHidden] = useState(false);
   const submitted = useRef(false);
   const workerRef = useRef<Worker | null>(null);
 
@@ -107,6 +124,42 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
   const moves = useMemo(() => legalMoves(game), [game]);
   const st = useMemo(() => status(game), [game]);
   const over = st === 'checkmate' || st === 'stalemate' || timeoutLoser !== null;
+
+  // Si la partida vuelve a estar viva (nueva partida o deshacer), el próximo
+  // final debe mostrar su panel de nuevo.
+  useEffect(() => {
+    if (!over) setEndHidden(false);
+  }, [over]);
+
+  // Conservar la partida al salir al menú o al perder el foco la app. Los
+  // relojes se leen de clocksRef para no reescribir el guardado cada tick.
+  useGameSave<ChessSave>(
+    'ajedrez',
+    1,
+    () =>
+      over
+        ? null
+        : {
+            v: 1,
+            game,
+            history: history.slice(-SAVE_HISTORY),
+            mode,
+            level,
+            clockId,
+            clocks: clocksRef.current,
+            view3d,
+          },
+    (s) => {
+      setMode(s.mode);
+      setLevel(s.level);
+      setClockId(s.clockId);
+      setClk(s.clocks);
+      setGame(s.game);
+      setHistory(s.history);
+      setView3d(s.view3d);
+    },
+    [over, game, history, mode, level, clockId, view3d],
+  );
 
   const targets = useMemo(() => {
     const set = new Set<number>();
@@ -165,7 +218,10 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
       const side = game.turn;
       const nv = Math.max(0, clocksRef.current[side] - d);
       setClk({ ...clocksRef.current, [side]: nv });
-      if (nv === 0) setTimeoutLoser(side);
+      if (nv === 0) {
+        setTimeoutLoser(side);
+        AudioService.play('lose');
+      }
     }, 200);
     return () => clearInterval(id);
   }, [game, clockId, over, pendingPromo]);
@@ -231,11 +287,19 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
   const undo = () => {
     setHistory((h) => {
       if (h.length === 0) return h;
-      setGame(h[h.length - 1]);
+      // Vs IA: retroceder hasta una posición donde mueva el humano; si solo se
+      // deshiciera medio movimiento, la IA respondería de inmediato y el
+      // deshacer no serviría de nada.
+      let n = h.length - 1;
+      if (mode === 'ai') {
+        while (n > 0 && h[n].turn === AI_COLOR) n--;
+        if (h[n].turn === AI_COLOR) return h;
+      }
+      setGame(h[n]);
       setSel(null);
       setAnim(null);
       submitted.current = false;
-      return h.slice(0, -1);
+      return h.slice(0, n);
     });
   };
 
@@ -267,7 +331,7 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
   };
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col items-center py-3" style={SIZE}>
+    <main className="mx-auto flex min-h-full max-w-md flex-col items-center py-3" style={SIZE}>
       <div className="mb-2 flex w-full items-center justify-between px-3">
         <button
           onClick={onExit}
@@ -277,7 +341,7 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
           ←
         </button>
         <span
-          className={`font-semibold drop-shadow ${st === 'checkmate' ? 'text-amber-300' : st === 'check' ? 'text-rose-300' : 'text-white'}`}
+          className={`font-semibold drop-shadow-sm ${st === 'checkmate' ? 'text-amber-600 dark:text-amber-300' : st === 'check' ? 'text-rose-600 dark:text-rose-300' : 'text-app-text'}`}
         >
           {statusText}
         </span>
@@ -487,10 +551,17 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
           </div>
         )}
 
-        {over && (
+        {over && !endHidden && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-lg bg-slate-950/85">
             <p className="text-center text-2xl font-bold text-white">{statusText}</p>
             <Button onClick={newGame}>{t('common.new')}</Button>
+            {/* Quitar el panel para estudiar la posición final. */}
+            <button
+              onClick={() => setEndHidden(true)}
+              className="text-sm text-white/70 underline underline-offset-2 hover:text-white"
+            >
+              👁 {t('common.viewBoard')}
+            </button>
           </div>
         )}
       </div>
@@ -510,7 +581,7 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
           ↻ {t('common.new')}
         </button>
       </div>
-      <p className="mt-2 px-3 text-center text-xs text-white/70 drop-shadow">{t('chess.help')}</p>
+      <p className="mt-2 px-3 text-center text-xs text-app-text/70 drop-shadow-sm">{t('chess.help')}</p>
     </main>
   );
 }

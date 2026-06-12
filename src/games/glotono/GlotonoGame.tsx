@@ -274,6 +274,12 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
   const [seed, setSeed] = useState(() => Date.now());
   const [hud, setHud] = useState({ score: 0, lives: 3, level: 1, status: 'playing' as string });
   const [levelFlash, setLevelFlash] = useState<number | null>(null);
+  // Panel de derrota oculto a petición del jugador (para ver el laberinto).
+  const [endHidden, setEndHidden] = useState(false);
+
+  useEffect(() => {
+    if (hud.status !== 'lost') setEndHidden(false);
+  }, [hud.status]);
   const submittedRef = useRef(false);
 
   const setDir = useCallback((dir: Dir) => {
@@ -386,7 +392,7 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
 
   return (
     <main
-      className="mx-auto flex min-h-screen max-w-2xl touch-none flex-col items-center px-4 py-4"
+      className="mx-auto flex min-h-full max-w-2xl touch-none flex-col items-center px-4 py-4"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
@@ -416,8 +422,8 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
           </div>
         )}
 
-        {hud.status === 'lost' && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-xl bg-slate-950/80">
+        {hud.status === 'lost' && !endHidden && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-xl bg-slate-950/80 text-white">
             <p className="text-2xl font-bold">{t('glotono.caught')}</p>
             <p className="font-mono text-emerald-400">
               {t('glotono.levelPts', { lv: hud.level, pts: hud.score })}
@@ -428,9 +434,25 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
                 {t('common.exit')}
               </Button>
             </div>
+            {/* Quitar el panel para ver el laberinto final. */}
+            <button
+              onClick={() => setEndHidden(true)}
+              className="text-sm text-white/70 underline underline-offset-2 hover:text-white"
+            >
+              👁 {t('common.viewBoard')}
+            </button>
           </div>
         )}
       </div>
+
+      {hud.status === 'lost' && endHidden && (
+        <div className="mt-3 flex gap-2">
+          <Button onClick={() => setSeed(Date.now())}>{t('common.playAgain')}</Button>
+          <Button variant="ghost" onClick={onExit}>
+            {t('common.exit')}
+          </Button>
+        </div>
+      )}
 
       <DPad onDir={setDir} t={t} />
 

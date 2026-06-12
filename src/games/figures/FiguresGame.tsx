@@ -20,6 +20,7 @@ import {
 } from './board';
 import type { GameProps } from '../../core/registry';
 import { ScoreService } from '../../core/ScoreService';
+import { useGameSave } from '../../core/saves';
 import { AudioService } from '../../core/AudioService';
 import { useT, type TFn } from '../../core/i18n';
 import Button from '../../ui/Button';
@@ -43,6 +44,15 @@ interface Config {
   limitedMoves: boolean;
   verticalMovement: boolean;
   figureType: FigureType;
+}
+
+// Partida guardada (continuar al volver).
+interface FiguresSave {
+  v: 1;
+  board: Board;
+  score: number;
+  movesLeft: number;
+  config: Config;
 }
 
 export default function FiguresGame({ onScore, onExit }: GameProps) {
@@ -72,6 +82,28 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
   useEffect(() => {
     void ScoreService.getBest('figures').then((b) => b && setBest(b.value));
   }, []);
+
+  // Conservar la partida al salir al menú o al perder el foco la app. Durante
+  // las cascadas (isProcessing) no se guarda: el tablero está a medio resolver.
+  useGameSave<FiguresSave>(
+    'figures',
+    1,
+    () => {
+      if (gameOver) return null;
+      if (showConfig || isProcessing || board.length === 0) return undefined;
+      return { v: 1, board, score, movesLeft, config };
+    },
+    (s) => {
+      setConfig(s.config);
+      setBoard(s.board);
+      setScore(s.score);
+      scoreRef.current = s.score;
+      setMovesLeft(s.movesLeft);
+      movesLeftRef.current = s.movesLeft;
+      setShowConfig(false);
+    },
+    [gameOver, showConfig, isProcessing, board, score, movesLeft, config],
+  );
 
   const playSound = useCallback(() => AudioService.play('pop'), []);
 

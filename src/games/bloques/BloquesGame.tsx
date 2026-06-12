@@ -62,6 +62,8 @@ const SIZE_VARS = { '--bs': 'min(8.4vw, 3.9vh, 30px)' } as CSSProperties;
 export default function BloquesGame({ onScore, onExit }: GameProps) {
   const t = useT();
   const [fig, setFig] = useState<FigOpt>('none');
+  // Panel de fin de partida oculto a petición del jugador (para ver el tablero).
+  const [endHidden, setEndHidden] = useState(false);
   const gRef = useRef<Game>(newGame());
   const [, setTick] = useState(0);
   const render = useCallback(() => setTick((n) => n + 1), []);
@@ -140,6 +142,7 @@ export default function BloquesGame({ onScore, onExit }: GameProps) {
   const restart = useCallback(() => {
     gRef.current = newGame();
     submitted.current = false;
+    setEndHidden(false);
     render();
   }, [render]);
 
@@ -208,7 +211,7 @@ export default function BloquesGame({ onScore, onExit }: GameProps) {
   const figKeys = fig !== 'none' ? Object.keys(figureTypes[fig]) : [];
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col items-center px-3 py-3" style={SIZE_VARS}>
+    <main className="mx-auto flex min-h-full max-w-md flex-col items-center px-3 py-3" style={SIZE_VARS}>
       <div className="mb-2 flex w-full items-center justify-between">
         <button
           onClick={onExit}
@@ -217,7 +220,7 @@ export default function BloquesGame({ onScore, onExit }: GameProps) {
         >
           ←
         </button>
-        <div className="flex gap-3 font-mono text-xs text-white drop-shadow">
+        <div className="flex gap-3 font-mono text-xs text-app-text drop-shadow-sm">
           <span>{t('bloques.points')}: {g.score}</span>
           <span>{t('bloques.level')}: {level()}</span>
           <span>{t('bloques.lines')}: {g.lines}</span>
@@ -272,7 +275,7 @@ export default function BloquesGame({ onScore, onExit }: GameProps) {
           )}
         </div>
 
-        {g.over && (
+        {g.over && !endHidden && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-lg bg-slate-950/85">
             <p className="text-2xl font-bold text-white">{t('bloques.over')}</p>
             <p className="font-mono text-emerald-400">{t('bloques.points')}: {g.score}</p>
@@ -282,9 +285,25 @@ export default function BloquesGame({ onScore, onExit }: GameProps) {
                 {t('common.exit')}
               </Button>
             </div>
+            {/* Quitar el panel para ver cómo quedó el pozo. */}
+            <button
+              onClick={() => setEndHidden(true)}
+              className="text-sm text-white/70 underline underline-offset-2 hover:text-white"
+            >
+              👁 {t('common.viewBoard')}
+            </button>
           </div>
         )}
       </div>
+
+      {g.over && endHidden && (
+        <div className="mt-3 flex gap-2">
+          <Button onClick={restart}>{t('common.playAgain')}</Button>
+          <Button variant="ghost" onClick={onExit}>
+            {t('common.exit')}
+          </Button>
+        </div>
+      )}
 
       {/* Controles táctiles */}
       <div className="mt-auto flex w-full max-w-xs items-center justify-between gap-2 pt-4">
@@ -294,7 +313,7 @@ export default function BloquesGame({ onScore, onExit }: GameProps) {
         <Ctrl onClick={softDrop}>▼</Ctrl>
         <Ctrl onClick={hardDrop}>⤓</Ctrl>
       </div>
-      <p className="mt-2 text-center text-xs text-white/70 drop-shadow">{t('bloques.help')}</p>
+      <p className="mt-2 text-center text-xs text-app-text/70 drop-shadow-sm">{t('bloques.help')}</p>
     </main>
   );
 }

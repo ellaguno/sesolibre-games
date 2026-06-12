@@ -26,7 +26,9 @@ export default function GameHost() {
         className="fixed inset-0 -z-10 bg-cover bg-center"
         style={{ backgroundImage: `url(${game.bg})` }}
       />
-      <div className="fixed inset-0 -z-10 bg-slate-950/55" />
+      {/* Velo sobre el fondo: oscuro en tema oscuro y casi blanco (ligeramente
+          translúcido) en tema claro, para que el texto del tema contraste. */}
+      <div className="fixed inset-0 -z-10 bg-slate-100/90 dark:bg-slate-950/55" />
 
       <Suspense
         fallback={

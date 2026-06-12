@@ -11,7 +11,9 @@ import {
 } from './generator';
 import type { GameProps } from '../../core/registry';
 import { AudioService } from '../../core/AudioService';
+import { useGameSave } from '../../core/saves';
 import { particles, bigCelebrate } from '../../anim/particles';
+import { formatDuration } from '../../core/format';
 import { useT } from '../../core/i18n';
 import Button from '../../ui/Button';
 
@@ -42,6 +44,17 @@ const emptyNotes = (): Notes =>
     Array.from({ length: 9 }, () => new Array<boolean>(9).fill(false)),
   );
 
+// Partida guardada (continuar al volver).
+interface SudokuSave {
+  v: 1;
+  difficultyId: string;
+  game: Puzzle;
+  board: Board;
+  notes: Notes;
+  seconds: number;
+  hintsLeft: number;
+}
+
 export default function SudokuGame({ onScore, onExit }: GameProps) {
   const t = useT();
   const [difficulty, setDifficulty] = useState<Difficulty>(DIFFICULTIES[0]);
@@ -56,9 +69,31 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
   const [hintCell, setHintCell] = useState<{ r: number; c: number; digit: number } | null>(null);
   const [hintsLeft, setHintsLeft] = useState(2);
   const [solved, setSolved] = useState(false);
+  // Panel de victoria oculto a petición del jugador (para ver el tablero final).
+  const [endHidden, setEndHidden] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const submittedRef = useRef(false);
+
+  // Conservar la partida al salir al menú o al perder el foco la app.
+  useGameSave<SudokuSave>(
+    'sudoku',
+    1,
+    () =>
+      solved
+        ? null
+        : { v: 1, difficultyId: difficulty.id, game, board, notes, seconds, hintsLeft },
+    (s) => {
+      const d = DIFFICULTIES.find((x) => x.id === s.difficultyId);
+      if (d) setDifficulty(d);
+      setGame(s.game);
+      setBoard(s.board);
+      setNotes(s.notes);
+      setSeconds(s.seconds);
+      setHintsLeft(s.hintsLeft);
+    },
+    [solved, difficulty, game, board, notes, seconds, hintsLeft],
+  );
 
   const newGame = useCallback((d: Difficulty) => {
     const g = generatePuzzle(d);
@@ -70,6 +105,7 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
     setHintCell(null);
     setHintsLeft(2);
     setSolved(false);
+    setEndHidden(false);
     setSeconds(0);
     submittedRef.current = false;
   }, []);
@@ -142,6 +178,16 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
         setNotes((prev) => {
           const cleared = prev.map((row) => row.map((cell) => [...cell]));
           cleared[r][c] = new Array<boolean>(9).fill(false);
+          // El número colocado ya no es candidato en su fila, columna ni caja.
+          for (let i = 0; i < 9; i++) {
+            cleared[r][i][digit - 1] = false;
+            cleared[i][c][digit - 1] = false;
+          }
+          const br = Math.floor(r / 3) * 3;
+          const bc = Math.floor(c / 3) * 3;
+          for (let rr = br; rr < br + 3; rr++) {
+            for (let cc = bc; cc < bc + 3; cc++) cleared[rr][cc][digit - 1] = false;
+          }
           return cleared;
         });
         AudioService.play('pop');
@@ -258,7 +304,7 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
         >
           ←
         </button>
-        <span className="font-mono text-sm">⏱ {seconds}s</span>
+        <span className="font-mono text-sm">⏱ {formatDuration(seconds)}</span>
         <div className="w-10" />
       </div>
 
@@ -314,7 +360,7 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
                             ? 'bg-app-surface2/40'
                             : 'bg-app-surface'
                     }
-                    ${conflict ? 'text-rose-500' : given ? 'text-app-text' : 'text-indigo-500'}
+                    ${conflict ? 'text-rose-600 dark:text-rose-400' : given ? 'text-app-text' : 'text-indigo-700 dark:text-indigo-400'}
                   `}
                 >
                   {v !== 0 ? (
@@ -322,7 +368,7 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
                   ) : hintCell && hintCell.r === r && hintCell.c === c ? (
                     <span className="animate-pulse italic text-amber-400">{hintCell.digit}</span>
                   ) : notes[r][c].some(Boolean) ? (
-                    <div className="grid h-full w-full grid-cols-3 grid-rows-3 p-px text-[9px] font-normal leading-none text-app-muted">
+                    <div className="grid h-full w-full grid-cols-3 grid-rows-3 p-px text-[9px] font-normal leading-none text-app-text/75">
                       {notes[r][c].map((on, i) => (
                         <span key={i} className="flex items-center justify-center">
                           {on ? i + 1 : ''}
@@ -338,18 +384,34 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
           )}
         </div>
 
-        {solved && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-md bg-slate-950/85">
-            <p className="text-2xl font-bold">{t('sudoku.solved', { s: seconds })}</p>
+        {solved && !endHidden && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-md bg-slate-950/85 text-white">
+            <p className="text-2xl font-bold">{t('sudoku.solved', { s: formatDuration(seconds) })}</p>
             <div className="flex gap-2">
               <Button onClick={() => newGame(difficulty)}>{t('common.new')}</Button>
               <Button variant="ghost" onClick={onExit}>
                 {t('common.exit')}
               </Button>
             </div>
+            {/* Quitar el panel para contemplar el tablero resuelto. */}
+            <button
+              onClick={() => setEndHidden(true)}
+              className="text-sm text-white/70 underline underline-offset-2 hover:text-white"
+            >
+              👁 {t('common.viewBoard')}
+            </button>
           </div>
         )}
       </div>
+
+      {solved && endHidden && (
+        <div className="mt-3 flex gap-2">
+          <Button onClick={() => newGame(difficulty)}>{t('common.new')}</Button>
+          <Button variant="ghost" onClick={onExit}>
+            {t('common.exit')}
+          </Button>
+        </div>
+      )}
 
       {/* Teclado numérico (los dígitos completos se deshabilitan) */}
       <div className="mt-4 grid w-full max-w-[min(92vw,380px)] grid-cols-9 gap-1">

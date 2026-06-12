@@ -25,6 +25,7 @@ import { analyzeWinnable, looksStuck, type Verdict } from './solver';
 import CardView from './CardView';
 import type { GameProps } from '../../core/registry';
 import { AudioService } from '../../core/AudioService';
+import { useGameSave } from '../../core/saves';
 import { bigCelebrate } from '../../anim/particles';
 import { useRewards } from '../../core/RewardService';
 import { useT } from '../../core/i18n';
@@ -58,6 +59,16 @@ const SIZE_VARS = {
   '--cov': 'calc(var(--ch) * 0.34)',
 } as CSSProperties;
 
+// Partida guardada (continuar al volver). El historial se limita para que el
+// JSON no crezca sin tope: bastan los últimos deshacer.
+interface SolitaireSave {
+  v: 1;
+  drawCount: 1 | 3;
+  game: GameState;
+  history: GameState[];
+}
+const SAVE_HISTORY = 20;
+
 export default function SolitaireGame({ onScore, onExit }: GameProps) {
   const t = useT();
   const back = useRewards((s) => s.cardBack);
@@ -67,12 +78,30 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
   const [won, setWon] = useState(false);
   // Partida sin solución posible (probada por el solver, aunque queden barajeos).
   const [dead, setDead] = useState(false);
+  // Panel de fin de partida oculto a petición del jugador (para ver el tablero).
+  const [endHidden, setEndHidden] = useState(false);
   const [leftHanded, setLeftHanded] = useState(false);
   const [drag, setDrag] = useState<Drag | null>(null);
   const dragRef = useRef<Drag | null>(null);
   const submittedRef = useRef(false);
   const workerRef = useRef<Worker | null>(null);
   const solveSeq = useRef(0);
+
+  // Conservar la partida al salir al menú o al perder el foco la app.
+  useGameSave<SolitaireSave>(
+    'solitaire',
+    1,
+    () =>
+      won || isWin(game)
+        ? null
+        : { v: 1, drawCount, game, history: history.slice(-SAVE_HISTORY) },
+    (s) => {
+      setDrawCount(s.drawCount);
+      setGame(s.game);
+      setHistory(s.history);
+    },
+    [won, game, history, drawCount],
+  );
 
   const newGame = useCallback((dc: 1 | 3) => {
     setGame(deal(dc));
@@ -244,6 +273,12 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
   // 'dead' sin 'noMoves' = quedan barajeos, pero ya no hay forma de ganar.
   const unwinnable = dead && !noMoves;
 
+  // Si la partida vuelve a estar "viva" (p. ej. tras deshacer), el próximo
+  // final debe mostrar su panel de nuevo.
+  useEffect(() => {
+    if (!won && !gameOver) setEndHidden(false);
+  }, [won, gameOver]);
+
   const overlap = 'calc(var(--ch) * 0.34)';
 
   // Descarte: en modo 3 se abanican (desfase) las últimas hasta 3 cartas.
@@ -253,7 +288,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
 
   return (
     <main
-      className="mx-auto flex min-h-screen max-w-[480px] select-none flex-col px-2 py-3"
+      className="mx-auto flex min-h-full max-w-[480px] select-none flex-col px-2 py-3"
       style={SIZE_VARS}
     >
       <div className="mb-2 flex items-center justify-between">
@@ -264,7 +299,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
         >
           ←
         </button>
-        <span className="font-mono text-sm text-white drop-shadow">
+        <span className="font-mono text-sm text-app-text drop-shadow-sm">
           {t('sol.moves', { n: game.moves })}
         </span>
         <div className="flex gap-1">
@@ -301,7 +336,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
               {game.stock.length > 0 ? (
                 <CardView card={game.stock[game.stock.length - 1]} back={back} />
               ) : (
-                <div className="flex h-full w-full items-center justify-center rounded-md border border-dashed border-white/25 bg-black/20 text-lg text-white/40">
+                <div className="flex h-full w-full items-center justify-center rounded-md border border-dashed border-slate-900/30 bg-slate-900/10 text-lg text-slate-900/40 dark:border-white/25 dark:bg-black/20 dark:text-white/40">
                   ↻
                 </div>
               )}
@@ -409,7 +444,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
           })}
         </div>
 
-        {won && (
+        {won && !endHidden && (
           <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-slate-950/70 backdrop-blur-sm">
             <div className="overlay-pop flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-gradient-to-b from-slate-800/95 to-slate-900/95 px-8 py-7 text-center shadow-2xl">
               <div className="animate-bounce text-6xl drop-shadow-lg">🎉</div>
@@ -423,11 +458,17 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
                   {t('common.exit')}
                 </Button>
               </div>
+              <button
+                onClick={() => setEndHidden(true)}
+                className="text-sm text-white/70 underline underline-offset-2 hover:text-white"
+              >
+                👁 {t('common.viewBoard')}
+              </button>
             </div>
           </div>
         )}
 
-        {gameOver && (
+        {gameOver && !endHidden && (
           <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-slate-950/70 backdrop-blur-sm">
             <div className="overlay-pop flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-gradient-to-b from-slate-800/95 to-slate-900/95 px-8 py-7 text-center shadow-2xl">
               <div className="text-5xl drop-shadow-lg">{unwinnable ? '🏳️' : '🃏'}</div>
@@ -443,43 +484,59 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
                   {t('common.exit')}
                 </Button>
               </div>
+              <button
+                onClick={() => setEndHidden(true)}
+                className="text-sm text-white/70 underline underline-offset-2 hover:text-white"
+              >
+                👁 {t('common.viewBoard')}
+              </button>
             </div>
           </div>
         )}
       </div>
 
-      <div className="mt-auto flex flex-wrap justify-center gap-2 pt-4">
+      {/* Controles inferiores: solo iconos (el texto desbordaba en español y
+          provocaba scroll vertical). El nombre va en aria-label/title. */}
+      <div className="mt-auto flex justify-center gap-2 pt-3">
         <button
           onClick={undo}
           disabled={history.length === 0}
-          className="rounded-lg bg-app-surface/80 px-4 py-2 text-sm font-semibold backdrop-blur hover:bg-app-surface2 disabled:opacity-40"
+          aria-label={t('sol.undo')}
+          title={t('sol.undo')}
+          className="rounded-lg bg-app-surface/80 px-4 py-2 text-lg leading-none backdrop-blur hover:bg-app-surface2 disabled:opacity-40"
         >
-          ↶ {t('sol.undo')}
+          ↶
         </button>
         <button
           onClick={autoAll}
-          className="rounded-lg bg-app-surface/80 px-4 py-2 text-sm font-semibold backdrop-blur hover:bg-app-surface2"
+          aria-label={t('sol.auto')}
+          title={t('sol.auto')}
+          className="rounded-lg bg-app-surface/80 px-4 py-2 text-lg leading-none backdrop-blur hover:bg-app-surface2"
         >
-          ⤴ {t('sol.auto')}
+          ⤴
         </button>
         <button
           onClick={() => newGame(drawCount)}
-          className="rounded-lg bg-app-surface/80 px-4 py-2 text-sm font-semibold backdrop-blur hover:bg-app-surface2"
+          aria-label={t('common.new')}
+          title={t('common.new')}
+          className="rounded-lg bg-app-surface/80 px-4 py-2 text-lg leading-none backdrop-blur hover:bg-app-surface2"
         >
-          ↻ {t('common.new')}
+          ↻
         </button>
         <button
           onClick={() => setLeftHanded((v) => !v)}
           aria-pressed={leftHanded}
-          className={`rounded-lg px-4 py-2 text-sm font-semibold backdrop-blur ${
+          aria-label={t('sol.leftHand')}
+          title={t('sol.leftHand')}
+          className={`rounded-lg px-4 py-2 text-lg leading-none backdrop-blur ${
             leftHanded ? 'bg-brand text-white' : 'bg-app-surface/80 hover:bg-app-surface2'
           }`}
         >
-          🤚 {t('sol.leftHand')}
+          🤚
         </button>
       </div>
 
-      <p className="mt-3 text-center text-xs text-white/70 drop-shadow">{t('sol.help')}</p>
+      <p className="mt-2 text-center text-xs text-app-text/70 drop-shadow-sm">{t('sol.help')}</p>
 
       {/* Cartas arrastradas (animación de drag) */}
       {drag && drag.moved && (
