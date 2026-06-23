@@ -81,6 +81,9 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
   // Panel de fin de partida oculto a petición del jugador (para ver el tablero).
   const [endHidden, setEndHidden] = useState(false);
   const [leftHanded, setLeftHanded] = useState(false);
+  // Confirmación de "nuevo juego" para evitar perder la partida por un toque
+  // accidental en el botón de los controles inferiores.
+  const [confirmNew, setConfirmNew] = useState(false);
   const [drag, setDrag] = useState<Drag | null>(null);
   const dragRef = useRef<Drag | null>(null);
   const submittedRef = useRef(false);
@@ -108,8 +111,16 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
     setHistory([]);
     setWon(false);
     setDead(false);
+    setConfirmNew(false);
     submittedRef.current = false;
   }, []);
+
+  // Si hay una partida en curso (algún movimiento), pedir confirmación antes de
+  // repartir de nuevo; si está recién empezada, repartir directo.
+  const requestNewGame = useCallback(() => {
+    if (game.moves > 0) setConfirmNew(true);
+    else newGame(drawCount);
+  }, [game.moves, drawCount, newGame]);
 
   const apply = useCallback(
     (next: GameState | null) => {
@@ -493,30 +504,29 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
             </div>
           </div>
         )}
+
+        {confirmNew && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-slate-950/70 backdrop-blur-sm">
+            <div className="overlay-pop flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-gradient-to-b from-slate-800/95 to-slate-900/95 px-8 py-7 text-center shadow-2xl">
+              <div className="text-5xl drop-shadow-lg">🔄</div>
+              <p className="text-2xl font-bold text-white">{t('sol.newGameConfirmTitle')}</p>
+              <p className="max-w-[15rem] text-sm text-white/70">{t('sol.newGameConfirm')}</p>
+              <div className="mt-1 flex gap-2">
+                <Button onClick={() => newGame(drawCount)}>{t('sol.newGame')}</Button>
+                <Button variant="ghost" onClick={() => setConfirmNew(false)}>
+                  {t('common.cancel')}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Controles inferiores: solo iconos (el texto desbordaba en español y
           provocaba scroll vertical). El nombre va en aria-label/title. */}
       <div className="mt-auto flex justify-center gap-2 pt-3">
         <button
-          onClick={undo}
-          disabled={history.length === 0}
-          aria-label={t('sol.undo')}
-          title={t('sol.undo')}
-          className="rounded-lg bg-app-surface/80 px-4 py-2 text-lg leading-none backdrop-blur hover:bg-app-surface2 disabled:opacity-40"
-        >
-          ↶
-        </button>
-        <button
-          onClick={autoAll}
-          aria-label={t('sol.auto')}
-          title={t('sol.auto')}
-          className="rounded-lg bg-app-surface/80 px-4 py-2 text-lg leading-none backdrop-blur hover:bg-app-surface2"
-        >
-          ⤴
-        </button>
-        <button
-          onClick={() => newGame(drawCount)}
+          onClick={requestNewGame}
           aria-label={t('common.new')}
           title={t('common.new')}
           className="rounded-lg bg-app-surface/80 px-4 py-2 text-lg leading-none backdrop-blur hover:bg-app-surface2"
@@ -533,6 +543,23 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
           }`}
         >
           🤚
+        </button>
+        <button
+          onClick={autoAll}
+          aria-label={t('sol.auto')}
+          title={t('sol.auto')}
+          className="rounded-lg bg-app-surface/80 px-4 py-2 text-lg leading-none backdrop-blur hover:bg-app-surface2"
+        >
+          ⤴
+        </button>
+        <button
+          onClick={undo}
+          disabled={history.length === 0}
+          aria-label={t('sol.undo')}
+          title={t('sol.undo')}
+          className="rounded-lg bg-app-surface/80 px-4 py-2 text-lg leading-none backdrop-blur hover:bg-app-surface2 disabled:opacity-40"
+        >
+          ↶
         </button>
       </div>
 
