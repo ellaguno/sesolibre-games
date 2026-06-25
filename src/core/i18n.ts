@@ -129,6 +129,11 @@ const es: Dict = {
   'glotono.down': 'Abajo',
   'glotono.left': 'Izquierda',
   'glotono.right': 'Derecha',
+  'glotono.joystick': 'Palanca (arrastra para moverte)',
+  'glotono.fruitPoints': '¡Bonus! 🍒',
+  'glotono.fruitLife': '¡Vida extra! ♥',
+  'glotono.fruitFreeze': '¡Virus congelados! ❄',
+  'glotono.fruitFright': '¡Virus asustados! 😱',
 
   'mines.help': 'Toca para revelar · mantén pulsado (o clic derecho) para poner bandera.',
   'mines.firstSafe': 'El primer toque siempre es seguro.',
@@ -300,6 +305,11 @@ const en: Dict = {
   'glotono.down': 'Down',
   'glotono.left': 'Left',
   'glotono.right': 'Right',
+  'glotono.joystick': 'Joystick (drag to move)',
+  'glotono.fruitPoints': 'Bonus! 🍒',
+  'glotono.fruitLife': 'Extra life! ♥',
+  'glotono.fruitFreeze': 'Viruses frozen! ❄',
+  'glotono.fruitFright': 'Viruses scared! 😱',
 
   'mines.help': 'Tap to reveal · long-press (or right-click) to flag.',
   'mines.firstSafe': 'The first tap is always safe.',

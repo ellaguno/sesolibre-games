@@ -42,15 +42,22 @@ describe('generateMaze', () => {
     expect(generateMaze(42).grid).toEqual(generateMaze(42).grid);
   });
 
-  it('está completamente cerrado por paredes en el borde', () => {
-    const { grid, tw, th } = generateMaze(42);
-    for (let x = 0; x < tw; x++) {
-      expect(grid[0][x]).toBe(WALL);
-      expect(grid[th - 1][x]).toBe(WALL);
-    }
-    for (let y = 0; y < th; y++) {
-      expect(grid[y][0]).toBe(WALL);
-      expect(grid[y][tw - 1]).toBe(WALL);
+  it('está cerrado por paredes en el borde salvo en los túneles envolventes', () => {
+    for (const seed of seeds) {
+      const m = generateMaze(seed);
+      const { grid, tw, th, wrapX, wrapY, tunnelRow, tunnelCol } = m;
+      // Una abertura solo es válida si es la celda de un túnel declarado.
+      const isTunnel = (x: number, y: number) =>
+        (wrapX && y === tunnelRow && (x === 0 || x === tw - 1)) ||
+        (wrapY && x === tunnelCol && (y === 0 || y === th - 1));
+      for (let x = 0; x < tw; x++) {
+        if (!isTunnel(x, 0)) expect(grid[0][x]).toBe(WALL);
+        if (!isTunnel(x, th - 1)) expect(grid[th - 1][x]).toBe(WALL);
+      }
+      for (let y = 0; y < th; y++) {
+        if (!isTunnel(0, y)) expect(grid[y][0]).toBe(WALL);
+        if (!isTunnel(tw - 1, y)) expect(grid[y][tw - 1]).toBe(WALL);
+      }
     }
   });
 

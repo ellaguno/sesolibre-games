@@ -3,16 +3,22 @@ import {
   Glotono,
   type RenderState,
   type Maze,
+  type GameEvent,
   DOT_NONE,
   DOT_ORB,
   WALL,
 } from './engine';
 import type { GameProps } from '../../core/registry';
 import { AudioService } from '../../core/AudioService';
+import { figureTypes } from '../figures/figures';
 import { useT } from '../../core/i18n';
 import Button from '../../ui/Button';
 
 const TILE = 22; // px por celda al dibujar
+
+// Premios especiales (tipo "fruta"): usan las figuras de animales del juego de
+// Figuras. El orden coincide con FRUIT_KINDS del motor (points/life/freeze/fright).
+const FRUIT_IMG_SRCS = Object.values(figureTypes.animals);
 
 type Dir = { x: number; y: number };
 const DIRS: Record<string, Dir> = {
@@ -110,6 +116,24 @@ function drawDots(ctx: CanvasRenderingContext2D, maze: Maze, t: number) {
       }
     }
   }
+}
+
+// Virus comido: "regenerándose" en la base. Se dibuja apenas como dos ojos
+// tenues que flotan, para dejar claro que NO está activo todavía.
+function drawEatenVirus(ctx: CanvasRenderingContext2D, cx: number, cy: number) {
+  const r = TILE * 0.4;
+  ctx.globalAlpha = 0.5;
+  for (const sx of [-1, 1]) {
+    ctx.fillStyle = '#cbd5e1';
+    ctx.beginPath();
+    ctx.arc(cx + sx * r * 0.3, cy, r * 0.22, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#1e293b';
+    ctx.beginPath();
+    ctx.arc(cx + sx * r * 0.3, cy, r * 0.1, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
 }
 
 // Virus: cuerpo con púas y dos ojos. Los agresivos son morados y más grandes.
@@ -216,14 +240,52 @@ function drawPlayer(ctx: CanvasRenderingContext2D, s: RenderState, t: number) {
   ctx.restore();
 }
 
-function draw(ctx: CanvasRenderingContext2D, s: RenderState, t: number) {
+// Premio especial: la figura (animal) flota y palpita con un halo dorado.
+function drawFruit(
+  ctx: CanvasRenderingContext2D,
+  s: RenderState,
+  imgs: HTMLImageElement[],
+  t: number,
+) {
+  if (!s.fruit) return;
+  const cx = s.fruit.pos.x * TILE + TILE / 2;
+  const cy = s.fruit.pos.y * TILE + TILE / 2;
+  const pulse = 1 + 0.12 * Math.sin(t / 180);
+  const size = TILE * 1.3 * pulse;
+  const img = imgs[s.fruit.kind];
+
+  ctx.save();
+  ctx.shadowColor = '#fbbf24';
+  ctx.shadowBlur = 14;
+  if (img && img.complete && img.naturalWidth > 0) {
+    ctx.drawImage(img, cx - size / 2, cy - size / 2, size, size);
+  } else {
+    // Reserva mientras carga el SVG.
+    ctx.fillStyle = '#fbbf24';
+    ctx.beginPath();
+    ctx.arc(cx, cy, size * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function draw(
+  ctx: CanvasRenderingContext2D,
+  s: RenderState,
+  imgs: HTMLImageElement[],
+  t: number,
+) {
   const { maze } = s;
   ctx.fillStyle = '#0b1020';
   ctx.fillRect(0, 0, maze.tw * TILE, maze.th * TILE);
   drawWalls(ctx, maze);
   drawDots(ctx, maze, t);
+  drawFruit(ctx, s, imgs, t);
   for (const e of s.enemies) {
-    drawVirus(ctx, e.pos.x * TILE + TILE / 2, e.pos.y * TILE + TILE / 2, e.frightened, e.aggressive, t);
+    const cx = e.pos.x * TILE + TILE / 2;
+    const cy = e.pos.y * TILE + TILE / 2;
+    if (e.eaten) drawEatenVirus(ctx, cx, cy);
+    else drawVirus(ctx, cx, cy, e.frightened, e.aggressive, t);
   }
   drawPlayer(ctx, s, t);
 }
@@ -232,11 +294,62 @@ function draw(ctx: CanvasRenderingContext2D, s: RenderState, t: number) {
 // U+FE0E (selector de TEXTO) evita que las flechas salgan como emoji a color y
 // respeten el color CSS (igual que los trebejos del ajedrez).
 const TXT = '︎';
+
+const KNOB_RADIUS = 22; // px máximos que se desplaza la palanca
+
+// El centro del D-pad funciona también como JOYSTICK analógico: si dejas el
+// dedo pegado y lo arrastras, sigues moviéndote en esa dirección (arriba,
+// derecha, etc.). Las flechas siguen funcionando como toques sueltos.
 function DPad({ onDir, t }: { onDir: (d: Dir) => void; t: (k: string) => string }) {
   const press = (d: Dir) => (e: React.PointerEvent) => {
     e.preventDefault();
     onDir(d);
   };
+  const knobRef = useRef<HTMLButtonElement>(null);
+  const dragging = useRef(false);
+  const [knob, setKnob] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  const steer = (clientX: number, clientY: number) => {
+    const el = knobRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const dx = clientX - (r.left + r.width / 2);
+    const dy = clientY - (r.top + r.height / 2);
+    const mag = Math.hypot(dx, dy);
+    // La palanca sigue al dedo, limitada a un radio.
+    if (mag > 0) {
+      const k = Math.min(mag, KNOB_RADIUS) / mag;
+      setKnob({ x: dx * k, y: dy * k });
+    }
+    if (mag > 8) {
+      onDir(
+        Math.abs(dx) > Math.abs(dy)
+          ? { x: Math.sign(dx), y: 0 }
+          : { x: 0, y: Math.sign(dy) },
+      );
+    }
+  };
+
+  const onKnobDown = (e: React.PointerEvent) => {
+    e.preventDefault();
+    dragging.current = true;
+    knobRef.current?.setPointerCapture(e.pointerId);
+    steer(e.clientX, e.clientY);
+  };
+  const onKnobMove = (e: React.PointerEvent) => {
+    if (!dragging.current) return;
+    steer(e.clientX, e.clientY);
+  };
+  const onKnobUp = (e: React.PointerEvent) => {
+    dragging.current = false;
+    try {
+      knobRef.current?.releasePointerCapture(e.pointerId);
+    } catch {
+      /* el puntero ya no está capturado */
+    }
+    setKnob({ x: 0, y: 0 });
+  };
+
   const btn =
     'flex h-14 w-14 items-center justify-center rounded-2xl bg-app-surface/90 text-2xl text-emerald-300 shadow-md ring-1 ring-emerald-400/30 transition select-none active:scale-95 active:bg-emerald-500/30';
   return (
@@ -254,7 +367,18 @@ function DPad({ onDir, t }: { onDir: (d: Dir) => void; t: (k: string) => string 
       <button className={btn} aria-label={t('glotono.left')} onPointerDown={press({ x: -1, y: 0 })}>
         {'◀' + TXT}
       </button>
-      <span className="flex items-center justify-center text-xl text-emerald-400/70">{'●' + TXT}</span>
+      <button
+        ref={knobRef}
+        aria-label={t('glotono.joystick')}
+        onPointerDown={onKnobDown}
+        onPointerMove={onKnobMove}
+        onPointerUp={onKnobUp}
+        onPointerCancel={onKnobUp}
+        className="flex h-14 w-14 touch-none items-center justify-center rounded-full bg-emerald-500/15 text-xl text-emerald-300 shadow-inner ring-1 ring-emerald-400/40 transition-transform"
+        style={{ transform: `translate(${knob.x}px, ${knob.y}px)` }}
+      >
+        {'✦' + TXT}
+      </button>
       <button className={btn} aria-label={t('glotono.right')} onPointerDown={press({ x: 1, y: 0 })}>
         {'▶' + TXT}
       </button>
@@ -274,6 +398,17 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
   const [seed, setSeed] = useState(() => Date.now());
   const [hud, setHud] = useState({ score: 0, lives: 3, level: 1, status: 'playing' as string });
   const [levelFlash, setLevelFlash] = useState<number | null>(null);
+  const [fruitFlash, setFruitFlash] = useState<string | null>(null);
+
+  // Imágenes de los premios especiales (figuras de animales), precargadas.
+  const fruitImgs = useRef<HTMLImageElement[]>([]);
+  useEffect(() => {
+    fruitImgs.current = FRUIT_IMG_SRCS.map((src) => {
+      const img = new Image();
+      img.src = src;
+      return img;
+    });
+  }, []);
   // Panel de derrota oculto a petición del jugador (para ver el laberinto).
   const [endHidden, setEndHidden] = useState(false);
 
@@ -281,6 +416,10 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
     if (hud.status !== 'lost') setEndHidden(false);
   }, [hud.status]);
   const submittedRef = useRef(false);
+
+  // Ref al traductor para usarlo dentro del bucle sin re-crear la partida.
+  const tRef = useRef(t);
+  tRef.current = t;
 
   const setDir = useCallback((dir: Dir) => {
     engineRef.current?.setDesired(dir);
@@ -292,6 +431,7 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
     submittedRef.current = false;
     setHud({ score: 0, lives: 3, level: 1, status: 'playing' });
     setLevelFlash(null);
+    setFruitFlash(null);
     const canvas = canvasRef.current!;
     canvas.width = engine.maze.tw * TILE;
     canvas.height = engine.maze.th * TILE;
@@ -300,6 +440,7 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
     let raf = 0;
     let last = performance.now();
     let flashTimer: ReturnType<typeof setTimeout> | null = null;
+    let fruitTimer: ReturnType<typeof setTimeout> | null = null;
     // snapshot de lo último enviado al HUD (evita setState por frame)
     let pushedScore = 0;
     let pushedLives = 3;
@@ -308,11 +449,41 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
     let lastLevelSeen = engine.level;
     let prevStatus = engine.status as string;
 
+    // Mapa de evento del motor -> sonido + (opcional) destello de premio.
+    const fruitMsg = (e: GameEvent): string | null => {
+      switch (e) {
+        case 'fruit-points':
+          return tRef.current('glotono.fruitPoints');
+        case 'fruit-life':
+          return tRef.current('glotono.fruitLife');
+        case 'fruit-freeze':
+          return tRef.current('glotono.fruitFreeze');
+        case 'fruit-fright':
+          return tRef.current('glotono.fruitFright');
+        default:
+          return null;
+      }
+    };
+    const handleEvents = (evs: GameEvent[]) => {
+      for (const e of evs) {
+        if (e === 'dot') AudioService.play('chomp');
+        else if (e === 'power') AudioService.play('reward');
+        else if (e === 'eat') AudioService.play('eatghost');
+        else {
+          AudioService.play('fruit');
+          setFruitFlash(fruitMsg(e));
+          if (fruitTimer) clearTimeout(fruitTimer);
+          fruitTimer = setTimeout(() => setFruitFlash(null), 1400);
+        }
+      }
+    };
+
     const loop = (now: number) => {
       const dt = (now - last) / 1000;
       last = now;
       engine.update(dt);
-      draw(ctx, engine.getState(), now);
+      handleEvents(engine.drainEvents());
+      draw(ctx, engine.getState(), fruitImgs.current, now);
 
       if (engine.level !== lastLevelSeen) {
         lastLevelSeen = engine.level;
@@ -356,6 +527,7 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
     return () => {
       cancelAnimationFrame(raf);
       if (flashTimer) clearTimeout(flashTimer);
+      if (fruitTimer) clearTimeout(fruitTimer);
     };
   }, [seed, onScore]);
 
@@ -418,6 +590,14 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <span className="route-enter rounded-xl bg-slate-950/70 px-5 py-2 text-2xl font-extrabold text-sky-300">
               {t('glotono.levelBanner', { n: levelFlash })}
+            </span>
+          </div>
+        )}
+
+        {fruitFlash !== null && (
+          <div className="pointer-events-none absolute inset-x-0 top-3 flex justify-center">
+            <span className="route-enter rounded-full bg-amber-500/90 px-4 py-1 text-sm font-bold text-slate-950 shadow-lg">
+              {fruitFlash}
             </span>
           </div>
         )}

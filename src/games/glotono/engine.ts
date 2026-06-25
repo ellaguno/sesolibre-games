@@ -38,6 +38,11 @@ export interface Maze {
   playerSpawn: Vec;
   enemySpawns: Vec[];
   totalDots: number;
+  // Túneles "envolventes": el mapa puede continuar de un extremo al opuesto.
+  wrapX: boolean; // izquierda <-> derecha
+  wrapY: boolean; // arriba <-> abajo
+  tunnelRow: number; // fila del túnel horizontal (válida si wrapX)
+  tunnelCol: number; // columna del túnel vertical (válida si wrapY)
 }
 
 const COLS = 7;
@@ -99,6 +104,23 @@ export function generateMaze(seed: number): Maze {
     }
   }
 
+  // Túneles envolventes: algunos mapas conectan los bordes opuestos. Se abre la
+  // celda de borde en una fila/columna de pasillo (índices impares), de modo
+  // que el corredor continúe del otro lado. Se decide al final para no alterar
+  // la generación determinista anterior.
+  const wrapX = rng() < 0.55;
+  const wrapY = rng() < 0.35;
+  const tunnelRow = 2 * Math.floor(rng() * ROWS) + 1;
+  const tunnelCol = 2 * Math.floor(rng() * COLS) + 1;
+  if (wrapX) {
+    grid[tunnelRow][0] = FLOOR;
+    grid[tunnelRow][tw - 1] = FLOOR;
+  }
+  if (wrapY) {
+    grid[0][tunnelCol] = FLOOR;
+    grid[th - 1][tunnelCol] = FLOOR;
+  }
+
   // Coleccionables: un orbe en cada celda de suelo.
   const dots: number[][] = grid.map((row) =>
     row.map((c) => (c === FLOOR ? DOT_ORB : DOT_NONE)),
@@ -112,6 +134,16 @@ export function generateMaze(seed: number): Maze {
     { x: tw - 2, y: th - 2 },
   ];
   for (const c of corners) dots[c.y][c.x] = DOT_POWER;
+
+  // Las celdas de borde de los túneles no llevan orbe (quedan al ras del muro).
+  if (wrapX) {
+    dots[tunnelRow][0] = DOT_NONE;
+    dots[tunnelRow][tw - 1] = DOT_NONE;
+  }
+  if (wrapY) {
+    dots[0][tunnelCol] = DOT_NONE;
+    dots[th - 1][tunnelCol] = DOT_NONE;
+  }
 
   // Spawns: jugador abajo-centro, enemigos en el centro.
   const midCol = 2 * Math.floor(COLS / 2) + 1;
@@ -130,21 +162,63 @@ export function generateMaze(seed: number): Maze {
   let totalDots = 0;
   for (const row of dots) for (const d of row) if (d !== DOT_NONE) totalDots++;
 
-  return { grid, dots, tw, th, playerSpawn, enemySpawns, totalDots };
+  return {
+    grid,
+    dots,
+    tw,
+    th,
+    playerSpawn,
+    enemySpawns,
+    totalDots,
+    wrapX,
+    wrapY,
+    tunnelRow,
+    tunnelCol,
+  };
+}
+
+/** Configuración de envolvente para que el BFS pueda cruzar túneles. */
+export interface WrapInfo {
+  tw: number;
+  th: number;
+  wrapX: boolean;
+  wrapY: boolean;
+}
+
+/** Vecino en dirección `d` aplicando envolvente; null si no es suelo. */
+function wrapNeighbor(
+  grid: number[][],
+  x: number,
+  y: number,
+  d: Vec,
+  wrap?: WrapInfo,
+): Vec | null {
+  let nx = x + d.x;
+  let ny = y + d.y;
+  if (wrap?.wrapX) {
+    if (nx < 0) nx = wrap.tw - 1;
+    else if (nx >= wrap.tw) nx = 0;
+  }
+  if (wrap?.wrapY) {
+    if (ny < 0) ny = wrap.th - 1;
+    else if (ny >= wrap.th) ny = 0;
+  }
+  return grid[ny]?.[nx] === FLOOR ? { x: nx, y: ny } : null;
 }
 
 /**
  * Primer paso del camino MÁS CORTO (BFS) desde `start` hasta `goal` por celdas
  * de suelo. Devuelve la dirección a tomar, o null si no hay ruta (o ya están en
  * la meta). Exportada para poder testear la "inteligencia" de los enemigos.
+ * Si se pasa `wrap`, el BFS puede cruzar los túneles envolventes.
  */
 export function bfsFirstStep(
   grid: number[][],
   start: Vec,
   goal: Vec,
+  wrap?: WrapInfo,
 ): Vec | null {
   if (start.x === goal.x && start.y === goal.y) return null;
-  const isFloor = (x: number, y: number) => grid[y]?.[x] === FLOOR;
   const seen = new Set<string>([`${start.x},${start.y}`]);
   const firstStep = new Map<string, Vec>();
   const queue: Vec[] = [start];
@@ -152,17 +226,18 @@ export function bfsFirstStep(
   while (head < queue.length) {
     const cur = queue[head++];
     for (const d of DIRS) {
-      const nx = cur.x + d.x;
-      const ny = cur.y + d.y;
-      if (!isFloor(nx, ny)) continue;
-      const key = `${nx},${ny}`;
+      const nb = wrapNeighbor(grid, cur.x, cur.y, d, wrap);
+      if (!nb) continue;
+      const key = `${nb.x},${nb.y}`;
       if (seen.has(key)) continue;
       seen.add(key);
       const fs =
-        cur.x === start.x && cur.y === start.y ? d : firstStep.get(`${cur.x},${cur.y}`)!;
-      if (nx === goal.x && ny === goal.y) return fs;
+        cur.x === start.x && cur.y === start.y
+          ? d
+          : firstStep.get(`${cur.x},${cur.y}`)!;
+      if (nb.x === goal.x && nb.y === goal.y) return fs;
       firstStep.set(key, fs);
-      queue.push({ x: nx, y: ny });
+      queue.push(nb);
     }
   }
   return null;
@@ -178,11 +253,16 @@ interface Mover {
 
 interface Enemy extends Mover {
   frightened: number; // segundos restantes de vulnerabilidad
+  eaten: number; // segundos restantes "regenerándose" en la base (inerte)
   base: Vec; // celda de respawn
   aggressive: boolean; // "hunter": más rápido y persigue sin titubear
 }
 
 export type GameStatus = 'playing' | 'lost';
+
+// Premios especiales (tipo "fruta"): cada uno usa una figura/animal y hace algo.
+export const FRUIT_KINDS = ['points', 'life', 'freeze', 'fright'] as const;
+export type FruitKind = (typeof FRUIT_KINDS)[number];
 
 const ZERO: Vec = { x: 0, y: 0 };
 const eq = (a: Vec, b: Vec) => a.x === b.x && a.y === b.y;
@@ -193,7 +273,8 @@ export interface RenderState {
   playerPos: Vec; // coords continuas (celdas)
   playerDir: Vec; // dirección actual (para la boca)
   moving: boolean; // ¿el jugador se está moviendo?
-  enemies: { pos: Vec; frightened: boolean; aggressive: boolean }[];
+  enemies: { pos: Vec; frightened: boolean; aggressive: boolean; eaten: boolean }[];
+  fruit: { pos: Vec; kind: number } | null; // premio especial activo
   score: number;
   lives: number;
   level: number;
@@ -201,14 +282,28 @@ export interface RenderState {
   dotsRemaining: number;
 }
 
+// Eventos transitorios que la UI consume cada frame (sonido / destellos).
+export type GameEvent =
+  | 'dot'
+  | 'power'
+  | 'eat'
+  | 'fruit-points'
+  | 'fruit-life'
+  | 'fruit-freeze'
+  | 'fruit-fright';
+
 const PLAYER_SPEED = 5.5; // celdas/seg
-// Los virus arrancan MUY lentos y torpes en los primeros niveles y se superan
-// con cada nivel (los niveles 1-2 deben ser fáciles de pasar).
-const ENEMY_BASE_SPEED = 2.2; // nivel 1 (mucho más lento que el jugador)
-const ENEMY_SPEED_STEP = 0.4; // por nivel
-const ENEMY_SPEED_CAP = 5.3; // nunca más rápidos que el jugador
-const ENEMY_FRIGHT_SPEED = 2.6;
-const FRIGHT_TIME = 6;
+// Los virus arrancan MUY lentos y torpes y los niveles 1-4 deben ser fáciles.
+// La velocidad sube despacio con cada nivel y nunca alcanza al jugador.
+const ENEMY_BASE_SPEED = 1.7; // nivel 1 (muchísimo más lento que el jugador)
+const ENEMY_SPEED_STEP = 0.32; // por nivel
+const ENEMY_SPEED_CAP = 4.4; // nunca tan rápidos como el jugador (5.5)
+const ENEMY_FRIGHT_SPEED = 1.8; // huyendo: lentos, fáciles de alcanzar
+const FRIGHT_TIME = 7;
+// Tras ser comido, el virus tarda en volver a la acción (no se regenera rápido).
+const RESPAWN_DELAY = 6;
+// El primer "hunter" agresivo no aparece hasta el nivel 5 (1-4 fáciles).
+const AGGRESSIVE_FROM_LEVEL = 5;
 
 export class Glotono {
   maze!: Maze;
@@ -224,6 +319,12 @@ export class Glotono {
   dotsRemaining = 0;
   private comboBase = 200;
   private combo = 1;
+  // Premio especial y temporizadores de efectos.
+  private fruit: { cell: Vec; kind: number; ttl: number } | null = null;
+  private fruitTimer = 0;
+  private slowT = 0; // enemigos a media velocidad
+  private freezeT = 0; // enemigos congelados
+  private events: GameEvent[] = [];
 
   constructor(seed = Date.now()) {
     this.baseSeed = seed;
@@ -238,13 +339,21 @@ export class Glotono {
     this.player = this.spawnMover(this.maze.playerSpawn);
     this.desired = { ...ZERO };
     this.combo = 1;
-    // A más nivel, más "hunters" (agresivos): el primero aparece en el nivel 3,
-    // así los niveles 1-2 no tienen perseguidores rápidos.
-    const aggressiveCount = Math.min(Math.max(this.level - 2, 0), this.maze.enemySpawns.length);
+    this.fruit = null;
+    this.fruitTimer = 7 + this.rng() * 7;
+    this.slowT = 0;
+    this.freezeT = 0;
+    // A más nivel, más "hunters" (agresivos). El primero aparece en el nivel 5,
+    // así que los niveles 1-4 no tienen perseguidores rápidos.
+    const aggressiveCount = Math.min(
+      Math.max(this.level - (AGGRESSIVE_FROM_LEVEL - 1), 0),
+      this.maze.enemySpawns.length,
+    );
     const startAggressive = this.maze.enemySpawns.length - aggressiveCount;
     this.enemies = this.maze.enemySpawns.map((s, i) => ({
       ...this.spawnMover(s),
       frightened: 0,
+      eaten: 0,
       base: { ...s },
       aggressive: i >= startAggressive,
     }));
@@ -252,7 +361,10 @@ export class Glotono {
 
   /** Velocidad de los virus según el nivel (con tope, sin pasar al jugador). */
   private get enemySpeed(): number {
-    return Math.min(ENEMY_BASE_SPEED + (this.level - 1) * ENEMY_SPEED_STEP, ENEMY_SPEED_CAP);
+    return Math.min(
+      ENEMY_BASE_SPEED + (this.level - 1) * ENEMY_SPEED_STEP,
+      ENEMY_SPEED_CAP,
+    );
   }
 
   private nextLevel() {
@@ -264,12 +376,57 @@ export class Glotono {
     return { from: { ...cell }, to: { ...cell }, prog: 0, dir: { ...ZERO } };
   }
 
-  private isFloor(x: number, y: number): boolean {
-    return this.maze.grid[y]?.[x] === FLOOR;
+  /** Celda destino en dirección `dir` (con envolvente); null si hay muro. */
+  private getNext(cell: Vec, dir: Vec): { cell: Vec; wrapped: boolean } | null {
+    const m = this.maze;
+    let nx = cell.x + dir.x;
+    let ny = cell.y + dir.y;
+    let wrapped = false;
+    if (m.wrapX) {
+      if (nx < 0) {
+        nx = m.tw - 1;
+        wrapped = true;
+      } else if (nx >= m.tw) {
+        nx = 0;
+        wrapped = true;
+      }
+    }
+    if (m.wrapY) {
+      if (ny < 0) {
+        ny = m.th - 1;
+        wrapped = true;
+      } else if (ny >= m.th) {
+        ny = 0;
+        wrapped = true;
+      }
+    }
+    if (m.grid[ny]?.[nx] !== FLOOR) return null;
+    return { cell: { x: nx, y: ny }, wrapped };
+  }
+
+  private canGo(cell: Vec, dir: Vec): boolean {
+    return !isZero(dir) && this.getNext(cell, dir) !== null;
+  }
+
+  private wrapInfo(): WrapInfo {
+    return {
+      tw: this.maze.tw,
+      th: this.maze.th,
+      wrapX: this.maze.wrapX,
+      wrapY: this.maze.wrapY,
+    };
   }
 
   setDesired(dir: Vec) {
     this.desired = dir;
+  }
+
+  /** La UI lo llama cada frame para reproducir sonidos / destellos. */
+  drainEvents(): GameEvent[] {
+    if (this.events.length === 0) return [];
+    const e = this.events;
+    this.events = [];
+    return e;
   }
 
   private pos(m: Mover): Vec {
@@ -280,20 +437,35 @@ export class Glotono {
   }
 
   private openNeighbors(cell: Vec): Vec[] {
-    return DIRS.filter((d) => this.isFloor(cell.x + d.x, cell.y + d.y));
+    return DIRS.filter((d) => this.getNext(cell, d) !== null);
+  }
+
+  /** Fija `m.to` a la siguiente celda en `m.dir`; gestiona el teletransporte de
+   *  túnel. Devuelve true si quedó en movimiento. */
+  private advance(m: Mover): boolean {
+    if (isZero(m.dir)) return false;
+    const n = this.getNext(m.from, m.dir);
+    if (!n) {
+      m.dir = { ...ZERO };
+      return false;
+    }
+    if (n.wrapped) {
+      // Teletransporte limpio: aparece al ras del borde opuesto y el frame
+      // siguiente continúa el rumbo hacia el interior.
+      m.from = { ...n.cell };
+      m.to = { ...n.cell };
+      m.prog = 0;
+      return true;
+    }
+    m.to = n.cell;
+    m.prog = 0;
+    return true;
   }
 
   private stepMover(m: Mover, speed: number, dt: number, choose: () => void) {
     if (isZero(m.dir) || eq(m.from, m.to)) {
       choose();
-      const n = { x: m.from.x + m.dir.x, y: m.from.y + m.dir.y };
-      if (!isZero(m.dir) && this.isFloor(n.x, n.y)) {
-        m.to = n;
-        m.prog = 0;
-      } else {
-        m.dir = { ...ZERO };
-        return;
-      }
+      if (!this.advance(m)) return;
     }
     m.prog += speed * dt;
     if (m.prog >= 1) {
@@ -301,10 +473,7 @@ export class Glotono {
       m.from = { ...m.to };
       this.onArrive(m);
       choose();
-      const n = { x: m.from.x + m.dir.x, y: m.from.y + m.dir.y };
-      if (!isZero(m.dir) && this.isFloor(n.x, n.y)) {
-        m.to = n;
-      } else {
+      if (!this.advance(m)) {
         m.dir = { ...ZERO };
         m.to = { ...m.from };
       }
@@ -320,18 +489,20 @@ export class Glotono {
     this.dotsRemaining--;
     if (d === DOT_ORB) {
       this.score += 10;
+      this.events.push('dot');
     } else {
       this.score += 50;
       this.combo = 1;
-      for (const e of this.enemies) e.frightened = FRIGHT_TIME;
+      for (const e of this.enemies) if (e.eaten === 0) e.frightened = FRIGHT_TIME;
+      this.events.push('power');
     }
   }
 
   private choosePlayer = () => {
     const c = this.player.from;
-    if (!isZero(this.desired) && this.isFloor(c.x + this.desired.x, c.y + this.desired.y)) {
+    if (!isZero(this.desired) && this.canGo(c, this.desired)) {
       this.player.dir = this.desired;
-    } else if (this.isFloor(c.x + this.player.dir.x, c.y + this.player.dir.y)) {
+    } else if (this.canGo(c, this.player.dir)) {
       // mantener rumbo
     } else {
       this.player.dir = { ...ZERO };
@@ -362,15 +533,15 @@ export class Glotono {
     // (BFS por el laberinto, no distancia en línea recta), así te alcanza aunque
     // te quedes quieto y rodea las paredes. Si no, deambula. La inteligencia
     // sube por nivel y es mayor en los agresivos.
-    // Niveles 1-2: muy torpes (deambulan casi siempre). Suben con cada nivel.
+    // Niveles 1-4: muy torpes (deambulan casi siempre). Suben con cada nivel.
     const intelligence = Math.min(
-      0.08 + (this.level - 1) * 0.12 + (e.aggressive ? 0.3 : 0),
+      0.05 + (this.level - 1) * 0.07 + (e.aggressive ? 0.25 : 0),
       1,
     );
     if (this.rng() < intelligence) {
       const ppos = this.pos(this.player);
       const goal = { x: Math.round(ppos.x), y: Math.round(ppos.y) };
-      const step = bfsFirstStep(this.maze.grid, c, goal);
+      const step = bfsFirstStep(this.maze.grid, c, goal, this.wrapInfo());
       if (step) {
         e.dir = step;
         return;
@@ -396,41 +567,120 @@ export class Glotono {
     return best;
   }
 
+  /** Aparece un premio especial en una celda de suelo aleatoria. */
+  private spawnFruit() {
+    const cells: Vec[] = [];
+    for (let y = 1; y < this.maze.th - 1; y++) {
+      for (let x = 1; x < this.maze.tw - 1; x++) {
+        if (this.maze.grid[y][x] !== FLOOR) continue;
+        const pc = this.player.from;
+        if (x === pc.x && y === pc.y) continue;
+        cells.push({ x, y });
+      }
+    }
+    if (cells.length === 0) return;
+    const cell = cells[Math.floor(this.rng() * cells.length)];
+    const kind = Math.floor(this.rng() * FRUIT_KINDS.length);
+    this.fruit = { cell, kind, ttl: 9 };
+  }
+
+  private applyFruit(kind: number) {
+    const bonus = 200 + this.level * 50;
+    switch (FRUIT_KINDS[kind]) {
+      case 'points':
+        this.score += bonus * 2;
+        this.events.push('fruit-points');
+        break;
+      case 'life':
+        this.lives++;
+        this.score += bonus;
+        this.events.push('fruit-life');
+        break;
+      case 'freeze':
+        this.freezeT = 4;
+        this.score += bonus;
+        this.events.push('fruit-freeze');
+        break;
+      case 'fright':
+        for (const e of this.enemies) if (e.eaten === 0) e.frightened = FRIGHT_TIME;
+        this.score += bonus;
+        this.events.push('fruit-fright');
+        break;
+    }
+  }
 
   update(dt: number) {
     if (this.status !== 'playing') return;
     // clamp dt para evitar saltos enormes (pestaña en segundo plano)
     dt = Math.min(dt, 0.05);
 
+    if (this.slowT > 0) this.slowT = Math.max(0, this.slowT - dt);
+    if (this.freezeT > 0) this.freezeT = Math.max(0, this.freezeT - dt);
+
     this.stepMover(this.player, PLAYER_SPEED, dt, this.choosePlayer);
     for (const e of this.enemies) {
+      if (e.eaten > 0) {
+        // Regenerándose en la base: inerte e inofensivo hasta volver.
+        e.eaten = Math.max(0, e.eaten - dt);
+        continue;
+      }
       if (e.frightened > 0) e.frightened = Math.max(0, e.frightened - dt);
       let speed = e.frightened > 0 ? ENEMY_FRIGHT_SPEED : this.enemySpeed;
       if (e.aggressive && e.frightened === 0) speed *= 1.12;
-      this.stepMover(e, speed, dt, () => this.chooseEnemy(e));
+      if (this.slowT > 0) speed *= 0.5;
+      if (this.freezeT > 0) speed = 0;
+      if (speed > 0) this.stepMover(e, speed, dt, () => this.chooseEnemy(e));
     }
 
+    this.updateFruit(dt);
     this.handleCollisions();
 
     // Laberinto limpio: avanzar de nivel automáticamente (la puntuación sigue).
     if (this.dotsRemaining <= 0 && this.status === 'playing') this.nextLevel();
   }
 
+  private updateFruit(dt: number) {
+    if (this.fruit) {
+      this.fruit.ttl -= dt;
+      if (this.fruit.ttl <= 0) {
+        this.fruit = null;
+        return;
+      }
+      // ¿lo recoge el jugador?
+      const p = this.pos(this.player);
+      const f = this.fruit.cell;
+      if (Math.hypot(f.x - p.x, f.y - p.y) < 0.6) {
+        this.applyFruit(this.fruit.kind);
+        this.fruit = null;
+      }
+      return;
+    }
+    if (this.dotsRemaining <= 0) return;
+    this.fruitTimer -= dt;
+    if (this.fruitTimer <= 0) {
+      this.spawnFruit();
+      this.fruitTimer = 9 + this.rng() * 8;
+    }
+  }
+
   private handleCollisions() {
     const p = this.pos(this.player);
     for (const e of this.enemies) {
+      if (e.eaten > 0) continue;
       const ep = this.pos(e);
       const dist = Math.hypot(ep.x - p.x, ep.y - p.y);
       if (dist > 0.5) continue;
       if (e.frightened > 0) {
         this.score += this.comboBase * this.combo;
         this.combo = Math.min(this.combo + 1, 8);
-        // respawn del enemigo
+        // El virus vuelve a la base y tarda en regenerarse (no reaparece ya).
         e.from = { ...e.base };
         e.to = { ...e.base };
         e.prog = 0;
         e.dir = { ...ZERO };
         e.frightened = 0;
+        e.eaten = RESPAWN_DELAY;
+        this.events.push('eat');
       } else {
         this.loseLife();
         return;
@@ -454,6 +704,7 @@ export class Glotono {
       e.prog = 0;
       e.dir = { ...ZERO };
       e.frightened = 0;
+      e.eaten = 0;
     });
   }
 
@@ -467,7 +718,11 @@ export class Glotono {
         pos: this.pos(e),
         frightened: e.frightened > 0,
         aggressive: e.aggressive,
+        eaten: e.eaten > 0,
       })),
+      fruit: this.fruit
+        ? { pos: { ...this.fruit.cell }, kind: this.fruit.kind }
+        : null,
       score: this.score,
       lives: this.lives,
       level: this.level,
