@@ -13,6 +13,7 @@ import { AudioService } from '../../core/AudioService';
 import { figureTypes } from '../figures/figures';
 import { useT } from '../../core/i18n';
 import Button from '../../ui/Button';
+import HelpButton from '../../ui/HelpButton';
 
 const TILE = 22; // px por celda al dibujar
 
@@ -350,43 +351,72 @@ function DPad({ onDir, t }: { onDir: (d: Dir) => void; t: (k: string) => string 
     setKnob({ x: 0, y: 0 });
   };
 
-  const btn =
-    'flex h-14 w-14 items-center justify-center rounded-2xl bg-app-surface/90 text-2xl text-emerald-300 shadow-md ring-1 ring-emerald-400/30 transition select-none active:scale-95 active:bg-emerald-500/30';
+  // Zona táctil al máximo: cada botón ocupa toda su franja del D-pad (que a su
+  // vez llena el espacio libre bajo el laberinto). Lo VISIBLE es una pastilla
+  // grande recargada hacia el centro, formando la cruz clásica alrededor de la
+  // palanca; tocar en cualquier punto de la franja activa la dirección.
+  const zone = 'group flex h-full w-full touch-none select-none';
+  const face =
+    'pointer-events-none flex h-20 w-20 items-center justify-center rounded-2xl bg-app-surface/90 text-3xl text-emerald-300 shadow-md ring-1 ring-emerald-400/30 transition group-active:scale-95 group-active:bg-emerald-500/30';
   return (
     <div
-      className="mt-4 grid grid-cols-3 grid-rows-3 gap-1.5"
-      style={{ touchAction: 'none' }}
+      className="mt-3 grid w-full flex-1 gap-1.5"
+      style={{
+        touchAction: 'none',
+        minHeight: '16rem',
+        gridTemplateAreas: "'up up up' 'left knob right' 'down down down'",
+        gridTemplateColumns: '1fr minmax(5.5rem, 24%) 1fr',
+        gridTemplateRows: '1fr 1.4fr 1fr',
+      }}
       onTouchStart={(e) => e.stopPropagation()}
       onTouchEnd={(e) => e.stopPropagation()}
     >
-      <span />
-      <button className={btn} aria-label={t('glotono.up')} onPointerDown={press({ x: 0, y: -1 })}>
-        {'▲' + TXT}
-      </button>
-      <span />
-      <button className={btn} aria-label={t('glotono.left')} onPointerDown={press({ x: -1, y: 0 })}>
-        {'◀' + TXT}
+      <button
+        className={`${zone} items-end justify-center`}
+        style={{ gridArea: 'up' }}
+        aria-label={t('glotono.up')}
+        onPointerDown={press({ x: 0, y: -1 })}
+      >
+        <span className={face}>{'▲' + TXT}</span>
       </button>
       <button
-        ref={knobRef}
-        aria-label={t('glotono.joystick')}
-        onPointerDown={onKnobDown}
-        onPointerMove={onKnobMove}
-        onPointerUp={onKnobUp}
-        onPointerCancel={onKnobUp}
-        className="flex h-14 w-14 touch-none items-center justify-center rounded-full bg-emerald-500/15 text-xl text-emerald-300 shadow-inner ring-1 ring-emerald-400/40 transition-transform"
-        style={{ transform: `translate(${knob.x}px, ${knob.y}px)` }}
+        className={`${zone} items-center justify-end`}
+        style={{ gridArea: 'left' }}
+        aria-label={t('glotono.left')}
+        onPointerDown={press({ x: -1, y: 0 })}
       >
-        {'✦' + TXT}
+        <span className={face}>{'◀' + TXT}</span>
       </button>
-      <button className={btn} aria-label={t('glotono.right')} onPointerDown={press({ x: 1, y: 0 })}>
-        {'▶' + TXT}
+      <div style={{ gridArea: 'knob' }} className="flex items-center justify-center">
+        <button
+          ref={knobRef}
+          aria-label={t('glotono.joystick')}
+          onPointerDown={onKnobDown}
+          onPointerMove={onKnobMove}
+          onPointerUp={onKnobUp}
+          onPointerCancel={onKnobUp}
+          className="flex h-16 w-16 touch-none items-center justify-center rounded-full bg-emerald-500/15 text-xl text-emerald-300 shadow-inner ring-1 ring-emerald-400/40 transition-transform"
+          style={{ transform: `translate(${knob.x}px, ${knob.y}px)` }}
+        >
+          {'✦' + TXT}
+        </button>
+      </div>
+      <button
+        className={`${zone} items-center justify-start`}
+        style={{ gridArea: 'right' }}
+        aria-label={t('glotono.right')}
+        onPointerDown={press({ x: 1, y: 0 })}
+      >
+        <span className={face}>{'▶' + TXT}</span>
       </button>
-      <span />
-      <button className={btn} aria-label={t('glotono.down')} onPointerDown={press({ x: 0, y: 1 })}>
-        {'▼' + TXT}
+      <button
+        className={`${zone} items-start justify-center`}
+        style={{ gridArea: 'down' }}
+        aria-label={t('glotono.down')}
+        onPointerDown={press({ x: 0, y: 1 })}
+      >
+        <span className={face}>{'▼' + TXT}</span>
       </button>
-      <span />
     </div>
   );
 }
@@ -581,6 +611,7 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
           <span className="ml-3 text-sky-400">{t('glotono.hudLevel', { n: hud.level })}</span>
           <span className="ml-3 text-rose-400">♥</span> {hud.lives}
         </div>
+        <HelpButton title={t('game.glotono.title')} text={t('glotono.help')} />
       </div>
 
       <div className="relative">
@@ -635,8 +666,6 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
       )}
 
       <DPad onDir={setDir} t={t} />
-
-      <p className="mt-3 text-center text-xs text-app-muted">{t('glotono.help')}</p>
     </main>
   );
 }

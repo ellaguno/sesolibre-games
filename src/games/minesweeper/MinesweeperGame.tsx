@@ -20,6 +20,7 @@ import { fireBurst, bigCelebrate } from '../../anim/particles';
 import { formatDuration } from '../../core/format';
 import { useT } from '../../core/i18n';
 import Button from '../../ui/Button';
+import HelpButton from '../../ui/HelpButton';
 
 const NUM_COLORS = [
   '',
@@ -219,7 +220,10 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
           <span>💣 {minesLeft}</span>
           <span>⏱ {formatDuration(seconds)}</span>
         </div>
-        <div className="w-10" />
+        <HelpButton
+          title={t('game.minesweeper.title')}
+          text={`${t('mines.help')} ${t('mines.firstSafe')}`}
+        />
       </div>
 
       <div className="mb-3 flex gap-2">
@@ -321,10 +325,6 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
         </div>
       )}
 
-      <p className="mt-3 text-center text-xs text-app-muted">
-        {t('mines.help')}
-        {!started && ` ${t('mines.firstSafe')}`}
-      </p>
     </main>
   );
 }

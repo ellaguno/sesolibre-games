@@ -40,6 +40,11 @@ jobs:
       - name: Sincronizar web -> nativo
         run: npx cap sync android
 
+      - name: Bloquear orientación vertical (los juegos no están diseñados para horizontal)
+        run: |
+          sed -i 's/android:launchMode="singleTask"/android:launchMode="singleTask"\n            android:screenOrientation="portrait"/' android/app/src/main/AndroidManifest.xml
+          grep -n "screenOrientation" android/app/src/main/AndroidManifest.xml
+
       - name: Generar íconos del launcher (desde assets/ con @capacitor/assets)
         run: npx @capacitor/assets generate --android
 

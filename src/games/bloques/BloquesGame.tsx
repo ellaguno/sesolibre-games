@@ -22,6 +22,7 @@ import type { GameProps } from '../../core/registry';
 import { AudioService } from '../../core/AudioService';
 import { useT } from '../../core/i18n';
 import Button from '../../ui/Button';
+import HelpButton from '../../ui/HelpButton';
 
 type FigOpt = 'none' | FigureType;
 
@@ -225,18 +226,21 @@ export default function BloquesGame({ onScore, onExit }: GameProps) {
           <span>{t('bloques.level')}: {level()}</span>
           <span>{t('bloques.lines')}: {g.lines}</span>
         </div>
-        <select
-          value={fig}
-          onChange={(e) => setFig(e.target.value as FigOpt)}
-          className="rounded-lg border border-app-border bg-app-surface/80 p-1 text-xs text-app-text"
-        >
-          <option value="none">{t('bloques.gemOnly')}</option>
-          {FIGURE_SET_OPTIONS.map(({ value }) => (
-            <option key={value} value={value}>
-              {t(`figset.${value}`)}
-            </option>
-          ))}
-        </select>
+        <div className="flex items-center gap-1.5">
+          <select
+            value={fig}
+            onChange={(e) => setFig(e.target.value as FigOpt)}
+            className="rounded-lg border border-app-border bg-app-surface/80 p-1 text-xs text-app-text"
+          >
+            <option value="none">{t('bloques.gemOnly')}</option>
+            {FIGURE_SET_OPTIONS.map(({ value }) => (
+              <option key={value} value={value}>
+                {t(`figset.${value}`)}
+              </option>
+            ))}
+          </select>
+          <HelpButton title={t('game.bloques.title')} text={t('bloques.help')} />
+        </div>
       </div>
 
       <div className="relative">
@@ -313,7 +317,6 @@ export default function BloquesGame({ onScore, onExit }: GameProps) {
         <Ctrl onClick={softDrop}>▼</Ctrl>
         <Ctrl onClick={hardDrop}>⤓</Ctrl>
       </div>
-      <p className="mt-2 text-center text-xs text-app-text/70 drop-shadow-sm">{t('bloques.help')}</p>
     </main>
   );
 }

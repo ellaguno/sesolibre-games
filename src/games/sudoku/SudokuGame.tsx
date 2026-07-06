@@ -16,6 +16,7 @@ import { particles, bigCelebrate } from '../../anim/particles';
 import { formatDuration } from '../../core/format';
 import { useT } from '../../core/i18n';
 import Button from '../../ui/Button';
+import HelpButton from '../../ui/HelpButton';
 
 type Notes = boolean[][][]; // [r][c][digit-1]
 
@@ -44,6 +45,11 @@ const emptyNotes = (): Notes =>
     Array.from({ length: 9 }, () => new Array<boolean>(9).fill(false)),
   );
 
+const cloneNotes = (n: Notes): Notes => n.map((row) => row.map((cell) => [...cell]));
+
+// Cuántos pasos de deshacer se conservan como máximo.
+const UNDO_LIMIT = 100;
+
 // Partida guardada (continuar al volver).
 interface SudokuSave {
   v: 1;
@@ -53,6 +59,8 @@ interface SudokuSave {
   notes: Notes;
   seconds: number;
   hintsLeft: number;
+  // Opcional para aceptar partidas guardadas antes de que existiera.
+  errors?: number;
 }
 
 export default function SudokuGame({ onScore, onExit }: GameProps) {
@@ -68,10 +76,18 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
   // Pistas: sugerencia (sin colocar) y cuántas quedan.
   const [hintCell, setHintCell] = useState<{ r: number; c: number; digit: number } | null>(null);
   const [hintsLeft, setHintsLeft] = useState(2);
+  // Errores cometidos: cada vez que se coloca un número que no es el de la
+  // solución. No baja al deshacer (cuenta el tropiezo, no el estado).
+  const [errors, setErrors] = useState(0);
   const [solved, setSolved] = useState(false);
   // Panel de victoria oculto a petición del jugador (para ver el tablero final).
   const [endHidden, setEndHidden] = useState(false);
   const [seconds, setSeconds] = useState(0);
+  // Historial para deshacer: instantánea de tablero+notas antes de cada cambio.
+  const [history, setHistory] = useState<{ board: Board; notes: Notes }[]>([]);
+  // Confirmación de "nuevo juego" (como en Solitario) para no perder la
+  // partida por un toque accidental.
+  const [confirmNew, setConfirmNew] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const submittedRef = useRef(false);
 
@@ -82,7 +98,7 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
     () =>
       solved
         ? null
-        : { v: 1, difficultyId: difficulty.id, game, board, notes, seconds, hintsLeft },
+        : { v: 1, difficultyId: difficulty.id, game, board, notes, seconds, hintsLeft, errors },
     (s) => {
       const d = DIFFICULTIES.find((x) => x.id === s.difficultyId);
       if (d) setDifficulty(d);
@@ -91,8 +107,10 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
       setNotes(s.notes);
       setSeconds(s.seconds);
       setHintsLeft(s.hintsLeft);
+      setErrors(s.errors ?? 0);
+      setHistory([]);
     },
-    [solved, difficulty, game, board, notes, seconds, hintsLeft],
+    [solved, difficulty, game, board, notes, seconds, hintsLeft, errors],
   );
 
   const newGame = useCallback((d: Difficulty) => {
@@ -107,6 +125,9 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
     setSolved(false);
     setEndHidden(false);
     setSeconds(0);
+    setErrors(0);
+    setHistory([]);
+    setConfirmNew(false);
     submittedRef.current = false;
   }, []);
 
@@ -156,6 +177,25 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
     [game.solution],
   );
 
+  // Guarda una instantánea para poder deshacer el cambio que viene.
+  const pushHistory = useCallback(() => {
+    setHistory((h) => [
+      ...h.slice(-(UNDO_LIMIT - 1)),
+      { board: cloneBoard(board), notes: cloneNotes(notes) },
+    ]);
+  }, [board, notes]);
+
+  const undo = () => {
+    setHistory((h) => {
+      if (h.length === 0) return h;
+      const last = h[h.length - 1];
+      setBoard(last.board);
+      setNotes(last.notes);
+      setHintCell(null);
+      return h.slice(0, -1);
+    });
+  };
+
   // Aplica un dígito (o 0 = borrar) en una celda concreta. Respeta el modo notas.
   const applyDigit = useCallback(
     (r: number, c: number, digit: number) => {
@@ -163,6 +203,7 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
       if (game.givens[r][c]) return;
 
       if (notesMode && digit !== 0) {
+        pushHistory();
         setNotes((prev) => {
           const next = prev.map((row) => row.map((cell) => [...cell]));
           next[r][c][digit - 1] = !next[r][c][digit - 1];
@@ -171,9 +212,12 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
         return;
       }
 
+      if (board[r][c] === digit) return; // sin cambio: nada que hacer ni deshacer
+      pushHistory();
       const next = cloneBoard(board);
       next[r][c] = digit; // 0 = borrar
       setBoard(next);
+      if (digit !== 0 && digit !== game.solution[r][c]) setErrors((e) => e + 1);
       if (digit !== 0) {
         setNotes((prev) => {
           const cleared = prev.map((row) => row.map((cell) => [...cell]));
@@ -197,8 +241,15 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
         setHintCell((h) => (h && h.r === r && h.c === c ? null : h));
       }
     },
-    [solved, game.givens, notesMode, board, win, checkDigitComplete],
+    [solved, game.givens, game.solution, notesMode, board, win, checkDigitComplete, pushHistory],
   );
+
+  // Nueva partida con confirmación si hay progreso que perder.
+  const requestNewGame = () => {
+    const dirty = board.some((row, r) => row.some((v, c) => v !== game.puzzle[r][c]));
+    if (!solved && dirty) setConfirmNew(true);
+    else newGame(difficulty);
+  };
 
   const placeDigit = useCallback(
     (digit: number) => {
@@ -293,6 +344,10 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
   }, [placeDigit, selected]);
 
   const selVal = selected ? board[selected.r][selected.c] : 0;
+  // Número "marcado": el dígito fijado en la barra (modo rápido) o el de la
+  // celda tocada. Todas sus apariciones en el tablero —valores y notas— se
+  // resaltan en negritas.
+  const markedDigit = activeDigit ?? selVal;
 
   return (
     <main className="mx-auto flex min-h-full max-w-md flex-col items-center px-3 py-4">
@@ -304,8 +359,13 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
         >
           ←
         </button>
-        <span className="font-mono text-sm">⏱ {formatDuration(seconds)}</span>
-        <div className="w-10" />
+        <span className="font-mono text-sm">
+          ⏱ {formatDuration(seconds)}
+          <span className="ml-3 text-rose-500 dark:text-rose-400">
+            ✖ {errors}
+          </span>
+        </span>
+        <HelpButton title={t('game.sudoku.title')} text={t('sudoku.help')} />
       </div>
 
       <div className="mb-3 flex gap-2">
@@ -343,12 +403,13 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
                   selected.c === c ||
                   (Math.floor(selected.r / 3) === Math.floor(r / 3) &&
                     Math.floor(selected.c / 3) === Math.floor(c / 3)));
-              const sameNum = v !== 0 && v === selVal && !isSel;
+              const marked = v !== 0 && v === markedDigit;
+              const sameNum = marked && !isSel;
               return (
                 <button
                   key={`${r}-${c}`}
                   onClick={() => handleCellTap(r, c)}
-                  className={`flex aspect-square items-center justify-center border border-app-border/70 text-lg font-semibold transition-colors
+                  className={`flex aspect-square items-center justify-center border border-app-border/70 text-lg ${marked ? 'font-extrabold' : 'font-semibold'} transition-colors
                     ${c % 3 === 2 && c !== 8 ? 'border-r-2 border-r-slate-400' : ''}
                     ${r % 3 === 2 && r !== 8 ? 'border-b-2 border-b-slate-400' : ''}
                     ${
@@ -370,7 +431,12 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
                   ) : notes[r][c].some(Boolean) ? (
                     <div className="grid h-full w-full grid-cols-3 grid-rows-3 p-px text-[9px] font-normal leading-none text-app-text/75">
                       {notes[r][c].map((on, i) => (
-                        <span key={i} className="flex items-center justify-center">
+                        <span
+                          key={i}
+                          className={`flex items-center justify-center ${
+                            on && i + 1 === markedDigit ? 'font-extrabold text-app-text' : ''
+                          }`}
+                        >
                           {on ? i + 1 : ''}
                         </span>
                       ))}
@@ -400,6 +466,22 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
             >
               👁 {t('common.viewBoard')}
             </button>
+          </div>
+        )}
+
+        {confirmNew && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center rounded-md bg-slate-950/70 backdrop-blur-sm">
+            <div className="overlay-pop flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-gradient-to-b from-slate-800/95 to-slate-900/95 px-8 py-7 text-center shadow-2xl">
+              <div className="text-5xl drop-shadow-lg">🔄</div>
+              <p className="text-2xl font-bold text-white">{t('common.newGameConfirmTitle')}</p>
+              <p className="max-w-[15rem] text-sm text-white/70">{t('common.newGameConfirm')}</p>
+              <div className="mt-1 flex gap-2">
+                <Button onClick={() => newGame(difficulty)}>{t('common.new')}</Button>
+                <Button variant="ghost" onClick={() => setConfirmNew(false)}>
+                  {t('common.cancel')}
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -468,7 +550,22 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
         </button>
       </div>
 
-      <p className="mt-3 text-center text-xs text-app-muted">{t('sudoku.help')}</p>
+      {/* Nueva partida (izquierda) y deshacer (derecha) */}
+      <div className="mt-3 flex w-full max-w-[min(92vw,380px)] items-center justify-between">
+        <button
+          onClick={requestNewGame}
+          className="rounded-lg bg-app-surface px-4 py-2 text-sm font-semibold hover:bg-app-surface2"
+        >
+          ↻ {t('sol.newGame')}
+        </button>
+        <button
+          onClick={undo}
+          disabled={history.length === 0 || solved}
+          className="rounded-lg bg-app-surface px-4 py-2 text-sm font-semibold hover:bg-app-surface2 disabled:opacity-40"
+        >
+          ↶ {t('common.undo')}
+        </button>
+      </div>
     </main>
   );
 }

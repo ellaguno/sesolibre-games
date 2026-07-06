@@ -11,6 +11,7 @@ import {
   autoToFoundation,
   autoDestination,
   hasAnyMove,
+  findHint,
   type Card,
   type GameState,
 } from '../src/games/solitaire/logic';
@@ -271,5 +272,76 @@ describe('solitaire hasAnyMove', () => {
       moves: 0,
     };
     expect(hasAnyMove(s)).toBe(true);
+  });
+});
+
+describe('solitaire findHint', () => {
+  it('prioriza subir a una base (As del descarte)', () => {
+    const s: GameState = {
+      stock: [],
+      waste: [card('hearts', 1)],
+      foundations: [[], [], [], []],
+      tableau: [[card('spades', 5)], [], [], [], [], [], []],
+      drawCount: 1,
+      moves: 0,
+    };
+    expect(findHint(s)).toEqual({ from: { type: 'waste', index: 0 }, count: 1 });
+  });
+
+  it('señala la secuencia completa que puede cambiar de columna', () => {
+    const s: GameState = {
+      stock: [],
+      waste: [],
+      foundations: [[], [], [], []],
+      // 8♥-7♠ (secuencia válida) puede ir sobre 9♠ de la otra columna
+      tableau: [
+        [card('clubs', 12, false), card('hearts', 8), card('spades', 7)],
+        [card('spades', 9)],
+        [],
+        [],
+        [],
+        [],
+        [],
+      ],
+      drawCount: 1,
+      moves: 0,
+    };
+    expect(findHint(s)).toEqual({ from: { type: 'tableau', index: 0 }, count: 2 });
+  });
+
+  it('ignora mover un Rey solo a columna vacía (jugada nula)', () => {
+    const s: GameState = {
+      stock: [],
+      waste: [],
+      foundations: [[], [], [], []],
+      tableau: [[card('hearts', 13)], [], [], [], [], [], []],
+      drawCount: 1,
+      moves: 0,
+    };
+    expect(findHint(s)).toBeNull();
+  });
+
+  it("sugiere robar ('draw') si la única jugada está en el mazo", () => {
+    const s: GameState = {
+      stock: [card('clubs', 1, false)],
+      waste: [],
+      foundations: [[], [], [], []],
+      tableau: [2, 3, 4, 5, 6, 7, 8].map((r) => [card('hearts', r)]),
+      drawCount: 1,
+      moves: 0,
+    };
+    expect(findHint(s)).toBe('draw');
+  });
+
+  it('devuelve null cuando no hay ninguna jugada', () => {
+    const s: GameState = {
+      stock: [],
+      waste: [],
+      foundations: [[], [], [], []],
+      tableau: [2, 3, 4, 5, 6, 7, 8].map((r) => [card('hearts', r)]),
+      drawCount: 1,
+      moves: 0,
+    };
+    expect(findHint(s)).toBeNull();
   });
 });

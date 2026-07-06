@@ -16,6 +16,7 @@ import {
   isValidRun,
   isWin,
   hasAnyMove,
+  findHint,
   type Card,
   type GameState,
   type Location,
@@ -30,6 +31,7 @@ import { bigCelebrate } from '../../anim/particles';
 import { useRewards } from '../../core/RewardService';
 import { useT } from '../../core/i18n';
 import Button from '../../ui/Button';
+import HelpButton from '../../ui/HelpButton';
 
 interface Drag {
   from: Location;
@@ -89,6 +91,28 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
   const submittedRef = useRef(false);
   const workerRef = useRef<Worker | null>(null);
   const solveSeq = useRef(0);
+  // Pista: id de la carta a resaltar con una sacudida ('__stock__' = el mazo).
+  const [hintId, setHintId] = useState<string | null>(null);
+  const hintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showHint = () => {
+    const h = findHint(game);
+    if (!h) return;
+    let id: string;
+    if (h === 'draw') id = '__stock__';
+    else if (h.from.type === 'waste') id = game.waste[game.waste.length - 1].id;
+    else {
+      const pile = game.tableau[h.from.index];
+      id = pile[pile.length - h.count].id;
+    }
+    // Reiniciar la animación aunque la pista sea la misma carta.
+    setHintId(null);
+    requestAnimationFrame(() => setHintId(id));
+    if (hintTimer.current) clearTimeout(hintTimer.current);
+    hintTimer.current = setTimeout(() => setHintId(null), 1700);
+    AudioService.play('click');
+  };
+  useEffect(() => () => void (hintTimer.current && clearTimeout(hintTimer.current)), []);
 
   // Conservar la partida al salir al menú o al perder el foco la app.
   useGameSave<SolitaireSave>(
@@ -211,15 +235,46 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
     setDrag(nd);
   };
 
-  const endDrag = (e: PointerEvent) => {
+  const endDrag = () => {
     const d = dragRef.current;
     dragRef.current = null;
     setDrag(null);
     if (!d) return;
     if (d.moved) {
-      const el = document.elementFromPoint(e.clientX, e.clientY);
-      const to = parseDrop(el?.closest('[data-drop]')?.getAttribute('data-drop') ?? null);
-      if (to) apply(move(game, d.from, to, d.count));
+      // Tolerancia al soltar: en vez de exigir que el dedo quede exactamente
+      // sobre la pila destino, se compara el rectángulo de la carta arrastrada
+      // con cada zona de drop ampliada (sobre todo hacia abajo, que es donde
+      // suele quedar el dedo) y se intentan los destinos por orden de solape
+      // hasta que uno sea legal. Soltar sobre la pila de origen cancela.
+      const card = {
+        left: d.x - d.ox,
+        top: d.y - d.oy,
+        right: d.x - d.ox + d.w,
+        bottom: d.y - d.oy + d.h,
+      };
+      const candidates = Array.from(document.querySelectorAll('[data-drop]'))
+        .map((el) => {
+          const r = el.getBoundingClientRect();
+          const padX = d.w * 0.25;
+          const padTop = d.h * 0.3;
+          const padBottom = d.h * 1.1;
+          const ox = Math.min(card.right, r.right + padX) - Math.max(card.left, r.left - padX);
+          const oy =
+            Math.min(card.bottom, r.bottom + padBottom) - Math.max(card.top, r.top - padTop);
+          return {
+            to: parseDrop(el.getAttribute('data-drop')),
+            overlap: Math.max(0, ox) * Math.max(0, oy),
+          };
+        })
+        .filter((c) => c.to !== null && c.overlap > 0)
+        .sort((a, b) => b.overlap - a.overlap);
+      const isOrigin = (to: Location) => to.type === d.from.type && to.index === d.from.index;
+      if (candidates.length > 0 && !isOrigin(candidates[0].to!)) {
+        for (const c of candidates) {
+          if (isOrigin(c.to!)) continue;
+          if (apply(move(game, d.from, c.to!, d.count))) break;
+        }
+      }
     } else {
       const to = autoDestination(game, d.from, d.count);
       if (to) apply(move(game, d.from, to, d.count));
@@ -341,7 +396,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
             {/* Mazo */}
             <div
               onClick={handleDraw}
-              className="cursor-pointer"
+              className={`cursor-pointer ${hintId === '__stock__' ? 'hint-nudge' : ''}`}
               style={{ width: 'var(--cw)', height: 'var(--ch)' }}
             >
               {game.stock.length > 0 ? (
@@ -370,18 +425,35 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
                   return (
                     <div
                       key={card.id}
-                      className={isTop ? 'absolute top-0 touch-none' : 'absolute top-0'}
+                      className={`absolute top-0 ${isTop ? 'touch-none' : ''} ${
+                        isTop && hintId === card.id ? 'hint-nudge' : ''
+                      }`}
                       style={{
                         left: `calc(${i} * ${fanOff})`,
                         width: 'var(--cw)',
                         height: 'var(--ch)',
-                        zIndex: i,
+                        // La carta jugable por encima del mazo, para que su zona
+                        // táctil ampliada gane al robar por error.
+                        zIndex: isTop ? 30 : i,
                         pointerEvents: isTop ? 'auto' : 'none',
                         opacity: isTop && isDragged('waste', 0) ? 0 : 1,
                       }}
                       {...(isTop ? cardHandlers({ type: 'waste', index: 0 }, 1, [card]) : {})}
                     >
                       <CardView card={card} back={back} />
+                      {/* Zona táctil extra hacia el mazo: un toque "corto" que
+                          caiga entre la carta abierta y el mazo juega la carta
+                          en vez de robar (el dedo tapa justo esa frontera). */}
+                      {isTop && (
+                        <div
+                          className="absolute inset-y-0"
+                          style={
+                            leftHanded
+                              ? { left: 'calc(var(--cw) * -0.35)', width: 'calc(var(--cw) * 0.35)' }
+                              : { right: 'calc(var(--cw) * -0.35)', width: 'calc(var(--cw) * 0.35)' }
+                          }
+                        />
+                      )}
                     </div>
                   );
                 })}
@@ -430,7 +502,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
                     return (
                       <div
                         key={card.id}
-                        className="absolute left-0 w-full"
+                        className={`absolute left-0 w-full ${hintId === card.id ? 'hint-nudge' : ''}`}
                         style={{
                           top: `calc(${ci} * ${overlap})`,
                           height: 'var(--ch)',
@@ -486,7 +558,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
               <p className="text-2xl font-bold text-white">
                 {t(unwinnable ? 'sol.unwinnableTitle' : 'sol.noMovesTitle')}
               </p>
-              <p className="max-w-[15rem] text-sm text-white/70">
+              <p className="max-w-[16rem] text-sm text-white/70">
                 {t(unwinnable ? 'sol.unwinnableHint' : 'sol.noMovesHint')}
               </p>
               <div className="mt-1 flex gap-2">
@@ -495,12 +567,11 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
                   {t('common.exit')}
                 </Button>
               </div>
-              <button
-                onClick={() => setEndHidden(true)}
-                className="text-sm text-white/70 underline underline-offset-2 hover:text-white"
-              >
-                👁 {t('common.viewBoard')}
-              </button>
+              {/* Botón grande: seguir viendo/moviendo el tablero es una opción
+                  de verdad, no un enlace escondido. */}
+              <Button variant="ghost" className="w-full" onClick={() => setEndHidden(true)}>
+                👁 {t('sol.viewKeepTrying')}
+              </Button>
             </div>
           </div>
         )}
@@ -561,9 +632,20 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
         >
           ↶
         </button>
+        <button
+          onClick={showHint}
+          aria-label={t('sol.hint')}
+          title={t('sol.hint')}
+          className="rounded-lg bg-app-surface/80 px-4 py-2 text-lg leading-none backdrop-blur hover:bg-app-surface2"
+        >
+          💡
+        </button>
+        <HelpButton
+          title={t('game.solitaire.title')}
+          text={t('sol.help')}
+          className="text-lg leading-none"
+        />
       </div>
-
-      <p className="mt-2 text-center text-xs text-app-text/70 drop-shadow-sm">{t('sol.help')}</p>
 
       {/* Cartas arrastradas (animación de drag) */}
       {drag && drag.moved && (

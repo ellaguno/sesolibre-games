@@ -24,6 +24,7 @@ import { useGameSave } from '../../core/saves';
 import { AudioService } from '../../core/AudioService';
 import { useT, type TFn } from '../../core/i18n';
 import Button from '../../ui/Button';
+import HelpButton from '../../ui/HelpButton';
 
 const MATCH_ANIM_MS = 500; // sincronizado con los keyframes
 const INVALID_REVERT_MS = 350;
@@ -301,13 +302,16 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
   return (
     <main className="mx-auto flex min-h-full w-full max-w-md flex-col items-center px-3 py-4">
       <div className="mb-3 w-full">
-        <button
-          onClick={onExit}
-          aria-label={t('common.exit')}
-          className="mb-2 rounded-lg bg-app-surface px-3 py-2 hover:bg-app-surface2"
-        >
-          ←
-        </button>
+        <div className="mb-2 flex items-center justify-between">
+          <button
+            onClick={onExit}
+            aria-label={t('common.exit')}
+            className="rounded-lg bg-app-surface px-3 py-2 hover:bg-app-surface2"
+          >
+            ←
+          </button>
+          <HelpButton title={t('game.figures.title')} text={t('fig.help')} />
+        </div>
         <img src={logo} alt="Figures" className="block w-full" />
       </div>
 

@@ -84,6 +84,30 @@ body {
   animation: overlay-pop 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Pista del solitario: la carta jugable "salta" un par de veces */
+@keyframes hint-nudge {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  20% {
+    transform: translateY(-10px);
+  }
+  40% {
+    transform: translateY(0);
+  }
+  60% {
+    transform: translateY(-6px);
+  }
+  80% {
+    transform: translateY(0);
+  }
+}
+.hint-nudge {
+  animation: hint-nudge 0.8s ease-in-out 2;
+  filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.9));
+}
+
 /* Entrada escalonada de las tarjetas del hub */
 @keyframes card-in {
   from {

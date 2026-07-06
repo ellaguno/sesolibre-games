@@ -44,6 +44,11 @@ jobs:
       - name: Sincronizar web -> nativo
         run: npx cap sync android
 
+      - name: Bloquear orientación vertical (los juegos no están diseñados para horizontal)
+        run: |
+          sed -i 's/android:launchMode="singleTask"/android:launchMode="singleTask"\n            android:screenOrientation="portrait"/' android/app/src/main/AndroidManifest.xml
+          grep -n "screenOrientation" android/app/src/main/AndroidManifest.xml
+
       - name: Fijar compileSdk/targetSdk 35 (requisito de Play para apps nuevas)
         run: |
           sed -i 's/compileSdkVersion = 34/compileSdkVersion = 35/' android/variables.gradle

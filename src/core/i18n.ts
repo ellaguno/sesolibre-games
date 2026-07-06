@@ -41,6 +41,11 @@ const es: Dict = {
   'common.options': 'Opciones',
   'common.soon': 'Pronto',
   'common.viewBoard': 'Ver tablero',
+  'common.help': 'Cómo jugar',
+  'common.close': 'Cerrar',
+  'common.undo': 'Deshacer',
+  'common.newGameConfirmTitle': '¿Nueva partida?',
+  'common.newGameConfirm': 'Se perderá la partida actual.',
 
   'settings.title': 'Ajustes',
   'settings.darkTheme': 'Tema oscuro',
@@ -160,16 +165,22 @@ const es: Dict = {
   'sol.leftHand': 'Zurdo',
   'sol.noMovesTitle': 'No hay más movimientos',
   'sol.noMoves': 'Ya no hay jugadas',
-  'sol.noMovesHint': 'No quedan movimientos posibles. Empieza una nueva partida.',
+  'sol.noMovesHint':
+    'No encontramos más jugadas posibles. Puedes empezar una nueva partida, o ver el tablero y seguir intentando por tu cuenta.',
   'sol.unwinnableTitle': 'Sin solución',
-  'sol.unwinnableHint': 'Esta partida ya no se puede ganar. Empieza una nueva partida.',
+  'sol.unwinnableHint':
+    'Esta partida ya no se puede ganar. Puedes empezar una nueva partida, o ver el tablero y seguir moviendo cartas.',
+  'sol.viewKeepTrying': 'Ver el tablero y seguir intentando',
+  'sol.hint': 'Pista',
   'sol.help':
-    'Toca una carta para enviarla al mejor lugar, o arrástrala. «Auto» sube todo a las bases.',
+    'Toca una carta para enviarla al mejor lugar, o arrástrala. «Auto» (⤴) sube todo a las bases. «💡» te señala una carta que aún puede jugarse.',
   'cos.backs': 'Diseños de carta',
   'cos.inUse': 'En uso',
   'cos.use': 'Usar',
   'cos.buy': 'Comprar',
 
+  'fig.help':
+    'Arrastra una figura hacia una vecina (o toca dos adyacentes) para intercambiarlas y alinear 3 o más iguales. Las combinaciones desaparecen, caen figuras nuevas y las cadenas dan más puntos. En el modo de movimientos limitados, consigue la mayor puntuación antes de agotarlos.',
   'fig.play': 'Jugar',
   'fig.best': 'Mejor: {n}',
   'fig.figures': 'Figuras',
@@ -217,6 +228,11 @@ const en: Dict = {
   'common.options': 'Options',
   'common.soon': 'Soon',
   'common.viewBoard': 'View board',
+  'common.help': 'How to play',
+  'common.close': 'Close',
+  'common.undo': 'Undo',
+  'common.newGameConfirmTitle': 'New game?',
+  'common.newGameConfirm': 'Your current game will be lost.',
 
   'settings.title': 'Settings',
   'settings.darkTheme': 'Dark theme',
@@ -336,15 +352,22 @@ const en: Dict = {
   'sol.leftHand': 'Left-handed',
   'sol.noMovesTitle': 'No more moves',
   'sol.noMoves': 'No more moves',
-  'sol.noMovesHint': 'There are no possible moves left. Start a new game.',
+  'sol.noMovesHint':
+    'We found no more possible moves. You can start a new game, or view the board and keep trying on your own.',
   'sol.unwinnableTitle': 'No way to win',
-  'sol.unwinnableHint': 'This game can no longer be won. Start a new game.',
-  'sol.help': 'Tap a card to send it to the best spot, or drag it. "Auto" sends everything to the foundations.',
+  'sol.unwinnableHint':
+    'This game can no longer be won. You can start a new game, or view the board and keep moving cards.',
+  'sol.viewKeepTrying': 'View the board and keep trying',
+  'sol.hint': 'Hint',
+  'sol.help':
+    'Tap a card to send it to the best spot, or drag it. "Auto" (⤴) sends everything to the foundations. "💡" points at a card that can still be played.',
   'cos.backs': 'Card backs',
   'cos.inUse': 'In use',
   'cos.use': 'Use',
   'cos.buy': 'Buy',
 
+  'fig.help':
+    'Drag a figure toward a neighbour (or tap two adjacent ones) to swap them and line up 3 or more of a kind. Matches disappear, new figures fall in, and chains score extra. In limited-moves mode, get the highest score before running out.',
   'fig.play': 'Play',
   'fig.best': 'Best: {n}',
   'fig.figures': 'Figures',

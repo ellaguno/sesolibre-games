@@ -19,6 +19,7 @@ import { AudioService } from '../../core/AudioService';
 import { useGameSave } from '../../core/saves';
 import { useT } from '../../core/i18n';
 import Button from '../../ui/Button';
+import HelpButton from '../../ui/HelpButton';
 
 // Celda = 1/8 del ancho (tablero a pantalla completa en móvil), con tope para
 // escritorio (max-w-md / 8 ≈ 56px).
@@ -345,7 +346,7 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
         >
           {statusText}
         </span>
-        <div className="w-10" />
+        <HelpButton title={t('game.ajedrez.title')} text={t('chess.help')} />
       </div>
 
       <div className="mb-2 flex gap-2 px-3">
@@ -581,7 +582,6 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
           ↻ {t('common.new')}
         </button>
       </div>
-      <p className="mt-2 px-3 text-center text-xs text-app-text/70 drop-shadow-sm">{t('chess.help')}</p>
     </main>
   );
 }
