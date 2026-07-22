@@ -25,7 +25,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - run: npm ci
@@ -34,7 +34,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
 
       - uses: android-actions/setup-android@v3
 
@@ -49,13 +49,12 @@ jobs:
           sed -i 's/android:launchMode="singleTask"/android:launchMode="singleTask"\n            android:screenOrientation="portrait"/' android/app/src/main/AndroidManifest.xml
           grep -n "screenOrientation" android/app/src/main/AndroidManifest.xml
 
-      - name: Fijar compileSdk/targetSdk 35 (requisito de Play para apps nuevas)
+      - name: Verificar compileSdk/targetSdk 36 (requisito de Play desde ago 2026)
+        # Capacitor 8 ya genera SDK 36; este paso solo falla si una futura
+        # regresión deja un SDK menor.
         run: |
-          sed -i 's/compileSdkVersion = 34/compileSdkVersion = 35/' android/variables.gradle
-          sed -i 's/targetSdkVersion = 34/targetSdkVersion = 35/' android/variables.gradle
-          # AGP 8.2 (Capacitor 6) no reconoce API 35 oficialmente; la bandera lo permite.
-          echo "android.suppressUnsupportedCompileSdk=35" >> android/gradle.properties
-          grep -E "compileSdkVersion|targetSdkVersion" android/variables.gradle
+          grep -E "compileSdkVersion = 36|targetSdkVersion = 36" android/variables.gradle
+          grep -q "targetSdkVersion = 36" android/variables.gradle
 
       - name: Generar íconos del launcher (desde assets/ con @capacitor/assets)
         run: npx @capacitor/assets generate --android

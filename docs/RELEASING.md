@@ -88,9 +88,9 @@ Sin estos secrets el workflow genera el AAB **sin firmar** (solo para validar).
 Actions → *Play AAB* → *Run workflow* → descarga el artefacto
 `sesolibre-games-aab` → súbelo en Play Console (prueba interna o cerrada).
 
-> **Pendiente posible:** Play puede exigir `targetSdkVersion` reciente. Hoy es
-> **34** (`android/variables.gradle`, vía Capacitor 6). Si Play lo rechaza, hay
-> que subir el target (o actualizar Capacitor).
+> **targetSdk:** Play exige targetSdk **36** (Android 16) desde el 30-ago-2026.
+> Cubierto: Capacitor **8** genera compile/targetSdk 36 y minSdk 24 nativamente;
+> el workflow solo verifica que sigan en 36. Requiere Node 22 y Java 21 (ya en CI).
 
 ## Estado de la ficha de Play (v1.0.0)
 
