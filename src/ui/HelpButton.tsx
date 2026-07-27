@@ -54,7 +54,11 @@ export default function HelpButton({ title, text, className = '' }: Props) {
                 ✕
               </button>
             </div>
-            <p className="whitespace-pre-line text-sm leading-relaxed text-white/80">{text}</p>
+            {/* Con scroll: hay ayudas largas (los premios de Figures) que si no
+                desbordarían la pantalla en un móvil pequeño. */}
+            <p className="max-h-[60vh] overflow-y-auto whitespace-pre-line text-sm leading-relaxed text-white/80">
+              {text}
+            </p>
             <div className="mt-4 text-right">
               <button
                 onClick={() => setOpen(false)}

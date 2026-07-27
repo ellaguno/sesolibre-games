@@ -40,3 +40,148 @@
 .animate-slide {
   animation: fig-slide 0.5s ease-out;
 }
+
+/* ---------- Premios (rayo / bomba / gema radioactiva) ----------
+   Mismo lenguaje visual que los premios de Glótono: la ficha late y suelta un
+   halo de color. Cada premio tiene su color para distinguirlos de un vistazo
+   en un tablero de 8x8, donde la celda es pequeña. */
+
+/* Aura por detrás de la figura. --fx es el color del premio. */
+.gem-power {
+  position: absolute;
+  inset: -6%;
+  border-radius: 9999px;
+  background: radial-gradient(circle, var(--fx) 0%, transparent 68%);
+  animation: gem-aura 1.4s ease-in-out infinite;
+}
+@keyframes gem-aura {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.86);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.12);
+  }
+}
+
+/* La figura del premio brilla y palpita por encima del aura. */
+.gem-power-img {
+  animation: gem-power-pulse 1.4s ease-in-out infinite;
+}
+@keyframes gem-power-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 2px var(--fx)) brightness(1.05) saturate(1.2);
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 7px var(--fx)) drop-shadow(0 0 12px var(--fx))
+      brightness(1.45) saturate(1.7);
+    transform: scale(1.09);
+  }
+}
+
+/* Color de cada premio, aparte de la animación, para que el aura y la onda
+   expansiva compartan paleta sin pisarse las reglas. */
+.fx-line {
+  --fx: rgba(251, 191, 36, 0.85);
+}
+.fx-bomb {
+  --fx: rgba(249, 115, 22, 0.85);
+}
+/* Verde radioactivo: el premio gordo. */
+.fx-nuke {
+  --fx: rgba(163, 230, 53, 0.95);
+}
+.gem-power-nuke {
+  animation:
+    gem-aura 1s ease-in-out infinite,
+    gem-spin 3.2s linear infinite;
+}
+@keyframes gem-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/* Barra que anuncia el eje que limpiará el rayo. */
+.gem-power-beam {
+  pointer-events: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 12%;
+  translate: 0 -50%;
+  border-radius: 9999px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.95),
+    rgba(251, 191, 36, 0.95),
+    transparent
+  );
+  animation: gem-beam 1.4s ease-in-out infinite;
+}
+.gem-power-beam-v {
+  left: 50%;
+  right: auto;
+  top: 0;
+  bottom: 0;
+  width: 12%;
+  height: auto;
+  translate: -50% 0;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(255, 255, 255, 0.95),
+    rgba(251, 191, 36, 0.95),
+    transparent
+  );
+}
+@keyframes gem-beam {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Onda expansiva al estallar un premio. */
+.gem-blast {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, var(--fx) 45%, transparent 72%);
+  animation: gem-blast 0.5s ease-out forwards;
+}
+@keyframes gem-blast {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gem-power,
+  .gem-power-img,
+  .gem-power-beam,
+  .gem-blast {
+    animation: none;
+  }
+  .gem-power {
+    opacity: 0.7;
+  }
+}

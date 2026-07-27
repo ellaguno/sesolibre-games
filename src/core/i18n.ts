@@ -172,6 +172,7 @@ const es: Dict = {
     'Esta partida ya no se puede ganar. Puedes empezar una nueva partida, o ver el tablero y seguir moviendo cartas.',
   'sol.viewKeepTrying': 'Ver el tablero y seguir intentando',
   'sol.hint': 'Pista',
+  'sol.hintSterile': 'Solo quedan movimientos que no llevan a ningún sitio.',
   'sol.help':
     'Toca una carta para enviarla al mejor lugar, o arrástrala. «Auto» (⤴) sube todo a las bases. «💡» te señala una carta que aún puede jugarse.',
   'cos.backs': 'Diseños de carta',
@@ -180,7 +181,7 @@ const es: Dict = {
   'cos.buy': 'Comprar',
 
   'fig.help':
-    'Arrastra una figura hacia una vecina (o toca dos adyacentes) para intercambiarlas y alinear 3 o más iguales. Las combinaciones desaparecen, caen figuras nuevas y las cadenas dan más puntos. En el modo de movimientos limitados, consigue la mayor puntuación antes de agotarlos.',
+    'Arrastra una figura hacia una vecina (o toca dos adyacentes) para intercambiarlas y alinear 3 o más iguales. Las combinaciones desaparecen, caen figuras nuevas y las cadenas dan más puntos.\n\nPREMIOS: alinear más de 3 deja una figura brillante en el sitio donde jugaste. Con 4 en línea ganas un RAYO ⚡ (limpia su fila o su columna); con 5 en L o en T, una BOMBA 💥 (revienta el cuadro de 3x3); y con 5 en línea recta, la GEMA RADIOACTIVA ☢ (elimina de golpe todas las figuras de su tipo). El premio estalla cuando lo incluyes en una combinación, y su explosión puede encadenar otros premios.\n\nEn el modo de movimientos limitados, consigue la mayor puntuación antes de agotarlos.',
   'fig.play': 'Jugar',
   'fig.best': 'Mejor: {n}',
   'fig.figures': 'Figuras',
@@ -359,6 +360,7 @@ const en: Dict = {
     'This game can no longer be won. You can start a new game, or view the board and keep moving cards.',
   'sol.viewKeepTrying': 'View the board and keep trying',
   'sol.hint': 'Hint',
+  'sol.hintSterile': 'Only moves that lead nowhere are left.',
   'sol.help':
     'Tap a card to send it to the best spot, or drag it. "Auto" (⤴) sends everything to the foundations. "💡" points at a card that can still be played.',
   'cos.backs': 'Card backs',
@@ -367,7 +369,7 @@ const en: Dict = {
   'cos.buy': 'Buy',
 
   'fig.help':
-    'Drag a figure toward a neighbour (or tap two adjacent ones) to swap them and line up 3 or more of a kind. Matches disappear, new figures fall in, and chains score extra. In limited-moves mode, get the highest score before running out.',
+    'Drag a figure toward a neighbour (or tap two adjacent ones) to swap them and line up 3 or more of a kind. Matches disappear, new figures fall in, and chains score extra.\n\nPRIZES: matching more than 3 leaves a glowing figure where you played. Four in a row earns a LIGHTNING ⚡ (clears its row or column); five in an L or T shape, a BOMB 💥 (blows up the 3x3 block); and five in a straight line, the RADIOACTIVE GEM ☢ (wipes out every figure of its kind at once). A prize goes off when you include it in a match, and its blast can chain into other prizes.\n\nIn limited-moves mode, get the highest score before running out.',
   'fig.play': 'Play',
   'fig.best': 'Best: {n}',
   'fig.figures': 'Figures',

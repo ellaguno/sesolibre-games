@@ -26,6 +26,13 @@ export interface CardBack {
   cost: number; // monedas (0 = inicial)
   style: CSSProperties;
   img?: string; // motivo central (imagen con transparencia)
+  /**
+   * El motivo ocupa casi toda la carta en vez de ir como sello central. Lo usan
+   * las piezas de ajedrez: su .webp es 256x384 pero la pieza solo cubre un
+   * 52-60% del ancho (el resto es transparente), así que al tamaño de motivo
+   * normal quedaban ilegibles en pantalla de móvil.
+   */
+  fullBleed?: boolean;
   achievement?: string; // id de logro que lo regala (no se compra)
 }
 
@@ -87,12 +94,12 @@ export const CARD_BACKS: CardBack[] = [
   { id: 'zorro', cost: 80, style: soft('#7c2d12', 'rgba(254,215,170,0.4)'), img: zorroImg },
   { id: 'oso', cost: 100, style: soft('#3f2212', 'rgba(254,243,199,0.35)'), img: osoImg },
 
-  // --- Piezas 3D de Ajedrez ---
-  { id: 'torre', cost: 140, style: checker('#312e81', 'rgba(165,180,252,0.16)', 'rgba(199,210,254,0.32)'), img: bTowerImg },
-  { id: 'alfil', cost: 150, style: checker('#334155', 'rgba(203,213,225,0.14)', 'rgba(226,232,240,0.3)'), img: wBishopImg },
-  { id: 'caballo', cost: 160, style: checker('#064e3b', 'rgba(110,231,183,0.14)', 'rgba(167,243,208,0.3)'), img: wKnightImg },
-  { id: 'reina', cost: 200, style: checker('#581c87', 'rgba(216,180,254,0.16)', 'rgba(233,213,255,0.32)'), img: bQueenImg },
-  { id: 'rey', cost: 250, style: checker('#713f12', 'rgba(253,224,71,0.16)', 'rgba(254,240,138,0.32)'), img: wKingImg },
+  // --- Piezas 3D de Ajedrez (motivo a sangre: ver `fullBleed`) ---
+  { id: 'torre', cost: 140, style: checker('#312e81', 'rgba(165,180,252,0.16)', 'rgba(199,210,254,0.32)'), img: bTowerImg, fullBleed: true },
+  { id: 'alfil', cost: 150, style: checker('#334155', 'rgba(203,213,225,0.14)', 'rgba(226,232,240,0.3)'), img: wBishopImg, fullBleed: true },
+  { id: 'caballo', cost: 160, style: checker('#064e3b', 'rgba(110,231,183,0.14)', 'rgba(167,243,208,0.3)'), img: wKnightImg, fullBleed: true },
+  { id: 'reina', cost: 200, style: checker('#581c87', 'rgba(216,180,254,0.16)', 'rgba(233,213,255,0.32)'), img: bQueenImg, fullBleed: true },
+  { id: 'rey', cost: 250, style: checker('#713f12', 'rgba(253,224,71,0.16)', 'rgba(254,240,138,0.32)'), img: wKingImg, fullBleed: true },
 
   // --- Premio del logro "Explorador" (jugar todos los juegos) ---
   { id: 'buho', cost: 0, achievement: 'all_games', style: soft('#1e1b4b', 'rgba(199,210,254,0.4)'), img: buhoImg },

@@ -48,6 +48,12 @@ jobs:
       - name: Generar íconos del launcher (desde assets/ con @capacitor/assets)
         run: npx @capacitor/assets generate --android
 
+      # El APK de depuración no pasa por R8, pero se alinea el toolchain
+      # (AGP 9 / Gradle 9) con el del AAB de release para que cualquier
+      # incompatibilidad salte aquí y no al publicar.
+      - name: Alinear toolchain de compilación (AGP 9)
+        run: ./scripts/android-optimize.sh
+
       - name: Compilar APK (debug)
         run: |
           cd android

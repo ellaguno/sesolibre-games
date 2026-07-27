@@ -137,7 +137,7 @@ export default function HubScreen() {
         <header className="mb-6 flex items-start justify-between gap-2">
           <div>
             <img
-              src={`${import.meta.env.BASE_URL}art/sesolibre.png`}
+              src={`${import.meta.env.BASE_URL}art/sesolibre.webp`}
               alt="SesoLibre"
               className="h-12 w-auto drop-shadow"
             />

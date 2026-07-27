@@ -5,8 +5,8 @@ import type { ScoreEntry } from '../core/ScoreService';
 import { useT } from '../core/i18n';
 import { bestLabel } from './bestLabel';
 
-// PNG transparente opcional. Si no existe, se oculta. Ruta: public/art/<id>.png
-const artUrl = (id: string) => `${import.meta.env.BASE_URL}art/${id}.png`;
+// Figura WebP transparente opcional. Si no existe, se oculta. Ruta: public/art/<id>.webp
+const artUrl = (id: string) => `${import.meta.env.BASE_URL}art/${id}.webp`;
 
 /** Tarjeta grande del "Reto del día" (juego destacado). */
 export default function HeroCard({

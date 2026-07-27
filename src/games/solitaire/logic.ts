@@ -249,64 +249,6 @@ export function hasAnyMove(state: GameState): boolean {
 }
 
 /**
- * Pista para el jugador: devuelve una jugada disponible para resaltar la carta
- * que puede moverse. Prioriza subir a una base, luego mover secuencias entre
- * columnas (ignorando el "rey solo" a columna vacía, que no aporta), luego el
- * descarte a una columna, y si nada de eso existe pero robando aún podría
- * salir una carta jugable, sugiere robar ('draw').
- */
-export type Hint = { from: Location; count: number } | 'draw' | null;
-
-export function findHint(state: GameState): Hint {
-  const w = top(state.waste);
-  // Cima a una base
-  if (w) {
-    for (const f of state.foundations) {
-      if (canMoveToFoundation(w, f)) return { from: { type: 'waste', index: 0 }, count: 1 };
-    }
-  }
-  for (let i = 0; i < state.tableau.length; i++) {
-    const c = top(state.tableau[i]);
-    if (!c) continue;
-    for (const f of state.foundations) {
-      if (canMoveToFoundation(c, f)) return { from: { type: 'tableau', index: i }, count: 1 };
-    }
-  }
-  // Secuencia de una columna a otra (misma criba que hasAnyMove)
-  for (let i = 0; i < state.tableau.length; i++) {
-    const pile = state.tableau[i];
-    const firstFaceUp = pile.findIndex((c) => c.faceUp);
-    if (firstFaceUp === -1) continue;
-    for (let k = firstFaceUp; k < pile.length; k++) {
-      const run = pile.slice(k);
-      if (!isValidRun(run)) continue;
-      const lead = run[0];
-      for (let j = 0; j < state.tableau.length; j++) {
-        if (j === i) continue;
-        if (!canStackTableau(lead, state.tableau[j])) continue;
-        if (lead.rank === 13 && k === 0 && state.tableau[j].length === 0) continue;
-        return { from: { type: 'tableau', index: i }, count: run.length };
-      }
-    }
-  }
-  // Descarte a una columna
-  if (w) {
-    for (const pile of state.tableau) {
-      if (canStackTableau(w, pile)) return { from: { type: 'waste', index: 0 }, count: 1 };
-    }
-  }
-  // Robando/reciclando aún puede aparecer una carta jugable
-  if (state.stock.length > 0 || state.waste.length > 0) {
-    for (const c of [...state.stock, ...state.waste]) {
-      const up: Card = { ...c, faceUp: true };
-      for (const f of state.foundations) if (canMoveToFoundation(up, f)) return 'draw';
-      for (const pile of state.tableau) if (canStackTableau(up, pile)) return 'draw';
-    }
-  }
-  return null;
-}
-
-/**
  * Intenta subir automáticamente una carta a una foundation (waste o cima de
  * tableau). Devuelve el nuevo estado o null si no hubo jugada.
  */

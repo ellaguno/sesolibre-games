@@ -1,6 +1,24 @@
 import { describe, it, expect } from 'vitest';
-import { analyzeWinnable, looksStuck } from '../src/games/solitaire/solver';
-import { deal, type Card, type GameState, type Suit } from '../src/games/solitaire/logic';
+import { analyzeWinnable, findBestMove, looksStuck } from '../src/games/solitaire/solver';
+import {
+  deal,
+  draw,
+  isWin,
+  move,
+  type Card,
+  type GameState,
+  type Suit,
+} from '../src/games/solitaire/logic';
+
+function seededRng(seed: number) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
 const C = (suit: Suit, rank: number, faceUp = true): Card => ({
   suit,
@@ -78,4 +96,43 @@ describe('solver de solitario', () => {
     const v = analyzeWinnable(deal(3, () => 0.5), 2000);
     expect(['win', 'lost', 'unknown']).toContain(v);
   });
+});
+
+describe('seguir las pistas termina la partida', () => {
+  // Regresión del fallo reportado: pedir pista devolvía una jugada distinta
+  // cada vez —todas "en alguna línea ganadora"— y la partida deambulaba sin
+  // avanzar. Con la línea completa, seguir las pistas tiene que GANAR.
+  it('una partida ganable se gana siguiendo la línea', () => {
+    let s = deal(3, seededRng(3));
+    const advice = findBestMove(s);
+    expect(advice.verdict).toBe('win');
+    expect(advice.line?.length).toBeGreaterThan(0);
+
+    for (const mv of advice.line!) {
+      const next = mv === 'draw' ? draw(s) : move(s, mv.from, mv.to, mv.count);
+      expect(next, 'cada paso de la línea debe ser legal').not.toBeNull();
+      expect(next).not.toBe(s);
+      s = next!;
+    }
+    expect(isWin(s), 'la línea debe acabar en victoria').toBe(true);
+  }, 30000);
+
+  it('una partida perdida se cierra en vez de dar pistas inútiles', () => {
+    let s = deal(3, seededRng(11));
+    for (let i = 0; i < 200; i++) {
+      // Presupuesto recortado: aquí se comprueba que la partida DESEMBOCA en
+      // algo, no cuánto alcanza a explorar el solver.
+      const a = findBestMove(s, 8000, 200);
+      if (!a.move) {
+        expect(a.verdict).toBe('lost');
+        return;
+      }
+      const mv = a.move;
+      const next = mv === 'draw' ? draw(s) : move(s, mv.from, mv.to, mv.count);
+      expect(next).not.toBeNull();
+      s = next!;
+      if (isWin(s)) return;
+    }
+    throw new Error('las pistas no llevaron a ningún desenlace en 200 jugadas');
+  }, 60000);
 });

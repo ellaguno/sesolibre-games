@@ -5,9 +5,9 @@ import type { ScoreEntry } from '../core/ScoreService';
 import { useT } from '../core/i18n';
 import { bestLabel } from './bestLabel';
 
-// PNG transparente opcional del juego (figura/ilustración). Si no existe, se
-// oculta (onError) sin romper nada. Ruta: public/art/<id>.png
-const artUrl = (id: string) => `${import.meta.env.BASE_URL}art/${id}.png`;
+// Figura WebP transparente del juego (ilustración). Si no existe, se
+// oculta (onError) sin romper nada. Ruta: public/art/<id>.webp
+const artUrl = (id: string) => `${import.meta.env.BASE_URL}art/${id}.webp`;
 
 export default function GameTile({
   game,

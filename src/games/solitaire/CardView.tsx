@@ -46,7 +46,11 @@ export default function CardView({ card, back = 'classic', selected, placeholder
             src={b.img}
             alt=""
             draggable={false}
-            className="pointer-events-none absolute inset-0 m-auto h-[62%] max-w-[72%] select-none object-contain drop-shadow"
+            className={`pointer-events-none absolute inset-0 m-auto select-none object-contain ${
+              b.fullBleed
+                ? 'h-[98%] max-w-[92%] [filter:drop-shadow(0_0.06em_0.06em_rgba(0,0,0,0.55))]'
+                : 'h-[62%] max-w-[72%] drop-shadow'
+            }`}
           />
         )}
       </div>

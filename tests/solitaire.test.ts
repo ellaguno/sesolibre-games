@@ -11,10 +11,10 @@ import {
   autoToFoundation,
   autoDestination,
   hasAnyMove,
-  findHint,
   type Card,
   type GameState,
 } from '../src/games/solitaire/logic';
+import { findBestMove } from '../src/games/solitaire/solver';
 
 function seededRng(seed: number) {
   let a = seed >>> 0;
@@ -275,7 +275,13 @@ describe('solitaire hasAnyMove', () => {
   });
 });
 
-describe('solitaire findHint', () => {
+describe('solitaire findBestMove (pista)', () => {
+  // Las posiciones de abajo son fragmentos con mazo incompleto, así que el
+  // solver demuestra enseguida que no se pueden ganar y (por diseño) deja de
+  // dar pista. Para probar el ORDEN de preferencia de las jugadas hay que
+  // forzar el camino heurístico con un presupuesto mínimo de búsqueda.
+  const heuristic = (s: GameState) => findBestMove(s, 1);
+
   it('prioriza subir a una base (As del descarte)', () => {
     const s: GameState = {
       stock: [],
@@ -285,7 +291,11 @@ describe('solitaire findHint', () => {
       drawCount: 1,
       moves: 0,
     };
-    expect(findHint(s)).toEqual({ from: { type: 'waste', index: 0 }, count: 1 });
+    expect(findBestMove(s).move).toEqual({
+      from: { type: 'waste', index: 0 },
+      to: { type: 'foundation', index: 0 },
+      count: 1,
+    });
   });
 
   it('señala la secuencia completa que puede cambiar de columna', () => {
@@ -293,7 +303,8 @@ describe('solitaire findHint', () => {
       stock: [],
       waste: [],
       foundations: [[], [], [], []],
-      // 8♥-7♠ (secuencia válida) puede ir sobre 9♠ de la otra columna
+      // 8♥-7♠ (secuencia válida) puede ir sobre 9♠ de la otra columna, lo que
+      // además destapa la carta boca abajo que hay debajo.
       tableau: [
         [card('clubs', 12, false), card('hearts', 8), card('spades', 7)],
         [card('spades', 9)],
@@ -306,19 +317,58 @@ describe('solitaire findHint', () => {
       drawCount: 1,
       moves: 0,
     };
-    expect(findHint(s)).toEqual({ from: { type: 'tableau', index: 0 }, count: 2 });
+    expect(heuristic(s).move).toEqual({
+      from: { type: 'tableau', index: 0 },
+      to: { type: 'tableau', index: 1 },
+      count: 2,
+    });
   });
 
-  it('ignora mover un Rey solo a columna vacía (jugada nula)', () => {
+  it('prefiere destapar una carta antes que un movimiento lateral', () => {
     const s: GameState = {
       stock: [],
       waste: [],
       foundations: [[], [], [], []],
-      tableau: [[card('hearts', 13)], [], [], [], [], [], []],
+      tableau: [
+        // 9♥ sobre una tapada: moverlo al 10♠ destapa. Es lo productivo.
+        [card('clubs', 4, false), card('hearts', 9)],
+        [card('spades', 10)],
+        // 5♦ suelto que puede saltar entre dos negros sin aportar nada.
+        [card('diamonds', 5)],
+        [card('clubs', 6)],
+        [card('spades', 6)],
+        [],
+        [],
+      ],
       drawCount: 1,
       moves: 0,
     };
-    expect(findHint(s)).toBeNull();
+    const mv = heuristic(s).move;
+    expect(mv).not.toBe('draw');
+    expect(mv && mv !== 'draw' && mv.from).toEqual({ type: 'tableau', index: 0 });
+  });
+
+  it('no da pista y declara perdida la posición de solo barajeos estériles', () => {
+    // El caso reportado: un 9 que solo puede ir y venir entre dos dieces.
+    const s: GameState = {
+      stock: [],
+      waste: [],
+      foundations: [[], [], [], []],
+      tableau: [
+        [card('clubs', 10)],
+        [card('hearts', 9)],
+        [card('spades', 10)],
+        [],
+        [],
+        [],
+        [],
+      ],
+      drawCount: 1,
+      moves: 0,
+    };
+    const advice = findBestMove(s);
+    expect(advice.verdict).toBe('lost');
+    expect(advice.move).toBeUndefined();
   });
 
   it("sugiere robar ('draw') si la única jugada está en el mazo", () => {
@@ -330,10 +380,10 @@ describe('solitaire findHint', () => {
       drawCount: 1,
       moves: 0,
     };
-    expect(findHint(s)).toBe('draw');
+    expect(heuristic(s).move).toBe('draw');
   });
 
-  it('devuelve null cuando no hay ninguna jugada', () => {
+  it('sin ninguna jugada, declara perdida sin sugerir nada', () => {
     const s: GameState = {
       stock: [],
       waste: [],
@@ -342,6 +392,31 @@ describe('solitaire findHint', () => {
       drawCount: 1,
       moves: 0,
     };
-    expect(findHint(s)).toBeNull();
+    const advice = findBestMove(s);
+    expect(advice.verdict).toBe('lost');
+    expect(advice.move).toBeUndefined();
+  });
+
+  it('la pista lleva a ganar cuando la victoria está demostrada', () => {
+    // Una sola carta por colocar: la pista debe ser precisamente esa.
+    const s: GameState = {
+      stock: [],
+      waste: [],
+      foundations: [
+        Array.from({ length: 13 }, (_, i) => card('spades', i + 1)),
+        Array.from({ length: 13 }, (_, i) => card('hearts', i + 1)),
+        Array.from({ length: 13 }, (_, i) => card('diamonds', i + 1)),
+        Array.from({ length: 12 }, (_, i) => card('clubs', i + 1)),
+      ],
+      tableau: [[card('clubs', 13)], [], [], [], [], [], []],
+      drawCount: 1,
+      moves: 0,
+    };
+    const advice = findBestMove(s);
+    expect(advice.move).toEqual({
+      from: { type: 'tableau', index: 0 },
+      to: { type: 'foundation', index: 3 },
+      count: 1,
+    });
   });
 });

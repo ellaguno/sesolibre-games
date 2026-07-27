@@ -1,9 +1,12 @@
 import type { CSSProperties, PointerEvent } from 'react';
 import { figureTypes, type FigureType } from './figures';
+import type { Cell, Power } from './board';
 
 interface Props {
-  type: string | null;
+  gem: Cell;
   figureType: FigureType;
+  /** Premio que acaba de estallar en esta celda (dibuja la onda expansiva). */
+  blast?: Power | null;
   isDestroying: boolean;
   isSelected: boolean;
   isNew: boolean;
@@ -16,12 +19,20 @@ interface Props {
   onPointerUp: (e: PointerEvent<HTMLDivElement>) => void;
 }
 
+// Color de cada premio (los keyframes viven en figures.css).
+const FX_CLASS: Record<Power, string> = {
+  line: 'fx-line',
+  bomb: 'fx-bomb',
+  nuke: 'fx-nuke',
+};
+
 // Celda del tablero (presentacional). El arrastre lo coordina el padre, que le
 // pasa un `offset` para que la ficha siga al dedo y `noTransition` para que el
 // movimiento sea inmediato durante el arrastre (y con transición al soltar).
 export default function Gem({
-  type,
+  gem,
   figureType,
+  blast,
   isDestroying,
   isSelected,
   isNew,
@@ -46,25 +57,46 @@ export default function Gem({
   }
   if (noTransition) style.transition = 'none';
 
+  const src = gem && figureTypes[figureType][gem.t];
+
   return (
     <div
       className={`relative aspect-square cursor-pointer select-none touch-none ${
         isSelected ? 'z-10 scale-110' : ''
-      } transition-transform duration-200 ${animationClass}`}
+      } ${gem?.p ? 'z-[5]' : ''} transition-transform duration-200 ${animationClass}`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       style={style}
     >
-      {type && figureTypes[figureType][type] && (
-        <img
-          src={figureTypes[figureType][type]}
-          alt={type}
-          draggable={false}
-          className={`pointer-events-none h-full w-full object-contain ${
-            isDestroying ? 'animate-destruction' : ''
-          } ${isSelected ? 'rounded-lg ring-2 ring-brand' : ''}`}
+      {/* Aura del premio, por detrás de la figura. */}
+      {gem?.p && (
+        <span
+          className={`pointer-events-none gem-power ${FX_CLASS[gem.p]} ${
+            gem.p === 'nuke' ? 'gem-power-nuke' : ''
+          }`}
+          aria-hidden
         />
+      )}
+      {src && (
+        <img
+          src={src}
+          alt={gem!.t}
+          draggable={false}
+          className={`relative pointer-events-none h-full w-full object-contain ${
+            isDestroying ? 'animate-destruction' : ''
+          } ${gem?.p ? 'gem-power-img' : ''} ${isSelected ? 'rounded-lg ring-2 ring-brand' : ''}`}
+        />
+      )}
+      {/* El rayo marca además el eje que va a limpiar. */}
+      {gem?.p === 'line' && (
+        <span
+          className={`gem-power-beam ${gem.d === 'v' ? 'gem-power-beam-v' : ''}`}
+          aria-hidden
+        />
+      )}
+      {blast && (
+        <span className={`gem-blast z-10 ${FX_CLASS[blast]}`} aria-hidden />
       )}
       {isDestroying && (
         <span

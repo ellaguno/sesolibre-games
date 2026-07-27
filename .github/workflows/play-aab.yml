@@ -59,6 +59,11 @@ jobs:
       - name: Generar íconos del launcher (desde assets/ con @capacitor/assets)
         run: npx @capacitor/assets generate --android
 
+      # `cap add android` genera el proyecto con R8 desactivado, que es lo que
+      # Play Console reporta como "Optimización de las aplicaciones: Baja".
+      - name: Optimizar la compilación (AGP 9 + R8)
+        run: ./scripts/android-optimize.sh
+
       - name: Fijar versionCode (incremental) y versionName
         run: |
           VC="${{ github.run_number }}"
@@ -73,6 +78,24 @@ jobs:
           cd android
           chmod +x gradlew
           ./gradlew bundleRelease --no-daemon
+
+      # Si R8 corrió deja el mapping de ofuscación; si no, el AAB saldría sin
+      # optimizar y Play volvería a marcar la app. Mejor fallar aquí.
+      - name: Verificar que R8 se aplicó
+        run: |
+          MAP=android/app/build/outputs/mapping/release/mapping.txt
+          if [ ! -s "$MAP" ]; then
+            echo "::error::R8 no generó mapping.txt: el AAB no está optimizado"
+            exit 1
+          fi
+          echo "R8 OK — $(wc -l < "$MAP") líneas de mapping"
+
+      - name: Publicar el mapping de ofuscación (para descifrar los fallos)
+        uses: actions/upload-artifact@v4
+        with:
+          name: mapping-release
+          path: android/app/build/outputs/mapping/release/mapping.txt
+          if-no-files-found: warn
 
       - name: Firmar AAB con la upload key (si hay secrets)
         env:

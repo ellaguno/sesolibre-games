@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import './figures.css';
-import logo from './assets/gemas3.png';
+import logo from './assets/gemas3.webp';
 import Gem from './Gem';
 import { FIGURE_SET_OPTIONS, type FigureType } from './figures';
 import {
@@ -11,11 +11,15 @@ import {
   swap,
   findMatches,
   removeMatches,
+  placePrizes,
+  resolveStep,
   fillEmptySpaces,
   hasValidMove,
   reshuffle,
   type Board,
+  type Detonation,
   type Pos,
+  type Power,
   type SpawnedCell,
 } from './board';
 import type { GameProps } from '../../core/registry';
@@ -28,6 +32,10 @@ import HelpButton from '../../ui/HelpButton';
 
 const MATCH_ANIM_MS = 500; // sincronizado con los keyframes
 const INVALID_REVERT_MS = 350;
+// Puntos extra por ganar un premio y por hacerlo estallar (además de contar
+// cada ficha eliminada, que ya recompensa la explosión en sí).
+const PRIZE_BONUS = 10;
+const BLAST_BONUS = 15;
 
 interface DragState {
   row: number;
@@ -47,9 +55,11 @@ interface Config {
   figureType: FigureType;
 }
 
-// Partida guardada (continuar al volver).
+// Partida guardada (continuar al volver). v2: las celdas pasaron de ser el
+// nombre de la figura a un objeto {t, p} que puede llevar premio, así que los
+// guardados v1 ya no se pueden leer (el hook los descarta solo).
 interface FiguresSave {
-  v: 1;
+  v: 2;
   board: Board;
   score: number;
   movesLeft: number;
@@ -62,6 +72,7 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
   const [selected, setSelected] = useState<Pos | null>(null);
   const [score, setScore] = useState(0);
   const [destroyingGems, setDestroyingGems] = useState<Pos[]>([]);
+  const [blasts, setBlasts] = useState<Detonation[]>([]);
   const [newGems, setNewGems] = useState<SpawnedCell[]>([]);
   const [movesLeft, setMovesLeft] = useState(TOTAL_MOVES);
   const [gameOver, setGameOver] = useState(false);
@@ -88,11 +99,11 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
   // las cascadas (isProcessing) no se guarda: el tablero está a medio resolver.
   useGameSave<FiguresSave>(
     'figures',
-    1,
+    2,
     () => {
       if (gameOver) return null;
       if (showConfig || isProcessing || board.length === 0) return undefined;
-      return { v: 1, board, score, movesLeft, config };
+      return { v: 2, board, score, movesLeft, config };
     },
     (s) => {
       setConfig(s.config);
@@ -136,12 +147,14 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
     }
   }, [best, onScore]);
 
-  // Resuelve todas las reacciones en cadena de un movimiento.
+  // Resuelve todas las reacciones en cadena de un movimiento. `origin` es la
+  // celda que el jugador acaba de mover: si su jugada gana un premio, el premio
+  // nace justo ahí (solo aplica al primer paso, no a las cascadas siguientes).
   const resolve = useCallback(
-    (currentBoard: Board) => {
-      const matches = findMatches(currentBoard);
+    (currentBoard: Board, origin?: Pos) => {
+      const step = resolveStep(currentBoard, origin);
 
-      if (matches.length === 0) {
+      if (!step) {
         if (config.limitedMoves && movesLeftRef.current <= 0) {
           finishGame();
           return;
@@ -155,15 +168,22 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
         return;
       }
 
-      setDestroyingGems(matches);
+      setDestroyingGems(step.cleared);
+      setBlasts(step.detonations);
       playSound();
+      if (step.detonations.length > 0) AudioService.play('reward');
       setTimeout(() => {
-        const cleared = removeMatches(currentBoard, matches);
-        scoreRef.current += matches.length;
+        const cleared = removeMatches(currentBoard, step.cleared);
+        const withPrizes = placePrizes(cleared, step.prizes);
+        scoreRef.current +=
+          step.cleared.length +
+          step.prizes.length * PRIZE_BONUS +
+          step.detonations.length * BLAST_BONUS;
         setScore(scoreRef.current);
         setDestroyingGems([]);
+        setBlasts([]);
         const { board: filled, newGems: spawned } = fillEmptySpaces(
-          cleared,
+          withPrizes,
           config.verticalMovement,
           config.figureType,
         );
@@ -199,7 +219,8 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
         setMovesLeft(movesLeftRef.current);
       }
       setBoard(swapped);
-      resolve(swapped);
+      // `b` es donde acaba la ficha que el jugador arrastró: ahí nace el premio.
+      resolve(swapped, b);
     },
     [board, config.limitedMoves, resolve],
   );
@@ -299,6 +320,10 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
 
   const outOfMoves = config.limitedMoves && movesLeft <= 0;
 
+  // Premio que está estallando en esta celda (para la onda expansiva).
+  const blastAt = (row: number, col: number): Power | null =>
+    blasts.find((b) => b.at.row === row && b.at.col === col)?.power ?? null;
+
   return (
     <main className="mx-auto flex min-h-full w-full max-w-md flex-col items-center px-3 py-4">
       <div className="mb-3 w-full">
@@ -350,7 +375,8 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
                 row.map((gem, colIndex) => (
                   <Gem
                     key={`${rowIndex}-${colIndex}`}
-                    type={gem}
+                    gem={gem}
+                    blast={blastAt(rowIndex, colIndex)}
                     figureType={config.figureType}
                     vertical={config.verticalMovement}
                     offset={gemOffset(rowIndex, colIndex)}

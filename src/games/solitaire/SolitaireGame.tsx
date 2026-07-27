@@ -16,13 +16,20 @@ import {
   isValidRun,
   isWin,
   hasAnyMove,
-  findHint,
   type Card,
   type GameState,
   type Location,
   type PileType,
 } from './logic';
-import { analyzeWinnable, looksStuck, type Verdict } from './solver';
+import {
+  analyzeWinnable,
+  findBestMove,
+  looksStuck,
+  type Advice,
+  type Suggestion,
+  type Verdict,
+} from './solver';
+import type { SolverRequest, SolverResponse } from './solverWorker';
 import CardView from './CardView';
 import type { GameProps } from '../../core/registry';
 import { AudioService } from '../../core/AudioService';
@@ -71,6 +78,25 @@ interface SolitaireSave {
 }
 const SAVE_HISTORY = 20;
 
+/** Huella del tablero, para saber si el jugador siguió la jugada aconsejada. */
+const stateSig = (s: GameState): string =>
+  s.tableau.map((p) => p.map((c) => (c.faceUp ? '' : '#') + c.id).join(',')).join('|') +
+  '#' +
+  s.foundations.map((f) => f.length).join('.') +
+  '#' +
+  s.waste.map((c) => c.id).join(',') +
+  '#' +
+  s.stock.length;
+
+/** Crea un worker del solver, o null si el entorno no los soporta. */
+function spawnSolver(): Worker | null {
+  try {
+    return new Worker(new URL('./solverWorker.ts', import.meta.url), { type: 'module' });
+  } catch {
+    return null;
+  }
+}
+
 export default function SolitaireGame({ onScore, onExit }: GameProps) {
   const t = useT();
   const back = useRewards((s) => s.cardBack);
@@ -90,29 +116,119 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
   const dragRef = useRef<Drag | null>(null);
   const submittedRef = useRef(false);
   const workerRef = useRef<Worker | null>(null);
+  const adviceWorkerRef = useRef<Worker | null>(null);
   const solveSeq = useRef(0);
-  // Pista: id de la carta a resaltar con una sacudida ('__stock__' = el mazo).
+  const adviceSeq = useRef(0);
+  // Pista: id de la carta a resaltar con una sacudida ('__stock__' = el mazo) y
+  // la pila destino, para que se vea de dónde a dónde va la jugada.
   const [hintId, setHintId] = useState<string | null>(null);
+  const [hintTo, setHintTo] = useState<Location | null>(null);
+  // La pista se calcula en un worker: mientras tanto el botón se ve ocupado.
+  const [hintBusy, setHintBusy] = useState(false);
+  // Aviso "no hay jugada útil" (solo quedan barajeos que no llevan a ningún
+  // sitio); se muestra un momento bajo el tablero.
+  const [hintNote, setHintNote] = useState<string | null>(null);
   const hintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const noteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Plan en curso: lo que queda de la línea ganadora que encontró el solver.
+  // Comprometerse con un plan es justo lo que impide que las pistas vayan
+  // saltando de una línea ganadora a otra sin avanzar nunca.
+  const hintLine = useRef<Suggestion[]>([]);
+  const prevGame = useRef<GameState | null>(null);
+  // El tablero actual, para descartar respuestas del worker que ya no aplican.
+  const gameRef = useRef(game);
+  gameRef.current = game;
 
-  const showHint = () => {
-    const h = findHint(game);
-    if (!h) return;
-    let id: string;
-    if (h === 'draw') id = '__stock__';
-    else if (h.from.type === 'waste') id = game.waste[game.waste.length - 1].id;
-    else {
-      const pile = game.tableau[h.from.index];
-      id = pile[pile.length - h.count].id;
-    }
-    // Reiniciar la animación aunque la pista sea la misma carta.
+  const clearHint = useCallback(() => {
     setHintId(null);
-    requestAnimationFrame(() => setHintId(id));
-    if (hintTimer.current) clearTimeout(hintTimer.current);
-    hintTimer.current = setTimeout(() => setHintId(null), 1700);
-    AudioService.play('click');
-  };
-  useEffect(() => () => void (hintTimer.current && clearTimeout(hintTimer.current)), []);
+    setHintTo(null);
+  }, []);
+
+  // Pinta la jugada aconsejada: sacude la carta de origen y marca el destino.
+  const applyAdvice = useCallback(
+    (advice: Advice, forState: GameState) => {
+      if (advice.verdict === 'lost' || !advice.move) {
+        // Probado que ya no se puede ganar: cerrar la partida en vez de
+        // sugerir un movimiento que no lleva a ninguna parte.
+        if (advice.verdict === 'lost') {
+          setDead(true);
+          setEndHidden(false);
+        }
+        return;
+      }
+      // Guardar el plan completo: las siguientes pistas salen de aquí.
+      if (advice.line && advice.line.length > 0) hintLine.current = [...advice.line];
+      const mv = advice.move;
+      let id: string;
+      if (mv === 'draw') id = '__stock__';
+      else if (mv.from.type === 'waste') id = forState.waste[forState.waste.length - 1].id;
+      else if (mv.from.type === 'foundation') {
+        const f = forState.foundations[mv.from.index];
+        id = f[f.length - 1].id;
+      } else {
+        const pile = forState.tableau[mv.from.index];
+        id = pile[pile.length - mv.count].id;
+      }
+      // Reiniciar la animación aunque la pista sea la misma carta.
+      clearHint();
+      requestAnimationFrame(() => {
+        setHintId(id);
+        setHintTo(mv === 'draw' ? null : mv.to);
+      });
+      if (hintTimer.current) clearTimeout(hintTimer.current);
+      hintTimer.current = setTimeout(clearHint, 2600);
+      if (advice.sterile) {
+        setHintNote(t('sol.hintSterile'));
+        if (noteTimer.current) clearTimeout(noteTimer.current);
+        noteTimer.current = setTimeout(() => setHintNote(null), 3200);
+      }
+      AudioService.play('click');
+    },
+    [clearHint, t],
+  );
+
+  const showHint = useCallback(() => {
+    if (hintBusy) return;
+    setHintNote(null);
+    // Si ya hay un plan en marcha, la siguiente jugada sale al instante y sin
+    // volver a buscar: es la continuación de una victoria ya demostrada.
+    if (hintLine.current.length > 0) {
+      applyAdvice({ verdict: 'win', move: hintLine.current[0] }, game);
+      return;
+    }
+    const seq = ++adviceSeq.current;
+    const forState = game;
+    // Se crea a la primera pista y se reutiliza el resto de la partida.
+    const w = (adviceWorkerRef.current ??= spawnSolver());
+    if (!w) {
+      // Respaldo sin worker: corre en el hilo de la interfaz, así que el
+      // presupuesto es mucho más corto para no congelar el tablero.
+      applyAdvice(findBestMove(forState, 40000, 400), forState);
+      return;
+    }
+    setHintBusy(true);
+    const onMsg = (e: MessageEvent<SolverResponse>) => {
+      const res = e.data;
+      if (res.kind !== 'advice' || res.id !== seq) return;
+      w.removeEventListener('message', onMsg);
+      setHintBusy(false);
+      // Descartar si el tablero cambió mientras se calculaba: el consejo
+      // señalaría cartas que ya no están donde estaban.
+      if (seq === adviceSeq.current && gameRef.current === forState) {
+        applyAdvice(res.advice, forState);
+      }
+    };
+    w.addEventListener('message', onMsg);
+    w.postMessage({ id: seq, kind: 'advice', state: forState } satisfies SolverRequest);
+  }, [game, hintBusy, applyAdvice]);
+
+  useEffect(
+    () => () => {
+      if (hintTimer.current) clearTimeout(hintTimer.current);
+      if (noteTimer.current) clearTimeout(noteTimer.current);
+    },
+    [],
+  );
 
   // Conservar la partida al salir al menú o al perder el foco la app.
   useGameSave<SolitaireSave>(
@@ -136,6 +252,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
     setWon(false);
     setDead(false);
     setConfirmNew(false);
+    hintLine.current = [];
     submittedRef.current = false;
   }, []);
 
@@ -287,6 +404,10 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
     onPointerUp: endDrag,
   });
 
+  // ¿Es esta la pila destino de la pista? (para marcarla mientras se muestra)
+  const isHintTarget = (type: PileType, index: number) =>
+    !!hintTo && hintTo.type === type && hintTo.index === index;
+
   // ¿Esta carta es la que se está arrastrando? (para ocultar el origen)
   const isDragged = (type: PileType, index: number, ci?: number) =>
     !!drag &&
@@ -298,17 +419,39 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
   // Sin más jugadas posibles (y no es victoria): se acabó.
   const noMoves = useMemo(() => !won && !isWin(game) && !hasAnyMove(game), [won, game]);
 
-  // Solver de fondo: crea el worker una vez (con respaldo en el hilo principal).
+  // Solver: dos workers del mismo módulo (con respaldo en el hilo principal).
+  // Van separados a propósito — la vigilancia de fondo puede tardar segundos y
+  // un worker atiende los mensajes en orden, así que compartirlo dejaría la
+  // pista esperando detrás de un análisis largo. El de las pistas se crea solo
+  // cuando se pide la primera, para no cargar un contexto de más a quien nunca
+  // usa el botón.
   useEffect(() => {
-    try {
-      workerRef.current = new Worker(new URL('./solverWorker.ts', import.meta.url), {
-        type: 'module',
-      });
-    } catch {
+    workerRef.current = spawnSolver();
+    return () => {
+      workerRef.current?.terminate();
+      adviceWorkerRef.current?.terminate();
       workerRef.current = null;
-    }
-    return () => workerRef.current?.terminate();
+      adviceWorkerRef.current = null;
+    };
   }, []);
+
+  // La pista deja de valer en cuanto cambia el tablero. Además, aquí se lleva
+  // el plan al día: si el jugador hizo justo la jugada aconsejada, se avanza al
+  // siguiente paso; si se salió del plan, el plan se descarta y la próxima
+  // pista volverá a buscar desde la posición nueva.
+  useEffect(() => {
+    const prev = prevGame.current;
+    prevGame.current = game;
+    const line = hintLine.current;
+    if (prev && prev !== game && line.length > 0) {
+      const mv = line[0];
+      const applied = mv === 'draw' ? draw(prev) : move(prev, mv.from, mv.to, mv.count);
+      if (applied && applied !== prev && stateSig(applied) === stateSig(game)) line.shift();
+      else hintLine.current = [];
+    }
+    clearHint();
+    setHintNote(null);
+  }, [game, clearHint]);
 
   // Cuando la posición parece atascada, pregunta al solver si aún se puede ganar.
   // Solo marca "sin solución" si lo PRUEBA (veredicto 'lost'); nunca por sospecha.
@@ -322,12 +465,14 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
     const timer = setTimeout(() => {
       const w = workerRef.current;
       if (w) {
-        const onMsg = (e: MessageEvent<Verdict>) => {
+        const onMsg = (e: MessageEvent<SolverResponse>) => {
+          const res = e.data;
+          if (res.kind !== 'analyze' || res.id !== seq) return;
           w.removeEventListener('message', onMsg);
-          handle(e.data);
+          handle(res.verdict);
         };
         w.addEventListener('message', onMsg);
-        w.postMessage(game);
+        w.postMessage({ id: seq, kind: 'analyze', state: game } satisfies SolverRequest);
       } else {
         handle(analyzeWinnable(game)); // respaldo síncrono (rápido en posiciones atascadas)
       }
@@ -468,7 +613,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
                 key={i}
                 data-drop={`foundation:${i}`}
                 style={{ width: 'var(--cw)', height: 'var(--ch)', opacity: isDragged('foundation', i) ? 0 : 1 }}
-                className="touch-none"
+                className={`touch-none ${isHintTarget('foundation', i) ? 'hint-target' : ''}`}
                 {...(f.length > 0
                   ? cardHandlers({ type: 'foundation', index: i }, 1, [f[f.length - 1]])
                   : {})}
@@ -490,7 +635,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
               <div
                 key={p}
                 data-drop={`tableau:${p}`}
-                className="relative touch-none"
+                className={`relative touch-none ${isHintTarget('tableau', p) ? 'hint-target' : ''}`}
                 style={{ width: 'var(--cw)', height: colHeight }}
               >
                 {pile.length === 0 ? (
@@ -593,6 +738,10 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
         )}
       </div>
 
+      {hintNote && (
+        <p className="mt-2 text-center text-xs text-app-muted">{hintNote}</p>
+      )}
+
       {/* Controles inferiores: solo iconos (el texto desbordaba en español y
           provocaba scroll vertical). El nombre va en aria-label/title. */}
       <div className="mt-auto flex justify-center gap-2 pt-3">
@@ -634,11 +783,15 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
         </button>
         <button
           onClick={showHint}
+          disabled={hintBusy}
           aria-label={t('sol.hint')}
+          aria-busy={hintBusy}
           title={t('sol.hint')}
-          className="rounded-lg bg-app-surface/80 px-4 py-2 text-lg leading-none backdrop-blur hover:bg-app-surface2"
+          className="rounded-lg bg-app-surface/80 px-4 py-2 text-lg leading-none backdrop-blur hover:bg-app-surface2 disabled:opacity-60"
         >
-          💡
+          <span className={hintBusy ? 'inline-block animate-pulse' : undefined}>
+            {hintBusy ? '⏳' : '💡'}
+          </span>
         </button>
         <HelpButton
           title={t('game.solitaire.title')}
