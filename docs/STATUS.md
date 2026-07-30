@@ -25,7 +25,9 @@ i18n propio es/en con autodetección por SO. 78 tests (Vitest). CI: GitHub Actio
 5. **Solitario** — Klondike 1/3 (default 3), drag&drop animado, toque=auto-ubicar,
    descarte en abanico, reversos de carta canjeables con monedas.
 6. **Bloques** — Tetris con gemas de cristal translúcidas; opción de figura de
-   Figures dentro de cada gema.
+   Figures dentro de cada gema. **Gestos sobre el pozo** (arrastrar = mover,
+   tocar = girar, arrastrar abajo = bajar, deslizar rápido = soltar), además de
+   los botones y el teclado.
 7. **Ajedrez** — reglas completas (validadas con perft), 2 jugadores y **vs IA**
    con niveles (Fácil/Medio/Difícil, negamax+alfa-beta+quiescencia en Web Worker).
    Tablero a todo el ancho, **reloj** (Sin/3+2/5m/10m) y **vista 3D** (CSS) opcional.
@@ -35,6 +37,10 @@ i18n propio es/en con autodetección por SO. 78 tests (Vitest). CI: GitHub Actio
   día" (rota), tarjetas con fondo + figura PNG + acento + tagline + mejor marca.
 - **Récords** por juego (ScoreService) · **Recompensas**: moneda, recompensa diaria
   con racha, logros, tienda de reversos · **Ajustes**: tema, sonido, animaciones, idioma.
+- **Google Play Juegos** (Android): envío de puntuaciones y ranking global de
+  jugadores dentro de la pantalla de Récords, con plugin propio
+  (`plugins/capacitor-play-games/`). Falta crear el proyecto y las tablas en Play
+  Console y pegar los ids — ver `docs/PLAY-GAMES.md`.
 - **Animaciones**: motor de partículas propio (confeti/fuego/celebración) + CSS;
   respeta `prefers-reduced-motion` y el ajuste de animaciones.
 

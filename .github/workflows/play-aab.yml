@@ -56,6 +56,9 @@ jobs:
           grep -E "compileSdkVersion = 36|targetSdkVersion = 36" android/variables.gradle
           grep -q "targetSdkVersion = 36" android/variables.gradle
 
+      - name: Configurar Google Play Juegos (id del proyecto)
+        run: ./scripts/android-play-games.sh
+
       - name: Generar íconos del launcher (desde assets/ con @capacitor/assets)
         run: npx @capacitor/assets generate --android
 

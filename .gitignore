@@ -37,3 +37,7 @@ GoogleService-Info.plist
 
 # Test / coverage
 coverage/
+
+# Salida de Gradle del plugin nativo (plugins/*/android)
+plugins/*/android/build/
+plugins/*/android/.gradle/

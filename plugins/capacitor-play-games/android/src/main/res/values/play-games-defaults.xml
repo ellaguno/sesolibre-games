@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Valor por defecto (sin configurar). La app lo sobrescribe con el id
+         real del proyecto de Play Juegos en res/values/games-ids.xml. -->
+    <string name="game_services_project_id" translatable="false">0</string>
+</resources>

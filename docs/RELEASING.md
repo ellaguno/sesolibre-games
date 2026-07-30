@@ -58,6 +58,10 @@ run (se descarga desde la pestaña Actions; no se publica como Release).
 - `versionCode` = número de run (incremental, requisito de Play).
 - `versionName` = `version` de `package.json`.
 - Local (sin firmar): `npm run android:aab`.
+- **Play Juegos**: el workflow también instala el id del proyecto de Play Juegos
+  (`native/android/games-ids.xml`). Para que el ranking global funcione hay que
+  dar de alta en Play Console la SHA-1 de la clave de firma — ver
+  [PLAY-GAMES.md](./PLAY-GAMES.md).
 
 ### 1) Crear la upload key (una sola vez, guárdala MUY bien)
 

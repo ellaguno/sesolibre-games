@@ -39,4 +39,4 @@ npx cap open android  # abrir en Android Studio
 
 ## Documentación
 
-Ver [`docs/`](./docs): [PLAN](./docs/PLAN.md) · [ARCHITECTURE](./docs/ARCHITECTURE.md) · [ROADMAP](./docs/ROADMAP.md)
+Ver [`docs/`](./docs): [PLAN](./docs/PLAN.md) · [ARCHITECTURE](./docs/ARCHITECTURE.md) · [ROADMAP](./docs/ROADMAP.md) · [PLAY-GAMES](./docs/PLAY-GAMES.md)

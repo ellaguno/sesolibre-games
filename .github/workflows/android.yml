@@ -45,6 +45,9 @@ jobs:
           sed -i 's/android:launchMode="singleTask"/android:launchMode="singleTask"\n            android:screenOrientation="portrait"/' android/app/src/main/AndroidManifest.xml
           grep -n "screenOrientation" android/app/src/main/AndroidManifest.xml
 
+      - name: Configurar Google Play Juegos (id del proyecto)
+        run: ./scripts/android-play-games.sh
+
       - name: Generar íconos del launcher (desde assets/ con @capacitor/assets)
         run: npx @capacitor/assets generate --android
 

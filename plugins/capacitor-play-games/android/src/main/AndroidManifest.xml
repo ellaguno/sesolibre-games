@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application>
+        <!-- Identificador del proyecto de Play Juegos. El valor real lo aporta
+             la app en res/values/games-ids.xml (ver native/android/ en el repo);
+             aquí solo hay un marcador para que la app compile sin configurar. -->
+        <meta-data
+            android:name="com.google.android.gms.games.APP_ID"
+            android:value="@string/game_services_project_id" />
+
+        <!-- El SDK trae un ContentProvider que se inicializa solo al arrancar la
+             app. Se quita a propósito: si el APP_ID no está configurado, esa
+             inicialización automática falla en el arranque. El plugin llama a
+             PlayGamesSdk.initialize() a mano y solo cuando hay un id válido. -->
+        <provider
+            android:name="com.google.android.gms.games.provider.PlayGamesInitProvider"
+            android:authorities="${applicationId}.playgamesinitprovider"
+            tools:node="remove" />
+    </application>
+
+</manifest>

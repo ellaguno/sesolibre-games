@@ -1,6 +1,6 @@
 {
   "name": "sesolibre-games",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "description": "Colección de juegos casuales offline-first (web + Android/iOS vía Capacitor)",
@@ -15,13 +15,14 @@
     "cap:add": "cap add android",
     "cap:sync": "cap sync android",
     "assets:android": "capacitor-assets generate --android",
-    "android:apk": "npm run build && cap sync android && cd android && ./gradlew assembleDebug",
-    "android:aab": "npm run build && cap sync android && cd android && ./gradlew bundleRelease"
+    "android:apk": "npm run build && cap sync android && ./scripts/android-play-games.sh && cd android && ./gradlew assembleDebug",
+    "android:aab": "npm run build && cap sync android && ./scripts/android-play-games.sh && cd android && ./gradlew bundleRelease"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",
     "@capacitor/core": "^8.4.2",
     "@capacitor/preferences": "^8.0.1",
+    "@sesolibre/capacitor-play-games": "file:plugins/capacitor-play-games",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.2",

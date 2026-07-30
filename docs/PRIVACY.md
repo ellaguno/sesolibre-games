@@ -1,6 +1,6 @@
 # Política de Privacidad — SesoLibre Games
 
-**Última actualización:** 28 de mayo de 2026
+**Última actualización:** 29 de julio de 2026
 
 Esta Política de Privacidad describe cómo la aplicación **SesoLibre Games** (en
 adelante, "la app"), desarrollada por **SesoLibre Apps** (Eduardo Llaguno
@@ -12,6 +12,11 @@ Velasco), trata la información cuando la usas.
 app funciona completamente sin conexión. Todo lo que guardas (tu progreso y
 preferencias) permanece únicamente en tu dispositivo y nunca se envía a nosotros
 ni a terceros.
+
+**Única excepción, y solo si tú la activas:** en Android puedes conectarte a
+**Google Play Juegos** para participar en las tablas de clasificación. Es
+opcional, se desactiva por defecto y se explica en su propia sección más abajo.
+Nosotros seguimos sin recibir ni almacenar ningún dato tuyo.
 
 ## Qué información se guarda y dónde
 
@@ -32,10 +37,32 @@ ningún servidor** y no es accesible para el desarrollador.
 La app **no** recopila ni solicita:
 
 - Datos personales identificables (nombre, correo, teléfono, dirección).
-- Cuentas de usuario ni inicio de sesión.
+- Cuentas de usuario propias ni contraseñas (el inicio de sesión opcional de
+  Google Play Juegos lo gestiona Google; nosotros no recibimos credenciales).
 - Ubicación, contactos, cámara, micrófono, fotos o archivos.
 - Identificadores de publicidad (Advertising ID / GAID) ni de dispositivo.
 - Datos de uso, analítica o telemetría.
+
+## Google Play Juegos (opcional, solo en Android)
+
+La app puede conectarse a **Google Play Juegos** para llevar tablas de
+clasificación entre jugadores. Es **voluntario**: si no te conectas, nada de
+esto ocurre y sigues jugando con tus récords guardados en el dispositivo.
+
+Si decides conectarte:
+
+- Google te identifica con tu cuenta de Play Juegos. La app recibe de Google tu
+  **identificador de jugador**, tu **nombre visible** y tu **avatar** de Play
+  Juegos (no tu correo ni tu nombre real).
+- Al terminar una partida, la app envía a Google la **puntuación** de ese juego
+  para la tabla correspondiente.
+- Dentro de la pantalla de Récords se muestran el nombre visible, el avatar y la
+  puntuación de los jugadores mejor clasificados, tal como los devuelve Google.
+- Ese tratamiento se rige por la
+  [Política de Privacidad de Google](https://policies.google.com/privacy).
+  Nosotros no guardamos copia de esos datos: no tenemos servidores.
+- Puedes desconectarte o borrar tu perfil de juego desde la app de **Google Play
+  Juegos** (Ajustes → *Eliminar cuenta de Play Juegos y datos*).
 
 ## Anuncios y compras
 

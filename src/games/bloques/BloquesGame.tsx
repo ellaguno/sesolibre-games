@@ -17,6 +17,14 @@ import {
   type Board,
   type Piece,
 } from './logic';
+import {
+  begin as beginGesture,
+  update as updateGesture,
+  end as endGesture,
+  gestureConfig,
+  type GestureAction,
+  type GestureState,
+} from './gestures';
 import { figureTypes, FIGURE_SET_OPTIONS, type FigureType } from '../figures/figures';
 import type { GameProps } from '../../core/registry';
 import { AudioService } from '../../core/AudioService';
@@ -132,6 +140,20 @@ export default function BloquesGame({ onScore, onExit }: GameProps) {
     render();
   }, [lock, render]);
 
+  /**
+   * Baja una fila SIN fijar la pieza (para el arrastre táctil): así un
+   * deslizamiento rápido nunca fija la pieza a medio camino y luego suelta
+   * la siguiente. Fijarla sigue siendo cosa de la gravedad o de ⤓.
+   */
+  const stepDown = useCallback(() => {
+    const g = gRef.current;
+    if (g.over) return;
+    if (!collides(g.board, g.piece.m, g.piece.x, g.piece.y + 1)) {
+      g.piece = { ...g.piece, y: g.piece.y + 1 };
+      render();
+    }
+  }, [render]);
+
   const hardDrop = useCallback(() => {
     const g = gRef.current;
     if (g.over) return;
@@ -146,6 +168,68 @@ export default function BloquesGame({ onScore, onExit }: GameProps) {
     setEndHidden(false);
     render();
   }, [render]);
+
+  // ---- Gestos sobre el pozo ----
+  const wellRef = useRef<HTMLDivElement | null>(null);
+  const gesture = useRef<GestureState | null>(null);
+
+  const applyGestures = useCallback(
+    (actions: GestureAction[]) => {
+      for (const a of actions) {
+        if (a.type === 'move') move(a.dx);
+        else if (a.type === 'stepDown') stepDown();
+        else if (a.type === 'rotate') rotatePiece();
+        else if (a.type === 'hardDrop') hardDrop();
+      }
+    },
+    [move, stepDown, rotatePiece, hardDrop],
+  );
+
+  // Lado de celda en px (el tablero se dimensiona con vw/vh, así que se mide).
+  const cellPx = useCallback(() => {
+    const cell = wellRef.current?.firstElementChild?.getBoundingClientRect().width ?? 0;
+    if (cell > 0) return cell;
+    const w = wellRef.current?.getBoundingClientRect().width ?? 0;
+    return w > 0 ? w / COLS : 30;
+  }, []);
+
+  const onPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (gRef.current.over) return;
+      // Capturar el puntero mantiene el gesto vivo aunque el dedo salga del
+      // pozo (no existe en jsdom, de ahí la llamada opcional).
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+      gesture.current = beginGesture({ x: e.clientX, y: e.clientY, t: e.timeStamp });
+    },
+    [],
+  );
+
+  const onPointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const st = gesture.current;
+      if (!st) return;
+      const { state, actions } = updateGesture(
+        st,
+        { x: e.clientX, y: e.clientY, t: e.timeStamp },
+        gestureConfig(cellPx()),
+      );
+      gesture.current = state;
+      applyGestures(actions);
+    },
+    [applyGestures, cellPx],
+  );
+
+  const onPointerUp = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const st = gesture.current;
+      gesture.current = null;
+      if (!st) return;
+      applyGestures(
+        endGesture(st, { x: e.clientX, y: e.clientY, t: e.timeStamp }, gestureConfig(cellPx())),
+      );
+    },
+    [applyGestures, cellPx],
+  );
 
   // Bucle de gravedad
   useEffect(() => {
@@ -245,7 +329,12 @@ export default function BloquesGame({ onScore, onExit }: GameProps) {
 
       <div className="relative">
         <div
-          className="grid rounded-lg border-2 border-white/45 bg-black/40 p-1 shadow-[0_0_0_1px_rgba(0,0,0,0.55),0_0_12px_rgba(255,255,255,0.08)]"
+          ref={wellRef}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+          className="grid touch-none select-none rounded-lg border-2 border-white/45 bg-black/40 p-1 shadow-[0_0_0_1px_rgba(0,0,0,0.55),0_0_12px_rgba(255,255,255,0.08)]"
           style={{ gridTemplateColumns: `repeat(${COLS}, var(--bs))` }}
         >
           {view.flatMap((row, r) =>

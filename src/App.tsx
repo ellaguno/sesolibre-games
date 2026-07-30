@@ -8,16 +8,21 @@ import RewardsScreen from './hub/RewardsScreen';
 import SpritePreview from './hub/SpritePreview';
 import { useSettings } from './core/settings';
 import { useRewards } from './core/RewardService';
+import { usePlayGames } from './core/playGames/service';
 import ParticleOverlay from './anim/ParticleOverlay';
 import RouteTransition from './anim/RouteTransition';
 
 export default function App() {
   const hydrateSettings = useSettings((s) => s.hydrate);
   const hydrateRewards = useRewards((s) => s.hydrate);
+  // Sesión de Google Play Juegos: silenciosa y sin bloquear nada (en web y en
+  // dispositivos sin Play Juegos se queda en 'unavailable').
+  const hydratePlayGames = usePlayGames((s) => s.hydrate);
   useEffect(() => {
     void hydrateSettings();
     void hydrateRewards();
-  }, [hydrateSettings, hydrateRewards]);
+    void hydratePlayGames();
+  }, [hydrateSettings, hydrateRewards, hydratePlayGames]);
 
   return (
     <>

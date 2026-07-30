@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Identificador del proyecto de Google Play Juegos de la app.
+
+  Se copia a android/app/src/main/res/values/ con scripts/android-play-games.sh
+  (android/ no se versiona: lo regenera `npx cap add android` en cada build).
+
+  Dónde se saca: Play Console → Play Juegos → Configuración → "ID del proyecto"
+  (un número largo, p. ej. 123456789012). Mientras valga 0, el plugin deja el
+  ranking global apagado y la app funciona solo con los récords locales.
+
+  Los ids de cada tabla de clasificación (CgkI…) van en
+  src/core/playGames/config.ts. Guía completa en docs/PLAY-GAMES.md.
+-->
+<resources>
+    <string name="game_services_project_id" translatable="false">0</string>
+</resources>

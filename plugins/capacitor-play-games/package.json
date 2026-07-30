@@ -1,0 +1,28 @@
+{
+  "name": "@sesolibre/capacitor-play-games",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Puente nativo con Google Play Juegos (inicio de sesión, envío de puntuaciones y lectura de las tablas de clasificación).",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "license": "MIT",
+  "files": [
+    "android/src/main/",
+    "android/build.gradle",
+    "index.js",
+    "index.d.ts"
+  ],
+  "keywords": [
+    "capacitor",
+    "plugin",
+    "native"
+  ],
+  "capacitor": {
+    "android": {
+      "src": "android"
+    }
+  },
+  "peerDependencies": {
+    "@capacitor/core": ">=8.0.0"
+  }
+}
