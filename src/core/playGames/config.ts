@@ -13,13 +13,13 @@ import { games, type ScoreKind } from '../registry';
  *   - solitaire, ajedrez        → formato "Numérico", "menor es mejor"
  */
 export const LEADERBOARD_IDS: Record<string, string> = {
-  figures: '',
-  glotono: '',
-  minesweeper: '',
-  sudoku: '',
-  solitaire: '',
-  bloques: '',
-  ajedrez: '',
+  figures: 'CgkIoJP--6UCEAIQAA',
+  glotono: 'CgkIoJP--6UCEAIQAQ',
+  minesweeper: 'CgkIoJP--6UCEAIQAw',
+  sudoku: 'CgkIoJP--6UCEAIQBA',
+  solitaire: 'CgkIoJP--6UCEAIQBQ',
+  bloques: 'CgkIoJP--6UCEAIQAg',
+  ajedrez: 'CgkIoJP--6UCEAIQBg',
 };
 
 export function leaderboardId(gameId: string): string | null {

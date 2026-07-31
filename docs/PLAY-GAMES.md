@@ -12,8 +12,10 @@ Qué hay ya hecho en el repo y qué falta por hacer en Play Console:
 | Envío de puntuaciones al terminar una partida | ✅ `src/hub/GameHost.tsx` |
 | Ranking dentro de la pantalla de Récords | ✅ `src/hub/RecordsScreen.tsx` |
 | Configuración del proyecto en CI | ✅ `scripts/android-play-games.sh` |
-| **Proyecto de Play Juegos + tablas en Play Console** | ⛔ **manual (ver abajo)** |
-| **Pegar los ids en el repo** | ⛔ **manual (ver abajo)** |
+| Proyecto de Play Juegos + las 7 tablas | ✅ creados (borrador) |
+| Ids pegados en el repo | ✅ hecho |
+| **Credenciales OAuth (SHA-1)** | ⛔ **manual (ver abajo)** |
+| **Publicar el proyecto de Play Juegos** | ⛔ **manual (ver abajo)** |
 
 Mientras falten los dos últimos pasos la app funciona igual: el ranking global
 queda apagado y Récords muestra solo las marcas locales.
@@ -33,12 +35,15 @@ queda apagado y Récords muestra solo las marcas locales.
 
 ## 1) Crear el proyecto de Play Juegos
 
-En [Play Console](https://play.google.com/console) → tu app → **Crecimiento** →
-**Play Juegos** → *Configurar Play Juegos*:
+En [Play Console](https://play.google.com/console) → tu app → **Aumenta la
+cantidad de usuarios** → **Servicios de Play Games** → **Configuración y
+administración** → *Configuración*. (Ojo: no es *Configuración avanzada* → *Play
+Games Sidekick*, que es el overlay de Gemini y no tiene nada que ver.)
 
-1. Crea el proyecto de Play Juegos y **vincúlalo con la app**
-   (`com.sesolibre.sesolibregames`).
-2. Anota el **ID del proyecto** (un número largo, p. ej. `123456789012`).
+1. Crea el proyecto de Play Juegos vinculándolo a un **proyecto de Google
+   Cloud** — aquí se usó `sesolibre`. Un proyecto de Cloud solo se puede
+   vincular a un proyecto de PGS, y el vínculo no se deshace desde la Console.
+2. **ID del proyecto: `78911605152`** (ya está en `native/android/games-ids.xml`).
 3. **Credenciales**: crea una credencial de tipo *Android* y asóciale las
    huellas **SHA-1** de:
    - la **clave de firma de la app** (Play App Signing → *Firma de la app*), y
@@ -58,24 +63,35 @@ En [Play Console](https://play.google.com/console) → tu app → **Crecimiento*
 
 ## 2) Crear una tabla de clasificación por juego
 
-Play Juegos → **Clasificaciones** → *Crear clasificación*. Una por juego, con
-esta configuración (importante: el orden decide quién va primero):
+Servicios de Play Games → **Tablas de clasificación** → *Crear una tabla de
+clasificación*. Una por juego. **El formato y el orden no se pueden cambiar una
+vez publicada la tabla**; el nombre y el orden en la lista sí.
 
-| Juego | Formato | Orden |
-| --- | --- | --- |
-| Figures | Numérico | Mayor es mejor |
-| Glótono | Numérico | Mayor es mejor |
-| Bloques | Numérico | Mayor es mejor |
-| Buscaminas | Tiempo | **Menor es mejor** |
-| Sudoku | Tiempo | **Menor es mejor** |
-| Solitario (movimientos) | Numérico | **Menor es mejor** |
-| Ajedrez (jugadas) | Numérico | **Menor es mejor** |
+Las siete ya están creadas (en estado *Borrador*):
 
-> Las tablas de tipo **Tiempo** se miden en **milisegundos**; la app ya
+| Juego | Nombre en Console | Formato | Orden | Mín. | Id |
+| --- | --- | --- | --- | --- | --- |
+| Figures | Figures | Número | Más altas primero | — | `CgkIoJP--6UCEAIQAA` |
+| Glótono | Glotono | Número | Más altas primero | — | `CgkIoJP--6UCEAIQAQ` |
+| Bloques | Bloques | Número | Más altas primero | — | `CgkIoJP--6UCEAIQAg` |
+| Buscaminas | Buscaminas | Duración | **Más bajas primero** | 1 | `CgkIoJP--6UCEAIQAw` |
+| Sudoku | Sudoku | Duración | **Más bajas primero** | 1 | `CgkIoJP--6UCEAIQBA` |
+| Solitario | Solitario | Número | **Más bajas primero** | 1 | `CgkIoJP--6UCEAIQBQ` |
+| Ajedrez | Ajedrez | Número | **Más bajas primero** | 1 | `CgkIoJP--6UCEAIQBg` |
+
+> Las tablas de formato **Duración** se miden en **milisegundos**; la app ya
 > multiplica por 1000 los tiempos (que lleva en segundos). Ver
-> `toLeaderboardScore` en `src/core/playGames/config.ts`.
+> `toLeaderboardScore` en `src/core/playGames/config.ts`. La vista previa de
+> Console lo confirma: 123.450.000 se muestra como `34:17:30`.
 
-Copia el **id** de cada tabla (tienen la forma `CgkIxxxxxxxxxxx`).
+> La **puntuación mínima 1** en las tablas de "más bajas primero" evita que un
+> `0` accidental se clave como récord imborrable: en esas tablas 0 es el mejor
+> valor posible.
+
+> El campo *Nombre* **no acepta acentos** en el idioma predeterminado (en-US):
+> deshabilita el botón de guardar sin mostrar ningún error. Por eso Glótono está
+> como "Glotono"; la tilde se puede recuperar añadiendo la traducción al
+> español en *Traducciones*.
 
 ## 3) Pegar los ids en el repo
 

@@ -13,5 +13,5 @@
   src/core/playGames/config.ts. Guía completa en docs/PLAY-GAMES.md.
 -->
 <resources>
-    <string name="game_services_project_id" translatable="false">0</string>
+    <string name="game_services_project_id" translatable="false">78911605152</string>
 </resources>
