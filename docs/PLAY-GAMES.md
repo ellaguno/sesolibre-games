@@ -14,7 +14,7 @@ Qué hay ya hecho en el repo y qué falta por hacer en Play Console:
 | Configuración del proyecto en CI | ✅ `scripts/android-play-games.sh` |
 | Proyecto de Play Juegos + las 7 tablas | ✅ creados (borrador) |
 | Ids pegados en el repo | ✅ hecho |
-| **Credenciales OAuth (SHA-1)** | ⛔ **manual (ver abajo)** |
+| Credenciales OAuth (firma de Play + depuración) | ✅ creadas (borrador) |
 | **Publicar el proyecto de Play Juegos** | ⛔ **manual (ver abajo)** |
 
 Mientras falten los dos últimos pasos la app funciona igual: el ranking global
@@ -44,19 +44,30 @@ Games Sidekick*, que es el overlay de Gemini y no tiene nada que ver.)
    Cloud** — aquí se usó `sesolibre`. Un proyecto de Cloud solo se puede
    vincular a un proyecto de PGS, y el vínculo no se deshace desde la Console.
 2. **ID del proyecto: `78911605152`** (ya está en `native/android/games-ids.xml`).
-3. **Credenciales**: crea una credencial de tipo *Android* y asóciale las
-   huellas **SHA-1** de:
-   - la **clave de firma de la app** (Play App Signing → *Firma de la app*), y
-   - la **upload key** (`~/.sesolibre-keys/upload-keystore.jks`), para poder
-     probar con los AAB que subimos, y
-   - la clave de **depuración** (`~/.android/debug.keystore`, contraseña
-     `android`) si quieres probar el APK debug:
-     ```bash
-     keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey \
-       -storepass android -keypass android | grep SHA1
-     ```
-   Sin la SHA-1 correcta el inicio de sesión falla con `SIGN_IN_REQUIRED` /
-   `DEVELOPER_ERROR`.
+3. **Credenciales**: cada credencial es un cliente OAuth de tipo *Android*, y
+   cada cliente vale para **una sola** combinación de paquete + SHA-1. Como hay
+   varias claves en juego, hacen falta varias: se crea el cliente en Google
+   Cloud (*APIs y servicios → Credenciales*, proyecto `sesolibre`) y luego se
+   da de alta en Play Console → *Credenciales → Agregar credencial*.
+
+   Las huellas de este proyecto, todas visibles en Play Console →
+   *Protegido con Play → Protección de Play Store → Administrar la firma de
+   apps de Play*:
+
+   | Clave | SHA-1 | Registrada |
+   | --- | --- | --- |
+   | Firma de apps de Play | `D6:81:42:BB:28:6E:2D:0B:16:94:4A:53:05:61:FD:9F:7B:55:CD:96` | ✅ |
+   | Depuración | `39:8B:36:81:F8:DF:76:33:FD:D3:92:57:CD:B6:99:43:DC:92:B2:C3` | ✅ |
+   | Clave de carga | `BF:B4:66:34:58:5E:BA:AE:E3:98:22:7A:A6:B9:06:62:BD:85:F6:98` | ❌ |
+
+   La que **no** puede faltar es la de *Firma de apps de Play*: Google re-firma
+   el AAB, así que todo lo instalado desde Play —incluidas las pruebas internas
+   y cerradas— lleva esa clave, no la de carga ni la de depuración. Sin la
+   SHA-1 correcta el inicio de sesión falla con `SIGN_IN_REQUIRED` /
+   `DEVELOPER_ERROR`, y falla en silencio: la app arranca con normalidad.
+
+   La *antipiratería* se dejó desactivada: obliga a que la instalación venga de
+   Play y rompe las pruebas con APK local.
 4. **Testers**: en la pestaña de *Testers* de Play Juegos añade las cuentas que
    probarán antes de publicar. Mientras el proyecto esté sin publicar, solo esas
    cuentas pueden iniciar sesión.
