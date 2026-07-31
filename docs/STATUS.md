@@ -1,6 +1,6 @@
 # Estado del proyecto — dónde nos quedamos
 
-_Última actualización: 2026-05-26 · versión 0.2.0_
+_Última actualización: 2026-07-31 · versión 1.2.1_
 
 ## En vivo
 - **Web (PWA):** https://ellaguno.github.io/sesolibre-games/ (auto-deploy en cada push a `main`)
@@ -39,8 +39,10 @@ i18n propio es/en con autodetección por SO. 78 tests (Vitest). CI: GitHub Actio
   con racha, logros, tienda de reversos · **Ajustes**: tema, sonido, animaciones, idioma.
 - **Google Play Juegos** (Android): envío de puntuaciones y ranking global de
   jugadores dentro de la pantalla de Récords, con plugin propio
-  (`plugins/capacitor-play-games/`). Falta crear el proyecto y las tablas en Play
-  Console y pegar los ids — ver `docs/PLAY-GAMES.md`.
+  (`plugins/capacitor-play-games/`). Proyecto (`78911605152`), las 7 tablas y las
+  credenciales OAuth ya están creadas y sus ids pegados en el repo; queda
+  publicar el proyecto de Play Juegos, que congela formato y orden de las tablas
+  — ver `docs/PLAY-GAMES.md`.
 - **Animaciones**: motor de partículas propio (confeti/fuego/celebración) + CSS;
   respeta `prefers-reduced-motion` y el ajuste de animaciones.
 
