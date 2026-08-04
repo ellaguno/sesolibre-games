@@ -10,6 +10,11 @@ export interface PlayGamesPlayer {
 export interface PlayGamesSession {
   signedIn: boolean;
   player?: PlayGamesPlayer;
+  /**
+   * Solo cuando signedIn es false: el dispositivo no tiene la app de Google
+   * Play Juegos, sin la cual el diálogo de crear el perfil no puede abrirse.
+   */
+  playGamesAppMissing?: boolean;
 }
 
 /** Una fila de la tabla de clasificación. */

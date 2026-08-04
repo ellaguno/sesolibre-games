@@ -30,6 +30,11 @@ interface PlayGamesState {
   player: PlayGamesPlayer | null;
   /** Motivo del último fallo, para poder mostrarlo. */
   error: string | null;
+  /**
+   * El último intento de conexión (con gesto del usuario) no cuajó:
+   * 'appMissing' si es porque falta la app de Google Play Juegos.
+   */
+  signInFailure: 'appMissing' | 'failed' | null;
   /** Hay una petición de inicio de sesión en curso. */
   busy: boolean;
   /** Comprueba disponibilidad e intenta la sesión silenciosa. Idempotente. */
@@ -48,6 +53,7 @@ export const usePlayGames = create<PlayGamesState>((set, get) => ({
   status: 'unknown',
   player: null,
   error: null,
+  signInFailure: null,
   busy: false,
 
   hydrate: async () => {
@@ -81,15 +87,16 @@ export const usePlayGames = create<PlayGamesState>((set, get) => ({
 
   signIn: async () => {
     if (get().busy) return;
-    set({ busy: true, error: null });
+    set({ busy: true, error: null, signInFailure: null });
     try {
       const session = await PlayGamesPlugin.signIn({ silent: false });
       set({
         status: session.signedIn ? 'signedIn' : 'signedOut',
         player: session.player ?? null,
+        signInFailure: session.signedIn ? null : session.playGamesAppMissing ? 'appMissing' : 'failed',
       });
     } catch (e) {
-      set({ error: errorText(e) });
+      set({ error: errorText(e), signInFailure: 'failed' });
     } finally {
       set({ busy: false });
     }

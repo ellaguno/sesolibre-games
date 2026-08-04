@@ -42,13 +42,16 @@ export default function RecordsScreen() {
               </div>
             </div>
           ) : status === 'signedOut' ? (
-            <button
-              onClick={() => void signIn()}
-              disabled={busy}
-              className="w-full rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-            >
-              {busy ? t('records.connecting') : t('records.connect')}
-            </button>
+            <>
+              <button
+                onClick={() => void signIn()}
+                disabled={busy}
+                className="w-full rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+              >
+                {busy ? t('records.connecting') : t('records.connect')}
+              </button>
+              <SignInFailureNotice />
+            </>
           ) : (
             <p className="text-xs text-app-muted">{t('records.onlyAndroid')}</p>
           )}
@@ -127,6 +130,7 @@ function GlobalRankingPanel({ game }: { game: GameMeta }) {
         >
           {busy ? t('records.connecting') : t('records.connect')}
         </button>
+        <SignInFailureNotice />
       </Panel>
     );
   }
@@ -179,6 +183,19 @@ function GlobalRankingPanel({ game }: { game: GameMeta }) {
         {t('records.openInPlayGames')}
       </button>
     </div>
+  );
+}
+
+/** Por qué no cuajó el último intento de conexión (p. ej. falta la app de Play Juegos). */
+function SignInFailureNotice() {
+  const t = useT();
+  const failure = usePlayGames((s) => s.signInFailure);
+  const busy = usePlayGames((s) => s.busy);
+  if (!failure || busy) return null;
+  return (
+    <p className="mt-2 text-xs text-amber-500">
+      {failure === 'appMissing' ? t('records.needPlayGamesApp') : t('records.signInFailed')}
+    </p>
   );
 }
 

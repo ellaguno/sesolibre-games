@@ -64,6 +64,9 @@ const es: Dict = {
   'records.onlyAndroid':
     'El ranking global de jugadores funciona en la app de Android, con Google Play Juegos.',
   'records.signInForRanking': 'Conéctate a Google Play Juegos para ver el ranking global.',
+  'records.needPlayGamesApp':
+    'Hace falta la app de Google Play Juegos. Instálala desde Play Store, entra con tu cuenta y vuelve a intentarlo.',
+  'records.signInFailed': 'No se pudo conectar con Google Play Juegos. Inténtalo de nuevo más tarde.',
   'records.notConfigured': 'Este juego todavía no tiene tabla de clasificación.',
   'records.emptyRanking': 'Aún no hay puntuaciones en esta tabla.',
   'records.rankingError': 'No se pudo cargar el ranking.',
@@ -267,6 +270,9 @@ const en: Dict = {
   'records.connected': 'Connected to Google Play Games',
   'records.onlyAndroid': 'The global player ranking works in the Android app, via Google Play Games.',
   'records.signInForRanking': 'Connect to Google Play Games to see the global ranking.',
+  'records.needPlayGamesApp':
+    'The Google Play Games app is required. Install it from the Play Store, sign in there and try again.',
+  'records.signInFailed': 'Could not connect to Google Play Games. Please try again later.',
   'records.notConfigured': 'This game has no leaderboard yet.',
   'records.emptyRanking': 'No scores on this leaderboard yet.',
   'records.rankingError': 'Could not load the ranking.',

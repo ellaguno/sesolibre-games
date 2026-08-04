@@ -2,6 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Desde Android 11 hay que declarar qué paquetes consulta la app; sin
+         esto, PackageManager dice que la app de Play Juegos no existe aunque
+         esté instalada. -->
+    <queries>
+        <package android:name="com.google.android.play.games" />
+    </queries>
+
     <application>
         <!-- Identificador del proyecto de Play Juegos. El valor real lo aporta
              la app en res/values/games-ids.xml (ver native/android/ en el repo);

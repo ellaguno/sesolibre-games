@@ -138,7 +138,20 @@ public class PlayGamesPlugin extends Plugin {
     private JSObject signedOut() {
         JSObject ret = new JSObject();
         ret.put("signedIn", false);
+        // Sin la app de Google Play Juegos el diálogo de crear el perfil de
+        // jugador no puede abrirse y el inicio de sesión muere en silencio;
+        // se avisa para que la interfaz pueda explicarlo.
+        ret.put("playGamesAppMissing", !isPlayGamesAppInstalled());
         return ret;
+    }
+
+    private boolean isPlayGamesAppInstalled() {
+        try {
+            getContext().getPackageManager().getPackageInfo("com.google.android.play.games", 0);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private void resolveWithPlayer(final PluginCall call, Activity activity) {
