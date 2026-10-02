@@ -35,6 +35,9 @@ jobs:
           java-version: '21'
 
       - uses: android-actions/setup-android@v3
+        with:
+          # Por defecto pide "tools", que ya no existe en cmdline-tools 16+.
+          packages: platform-tools
 
       - name: Añadir plataforma Android (se genera en CI, no se versiona)
         run: npx cap add android
