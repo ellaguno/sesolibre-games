@@ -14,6 +14,7 @@
     "test:watch": "vitest",
     "cap:add": "cap add android",
     "cap:sync": "cap sync android",
+    "icons": "python3 scripts/build-icons.py",
     "assets:android": "capacitor-assets generate --android",
     "android:apk": "npm run build && cap sync android && ./scripts/android-play-games.sh && cd android && ./gradlew assembleDebug",
     "android:aab": "npm run build && cap sync android && ./scripts/android-play-games.sh && cd android && ./gradlew bundleRelease"
