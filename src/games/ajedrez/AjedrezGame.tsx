@@ -3,6 +3,7 @@ import {
   initialState,
   legalMoves,
   applyMove,
+  findLegalMove,
   status,
   row,
   col,
@@ -41,11 +42,15 @@ const CLOCK_LABEL: Record<ClockId, string> = { off: '—', '3+2': '3+2', '5': '5
 const otherC = (c: Color): Color => (c === 'w' ? 'b' : 'w');
 
 // Partida guardada (continuar al volver). El historial se limita para acotar
-// el tamaño del JSON; basta para los últimos deshacer.
+// el tamaño del JSON; basta para los últimos deshacer. `plies` (medios
+// movimientos jugados) se añadió después: los guardados antiguos no lo traen y
+// se recurre a la longitud del historial. El sobre sigue en v1 porque
+// useGameSave descarta los guardados de otra versión.
 interface ChessSave {
   v: 1;
   game: State;
   history: State[];
+  plies?: number;
   mode: Mode;
   level: Level;
   clockId: ClockId;
@@ -81,6 +86,9 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
   const t = useT();
   const [game, setGame] = useState<State>(() => initialState());
   const [history, setHistory] = useState<State[]>([]);
+  // Medios movimientos jugados (el historial guardado se recorta, así que no
+  // sirve para contar tras restaurar).
+  const [plies, setPlies] = useState(0);
   const [sel, setSel] = useState<number | null>(null);
   const [pendingPromo, setPendingPromo] = useState<{ from: number; to: number } | null>(null);
   const [anim, setAnim] = useState<{ to: number; tx: number; ty: number } | null>(null);
@@ -98,6 +106,8 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
   const [endHidden, setEndHidden] = useState(false);
   const submitted = useRef(false);
   const workerRef = useRef<Worker | null>(null);
+  // Id de la petición vigente a la IA; las respuestas con otro id se ignoran.
+  const aiReqRef = useRef(0);
 
   const setClk = (c: { w: number; b: number }) => {
     clocksRef.current = c;
@@ -144,6 +154,7 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
             v: 1,
             game,
             history: history.slice(-SAVE_HISTORY),
+            plies,
             mode,
             level,
             clockId,
@@ -157,9 +168,10 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
       setClk(s.clocks);
       setGame(s.game);
       setHistory(s.history);
+      setPlies(s.plies ?? s.history.length);
       setView3d(s.view3d);
     },
-    [over, game, history, mode, level, clockId, view3d],
+    [over, game, history, plies, mode, level, clockId, view3d],
   );
 
   const targets = useMemo(() => {
@@ -179,6 +191,7 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
     (m: Move) => {
       const next = applyMove(game, m);
       setHistory((h) => [...h, game]);
+      setPlies((n) => n + 1);
       setAnim({
         to: m.to,
         tx: (col(m.from) - col(m.to)) * 100,
@@ -191,9 +204,11 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
       const res = status(next);
       if (res === 'checkmate' || res === 'stalemate') {
         AudioService.play(res === 'checkmate' ? 'win' : 'lose');
-        if (!submitted.current) {
+        // Solo cuenta para el ranking (menos movimientos) el mate que da el
+        // humano (blancas) a la IA; ni tablas, ni partidas a dos, ni derrotas.
+        if (res === 'checkmate' && mode === 'ai' && game.turn !== AI_COLOR && !submitted.current) {
           submitted.current = true;
-          onScore(history.length + 1);
+          onScore(plies + 1);
         }
       } else {
         AudioService.play(capture ? 'pop' : 'click');
@@ -205,17 +220,25 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
         setClk({ ...clocksRef.current, [mv]: clocksRef.current[mv] + inc });
       }
     },
-    [game, history.length, onScore, clockId],
+    [game, plies, mode, onScore, clockId],
   );
 
   // Reloj: descuenta el tiempo del bando que mueve.
   useEffect(() => {
     if (clockId === 'off' || over || pendingPromo) return;
     let last = Date.now();
+    // Con la app en segundo plano el reloj se pausa: al volver se reinicia la
+    // referencia para no descontar de golpe el tiempo que estuvo oculta.
+    const onVis = () => {
+      last = Date.now();
+    };
+    document.addEventListener('visibilitychange', onVis);
     const id = setInterval(() => {
       const now = Date.now();
-      const d = now - last;
+      // Red de seguridad: un salto anormal (timers estrangulados) no cuenta.
+      const d = document.hidden || now - last > 1000 ? 0 : now - last;
       last = now;
+      if (d === 0) return;
       const side = game.turn;
       const nv = Math.max(0, clocksRef.current[side] - d);
       setClk({ ...clocksRef.current, [side]: nv });
@@ -224,7 +247,10 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
         AudioService.play('lose');
       }
     }, 200);
-    return () => clearInterval(id);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', onVis);
+    };
   }, [game, clockId, over, pendingPromo]);
 
   // Turno de la IA (juega negras en modo "vs IA"); calcula en el worker.
@@ -232,18 +258,24 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
     if (mode !== 'ai' || over || game.turn !== AI_COLOR) return;
     setThinking(true);
     let cancelled = false;
+    const reqId = ++aiReqRef.current;
     const apply = (m: Move | null) => {
-      if (cancelled) return;
-      if (m) doMove(m);
+      if (cancelled || reqId !== aiReqRef.current) return;
+      // Red de seguridad: solo se aplica si es legal en la posición actual.
+      const legal = findLegalMove(game, m);
+      if (legal) doMove(legal);
       setThinking(false);
     };
     const w = workerRef.current;
     if (w) {
-      w.onmessage = (e: MessageEvent<Move | null>) => apply(e.data);
-      w.postMessage({ state: game, level });
+      w.onmessage = (e: MessageEvent<{ id: number; move: Move | null }>) => {
+        if (e.data.id === reqId) apply(e.data.move);
+      };
+      w.postMessage({ id: reqId, state: game, level });
       return () => {
         cancelled = true;
         w.onmessage = null;
+        setThinking(false);
       };
     }
     // Respaldo en el hilo principal
@@ -251,6 +283,7 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
     return () => {
       cancelled = true;
       clearTimeout(id);
+      setThinking(false);
     };
   }, [game, mode, over, level, doMove]);
 
@@ -286,31 +319,36 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
   };
 
   const undo = () => {
-    setHistory((h) => {
-      if (h.length === 0) return h;
-      // Vs IA: retroceder hasta una posición donde mueva el humano; si solo se
-      // deshiciera medio movimiento, la IA respondería de inmediato y el
-      // deshacer no serviría de nada.
-      let n = h.length - 1;
-      if (mode === 'ai') {
-        while (n > 0 && h[n].turn === AI_COLOR) n--;
-        if (h[n].turn === AI_COLOR) return h;
-      }
-      setGame(h[n]);
-      setSel(null);
-      setAnim(null);
-      submitted.current = false;
-      return h.slice(0, n);
-    });
+    const h = history;
+    if (h.length === 0 || thinking) return;
+    // Vs IA: retroceder hasta una posición donde mueva el humano; si solo se
+    // deshiciera medio movimiento, la IA respondería de inmediato y el
+    // deshacer no serviría de nada.
+    let n = h.length - 1;
+    if (mode === 'ai') {
+      while (n > 0 && h[n].turn === AI_COLOR) n--;
+      if (h[n].turn === AI_COLOR) return;
+    }
+    setGame(h[n]);
+    setHistory(h.slice(0, n));
+    setPlies((p) => Math.max(0, p - (h.length - n)));
+    setSel(null);
+    setAnim(null);
+    setPendingPromo(null);
+    setTimeoutLoser(null);
+    submitted.current = false;
   };
 
   const newGame = () => {
     setGame(initialState());
     setHistory([]);
+    setPlies(0);
     setSel(null);
     setAnim(null);
+    setPendingPromo(null);
+    setThinking(false);
     submitted.current = false;
-    resetClocks(clockId);
+    resetClocks(clockId); // también limpia timeoutLoser
   };
 
   const pickClock = (id: ClockId) => {
@@ -570,7 +608,7 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
       <div className="mt-auto flex justify-center gap-2 px-3 pt-4">
         <button
           onClick={undo}
-          disabled={history.length === 0}
+          disabled={history.length === 0 || thinking}
           className="rounded-lg bg-app-surface/80 px-4 py-2 text-sm font-semibold backdrop-blur hover:bg-app-surface2 disabled:opacity-40"
         >
           ↶ {t('sol.undo')}

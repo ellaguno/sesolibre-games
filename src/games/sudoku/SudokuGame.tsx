@@ -90,6 +90,10 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
   const [confirmNew, setConfirmNew] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const submittedRef = useRef(false);
+  // Segundos vía ref: el guardado los lee al serializar sin re-escribir la
+  // partida cada segundo (ya se persisten al ocultarse/cerrar la app).
+  const secondsRef = useRef(seconds);
+  secondsRef.current = seconds;
 
   // Conservar la partida al salir al menú o al perder el foco la app.
   useGameSave<SudokuSave>(
@@ -98,7 +102,16 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
     () =>
       solved
         ? null
-        : { v: 1, difficultyId: difficulty.id, game, board, notes, seconds, hintsLeft, errors },
+        : {
+            v: 1,
+            difficultyId: difficulty.id,
+            game,
+            board,
+            notes,
+            seconds: secondsRef.current,
+            hintsLeft,
+            errors,
+          },
     (s) => {
       const d = DIFFICULTIES.find((x) => x.id === s.difficultyId);
       if (d) setDifficulty(d);
@@ -110,7 +123,7 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
       setErrors(s.errors ?? 0);
       setHistory([]);
     },
-    [solved, difficulty, game, board, notes, seconds, hintsLeft, errors],
+    [solved, difficulty, game, board, notes, hintsLeft, errors],
   );
 
   const newGame = useCallback((d: Difficulty) => {
@@ -133,8 +146,21 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
 
   useEffect(() => {
     if (solved) return;
-    timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
-    return () => void (timerRef.current && clearInterval(timerRef.current));
+    const start = () => {
+      if (!timerRef.current) timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
+    };
+    const stop = () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = null;
+    };
+    // Pausado con la app en segundo plano; se reanuda al volver.
+    const onVisibility = () => (document.visibilityState === 'hidden' ? stop() : start());
+    if (document.visibilityState !== 'hidden') start();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      stop();
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [solved, game]);
 
   const conflicts = findConflicts(board);
@@ -146,6 +172,7 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
       if (!isSolved(next, game.solution)) return;
       setSolved(true);
       if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = null;
       AudioService.play('win');
       bigCelebrate();
       if (!submittedRef.current) {

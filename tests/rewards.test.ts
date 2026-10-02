@@ -4,6 +4,7 @@ import {
   canClaimToday,
   dailyReward,
   dateKey,
+  isConsecutive,
   useRewards,
   type RewardData,
 } from '../src/core/RewardService';
@@ -98,5 +99,20 @@ describe('rewards: reversos de carta (tienda y premios)', () => {
     for (const b of CARD_BACKS) {
       if (!b.achievement && b.id !== 'classic') expect(b.cost).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('rewards: días consecutivos', () => {
+  it('no rompe la racha en los cambios de horario', () => {
+    // Europa (29-mar / 25-oct) y EE. UU. (8-mar / 1-nov) en 2026.
+    expect(isConsecutive('2026-03-29', '2026-03-30')).toBe(true);
+    expect(isConsecutive('2026-10-25', '2026-10-26')).toBe(true);
+    expect(isConsecutive('2026-03-08', '2026-03-09')).toBe(true);
+    expect(isConsecutive('2026-12-31', '2027-01-01')).toBe(true);
+  });
+
+  it('distingue mismo día y saltos', () => {
+    expect(isConsecutive('2026-05-01', '2026-05-01')).toBe(false);
+    expect(isConsecutive('2026-05-01', '2026-05-03')).toBe(false);
   });
 });

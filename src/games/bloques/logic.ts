@@ -119,6 +119,17 @@ export function merge(board: Board, p: Piece): Board {
   return next;
 }
 
+/**
+ * Lock-out: ¿alguna celda de la pieza queda por encima del pozo (y < 0) al
+ * fijarse? `merge` descarta esas celdas, así que la partida debe terminar.
+ */
+export function lockedAboveTop(p: Piece): boolean {
+  for (let r = 0; r < p.m.length; r++) {
+    if (p.y + r < 0 && p.m[r].some((v) => v !== 0)) return true;
+  }
+  return false;
+}
+
 /** Elimina filas completas; devuelve el tablero y cuántas se limpiaron. */
 export function clearLines(board: Board): { board: Board; cleared: number } {
   const kept = board.filter((row) => row.some((v) => v === 0));

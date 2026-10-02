@@ -7,6 +7,7 @@ import {
   canClaimToday,
   dateKey,
   dailyReward,
+  isConsecutive,
 } from '../core/RewardService';
 import { AudioService } from '../core/AudioService';
 import { celebrate } from '../anim/particles';
@@ -21,13 +22,7 @@ export default function RewardsScreen() {
 
   const today = dateKey(new Date());
   const claimable = canClaimToday({ lastClaim }, today);
-  const nextStreak =
-    lastClaim &&
-    (new Date(today + 'T00:00:00').getTime() - new Date(lastClaim + 'T00:00:00').getTime()) /
-      86_400_000 ===
-      1
-      ? streak + 1
-      : 1;
+  const nextStreak = lastClaim && isConsecutive(lastClaim, today) ? streak + 1 : 1;
 
   const onClaim = () => {
     const r = claimDaily();

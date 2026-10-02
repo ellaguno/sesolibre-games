@@ -17,7 +17,7 @@
     "icons": "python3 scripts/build-icons.py",
     "assets:android": "capacitor-assets generate --android",
     "android:apk": "npm run build && cap sync android && ./scripts/android-play-games.sh && cd android && ./gradlew assembleDebug",
-    "android:aab": "npm run build && cap sync android && ./scripts/android-play-games.sh && cd android && ./gradlew bundleRelease"
+    "android:aab": "npm run build && cap sync android && ./scripts/android-play-games.sh && ./scripts/android-optimize.sh && cd android && ./gradlew bundleRelease"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",

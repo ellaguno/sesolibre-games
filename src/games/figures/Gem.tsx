@@ -17,6 +17,8 @@ interface Props {
   onPointerDown: (e: PointerEvent<HTMLDivElement>) => void;
   onPointerMove: (e: PointerEvent<HTMLDivElement>) => void;
   onPointerUp: (e: PointerEvent<HTMLDivElement>) => void;
+  /** Gesto cancelado por el sistema (p. ej. gesto de Android): sin intercambio. */
+  onPointerCancel?: (e: PointerEvent<HTMLDivElement>) => void;
 }
 
 // Color de cada premio (los keyframes viven en figures.css).
@@ -43,6 +45,7 @@ export default function Gem({
   onPointerDown,
   onPointerMove,
   onPointerUp,
+  onPointerCancel,
 }: Props) {
   const animationClass = isNew ? (vertical ? 'animate-fall' : 'animate-slide') : '';
 
@@ -67,6 +70,7 @@ export default function Gem({
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
       style={style}
     >
       {/* Aura del premio, por detrás de la figura. */}

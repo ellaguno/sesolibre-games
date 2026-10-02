@@ -9,6 +9,7 @@ import {
   rotate,
   collides,
   merge,
+  lockedAboveTop,
   clearLines,
   lineScore,
   levelFor,
@@ -82,6 +83,8 @@ export default function BloquesGame({ onScore, onExit }: GameProps) {
 
   const lock = useCallback(() => {
     const g = gRef.current;
+    // Lock-out: si parte de la pieza queda fuera del pozo, se acabó.
+    const lockOut = lockedAboveTop(g.piece);
     const merged = merge(g.board, g.piece);
     const { board, cleared } = clearLines(merged);
     g.board = board;
@@ -91,7 +94,7 @@ export default function BloquesGame({ onScore, onExit }: GameProps) {
       AudioService.play('pop');
     }
     const next = spawnPiece(randomType());
-    if (collides(board, next.m, next.x, next.y)) {
+    if (lockOut || collides(board, next.m, next.x, next.y)) {
       g.over = true;
       AudioService.play('lose');
       if (!submitted.current) {
@@ -237,10 +240,18 @@ export default function BloquesGame({ onScore, onExit }: GameProps) {
     let last = performance.now();
     let acc = 0;
     const loop = (now: number) => {
-      acc += now - last;
+      // En segundo plano no se simula; dt acotado para no encadenar caídas.
+      if (document.visibilityState === 'hidden') {
+        last = now;
+        raf = requestAnimationFrame(loop);
+        return;
+      }
+      acc += Math.min(now - last, 100);
       last = now;
       const g = gRef.current;
-      if (!g.over) {
+      if (g.over) {
+        acc = 0;
+      } else {
         const interval = dropInterval(levelFor(g.lines));
         while (acc >= interval) {
           acc -= interval;
@@ -249,8 +260,19 @@ export default function BloquesGame({ onScore, onExit }: GameProps) {
       }
       raf = requestAnimationFrame(loop);
     };
+    // Al volver del fondo se reinicia el reloj para no aplicar un dt enorme.
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        acc = 0;
+        last = performance.now();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
     raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [softDrop]);
 
   // Teclado

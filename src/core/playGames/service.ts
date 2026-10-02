@@ -70,6 +70,13 @@ export const usePlayGames = create<PlayGamesState>((set, get) => ({
           return;
         }
         await PlayGamesPlugin.initialize();
+      } catch (e) {
+        // Sin Play Juegos en el dispositivo o sin configurar: se sigue
+        // jugando igual, solo que sin ranking global.
+        set({ status: 'unavailable', error: errorText(e) });
+        return;
+      }
+      try {
         const session = await PlayGamesPlugin.signIn({ silent: true });
         set({
           status: session.signedIn ? 'signedIn' : 'signedOut',
@@ -77,9 +84,9 @@ export const usePlayGames = create<PlayGamesState>((set, get) => ({
           error: null,
         });
       } catch (e) {
-        // Sin Play Juegos en el dispositivo, sin red o sin configurar: se sigue
-        // jugando igual, solo que sin ranking global.
-        set({ status: 'unavailable', error: errorText(e) });
+        // Falló la sesión silenciosa (sin red, perfil sin crear…): el SDK sí
+        // está, así que se ofrece "Conectar" para reintentar a mano.
+        set({ status: 'signedOut', error: errorText(e) });
       }
     })();
     return hydration;

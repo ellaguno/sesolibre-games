@@ -309,6 +309,12 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
     }
   };
 
+  // Cancelación del puntero (gesto del sistema): suelta el arrastre sin intercambiar.
+  const onGemCancel = () => {
+    dragRef.current = null;
+    setDrag(null);
+  };
+
   const gemOffset = (r: number, c: number): { x: number; y: number } | null => {
     if (!drag) return null;
     if (drag.row === r && drag.col === c) return { x: drag.dx, y: drag.dy };
@@ -390,6 +396,7 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
                     onPointerDown={(e) => onGemDown(rowIndex, colIndex, e)}
                     onPointerMove={onGemMove}
                     onPointerUp={onGemUp}
+                    onPointerCancel={onGemCancel}
                     isDestroying={destroyingGems.some(
                       (g) => g.row === rowIndex && g.col === colIndex,
                     )}

@@ -11,6 +11,7 @@ import {
   lineScore,
   levelFor,
   dropY,
+  lockedAboveTop,
   type Matrix,
 } from '../src/games/bloques/logic';
 
@@ -86,5 +87,13 @@ describe('bloques logic', () => {
     const b = emptyBoard();
     const p = { type: 1, m: [[1, 1], [1, 1]], x: 0, y: 0 };
     expect(dropY(b, p)).toBe(ROWS - 2);
+  });
+
+  it('lockedAboveTop detecta piezas fijadas por encima del pozo', () => {
+    const m = [[0, 0], [1, 1], [1, 1]];
+    expect(lockedAboveTop({ type: 1, m, x: 0, y: 0 })).toBe(false);
+    // Fila 0 vacía en y=-1: no cuenta.
+    expect(lockedAboveTop({ type: 1, m, x: 0, y: -1 })).toBe(false);
+    expect(lockedAboveTop({ type: 1, m, x: 0, y: -2 })).toBe(true);
   });
 });

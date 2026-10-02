@@ -1,4 +1,4 @@
-import { Suspense, lazy, useMemo } from 'react';
+import { Suspense, lazy, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { games } from '../core/registry';
 import { ScoreService } from '../core/ScoreService';
@@ -17,6 +17,23 @@ export default function GameHost() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [game?.id],
   );
+
+  // Callbacks estables: los juegos los tienen en dependencias de sus efectos
+  // (bucles de juego); una identidad nueva por render los reiniciaría.
+  const gameId = game?.id;
+  const onScore = useCallback(
+    (score: number) => {
+      if (!gameId) return;
+      useRewards.getState().recordPlay(gameId);
+      void ScoreService.submit(gameId, score).then((isRecord) => {
+        if (isRecord) celebrate();
+      });
+      // Ranking global (solo en la app de Android con sesión iniciada).
+      void submitToLeaderboard(gameId, score);
+    },
+    [gameId],
+  );
+  const onExit = useCallback(() => navigate('/'), [navigate]);
 
   if (!game || !game.available || !Lazy) return <GamePlaceholder />;
 
@@ -38,17 +55,7 @@ export default function GameHost() {
           </div>
         }
       >
-        <Lazy
-          onScore={(score) => {
-            useRewards.getState().recordPlay(game.id);
-            void ScoreService.submit(game.id, score).then((isRecord) => {
-              if (isRecord) celebrate();
-            });
-            // Ranking global (solo en la app de Android con sesión iniciada).
-            void submitToLeaderboard(game.id, score);
-          }}
-          onExit={() => navigate('/')}
-        />
+        <Lazy onScore={onScore} onExit={onExit} />
       </Suspense>
     </div>
   );

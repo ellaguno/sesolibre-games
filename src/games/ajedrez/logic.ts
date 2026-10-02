@@ -293,6 +293,19 @@ export function legalMoves(state: State): Move[] {
   return out;
 }
 
+/**
+ * Devuelve el movimiento legal equivalente a `m` en `state`, o null si no lo es.
+ * Sirve de red de seguridad para respuestas de la IA que lleguen tarde.
+ */
+export function findLegalMove(state: State, m: Move | null | undefined): Move | null {
+  if (!m) return null;
+  return (
+    legalMoves(state).find(
+      (x) => x.from === m.from && x.to === m.to && (x.promo ?? null) === (m.promo ?? null),
+    ) ?? null
+  );
+}
+
 export type Status = 'playing' | 'check' | 'checkmate' | 'stalemate';
 
 export function status(state: State): Status {

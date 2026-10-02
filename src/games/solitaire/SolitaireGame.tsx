@@ -281,7 +281,9 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
     [game, onScore],
   );
 
+  // Tras ganar no se deshace (dejaría `won` en true con la partida abierta).
   const undo = () =>
+    !won &&
     setHistory((h) => {
       if (h.length === 0) return h;
       setGame(h[h.length - 1]);
@@ -398,10 +400,20 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
     }
   };
 
+  // Cancelación del puntero (gesto del sistema, captura perdida): se suelta
+  // el arrastre sin mover nada.
+  const cancelDrag = () => {
+    if (!dragRef.current) return;
+    dragRef.current = null;
+    setDrag(null);
+  };
+
   const cardHandlers = (from: Location, count: number, cards: Card[]) => ({
     onPointerDown: (e: PointerEvent) => startDrag(e, from, count, cards),
     onPointerMove: moveDrag,
     onPointerUp: endDrag,
+    onPointerCancel: cancelDrag,
+    onLostPointerCapture: cancelDrag,
   });
 
   // ¿Es esta la pila destino de la pista? (para marcarla mientras se muestra)
@@ -474,7 +486,9 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
         w.addEventListener('message', onMsg);
         w.postMessage({ id: seq, kind: 'analyze', state: game } satisfies SolverRequest);
       } else {
-        handle(analyzeWinnable(game)); // respaldo síncrono (rápido en posiciones atascadas)
+        // Respaldo síncrono en el hilo de la interfaz: presupuesto corto (como la
+        // pista) para no congelar el tablero.
+        handle(analyzeWinnable(game, 40000, 400));
       }
     }, 500);
     return () => clearTimeout(timer);
@@ -774,7 +788,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
         </button>
         <button
           onClick={undo}
-          disabled={history.length === 0}
+          disabled={history.length === 0 || won}
           aria-label={t('sol.undo')}
           title={t('sol.undo')}
           className="rounded-lg bg-app-surface/80 px-4 py-2 text-lg leading-none backdrop-blur hover:bg-app-surface2 disabled:opacity-40"

@@ -3,6 +3,7 @@ import {
   initialState,
   legalMoves,
   applyMove,
+  findLegalMove,
   status,
   inCheck,
   type State,
@@ -82,5 +83,17 @@ describe('ajedrez: reglas y finales', () => {
     const after = applyMove(s, ep);
     expect(after.board[2 * 8 + 5]?.t).toBe('p'); // peón blanco en f6
     expect(after.board[3 * 8 + 5]).toBeNull(); // el peón negro capturado desapareció
+  });
+});
+
+describe('findLegalMove', () => {
+  it('acepta un movimiento legal y rechaza uno de otra posición', () => {
+    const s0 = initialState();
+    const e2e4: Move = { from: 52, to: 36 };
+    expect(findLegalMove(s0, e2e4)).toEqual(e2e4);
+    // Respuesta tardía: el mismo movimiento ya no es legal tras jugarlo.
+    const s1 = applyMove(s0, e2e4);
+    expect(findLegalMove(s1, e2e4)).toBeNull();
+    expect(findLegalMove(s0, null)).toBeNull();
   });
 });

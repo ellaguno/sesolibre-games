@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { games } from '../core/registry';
 import { ScoreService, type ScoreEntry } from '../core/ScoreService';
@@ -20,43 +20,68 @@ function makeTwinkles(n: number) {
   }));
 }
 
-/** Índice del juego destacado del día (rota cada día). */
+/** Índice del juego destacado del día (rota cada día). Se cuenta en UTC a
+ *  partir de la fecha LOCAL para que el horario de verano no desfase el día. */
 function dailyIndex(count: number): number {
   const now = new Date();
-  const start = new Date(now.getFullYear(), 0, 0);
-  const day = Math.floor((now.getTime() - start.getTime()) / 86_400_000);
+  const day = Math.round(
+    (Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - Date.UTC(now.getFullYear(), 0, 0)) /
+      86_400_000,
+  );
   return day % count;
 }
+
+// Constantes de módulo: si se recalculan en cada render, el efecto de fx
+// aleatorios se reinicia continuamente y nunca llega a dispararse.
+const PLAYABLE = games.filter((g) => g.available);
+const PLAYABLE_IDS = PLAYABLE.map((g) => g.id);
 
 export default function HubScreen() {
   const t = useT();
   const [best, setBest] = useState<Record<string, ScoreEntry | null>>({});
-  const rewards = useRewards();
+  const lastClaim = useRewards((s) => s.lastClaim);
   const motion = useSettings((s) => s.motion);
-  const [par, setPar] = useState({ x: 0, y: 0 });
+  const bgRef = useRef<HTMLDivElement>(null);
   const twinkles = useMemo(() => (motion ? makeTwinkles(16) : []), [motion]);
 
-  // Parallax: puntero (escritorio) + giroscopio (Android).
+  // Parallax: puntero (escritorio) + giroscopio (Android). Se escribe el
+  // transform directo en el DOM (1 vez por frame) en vez de usar estado: el
+  // giroscopio dispara ~60 eventos/s y re-renderizaría todo el hub.
   useEffect(() => {
-    if (!motion) return;
+    const el = bgRef.current;
+    if (!motion || !el) return;
+    let raf = 0;
+    let px = 0;
+    let py = 0;
+    const apply = () => {
+      raf = 0;
+      el.style.transform = `scale(1.08) translate(${px}px, ${py}px)`;
+    };
+    const queue = (x: number, y: number) => {
+      px = x;
+      py = y;
+      if (!raf) raf = requestAnimationFrame(apply);
+    };
     const onPointer = (e: PointerEvent) => {
       const x = (e.clientX / window.innerWidth - 0.5) * 2;
       const y = (e.clientY / window.innerHeight - 0.5) * 2;
-      setPar({ x: -x * 12, y: -y * 12 });
+      queue(-x * 12, -y * 12);
     };
     const onTilt = (e: DeviceOrientationEvent) => {
       const gx = Math.max(-1, Math.min(1, (e.gamma ?? 0) / 30));
       const gy = Math.max(-1, Math.min(1, ((e.beta ?? 0) - 45) / 30));
-      setPar({ x: -gx * 14, y: -gy * 14 });
+      queue(-gx * 14, -gy * 14);
     };
     window.addEventListener('pointermove', onPointer);
     window.addEventListener('deviceorientation', onTilt);
     return () => {
       window.removeEventListener('pointermove', onPointer);
       window.removeEventListener('deviceorientation', onTilt);
+      cancelAnimationFrame(raf);
+      el.style.transform = 'scale(1.08)';
     };
   }, [motion]);
-  const dailyAvailable = canClaimToday({ lastClaim: rewards.lastClaim }, dateKey(new Date()));
+  const dailyAvailable = canClaimToday({ lastClaim }, dateKey(new Date()));
 
   useEffect(() => {
     let active = true;
@@ -69,14 +94,14 @@ export default function HubScreen() {
     };
   }, []);
 
-  const playable = games.filter((g) => g.available);
+  const playable = PLAYABLE;
   const featured = playable[dailyIndex(playable.length)];
   const rest = playable.filter((g) => g.id !== featured?.id);
 
   // Efecto aleatorio sobre la figura de un juego al azar (brinco, crecer,
   // brillo, destello o "todos"). Una a la vez, con pausas variables.
   const [fx, setFx] = useState<{ id: string; cls: string } | null>(null);
-  const playableIds = useMemo(() => playable.map((g) => g.id), [playable]);
+  const playableIds = PLAYABLE_IDS;
   useEffect(() => {
     if (!motion || playableIds.length === 0) return;
     const effects = ['art-fx-jump', 'art-fx-grow', 'art-fx-glow', 'art-fx-sparkle', 'art-fx-all'];
@@ -104,11 +129,9 @@ export default function HubScreen() {
     <div className="relative min-h-full">
       {/* Fondo del dashboard (con parallax) */}
       <div
+        ref={bgRef}
         className="fixed inset-0 -z-10 bg-cover bg-center transition-transform duration-300 ease-out"
-        style={{
-          backgroundImage: `url(${dashboardBg})`,
-          transform: `scale(1.08) translate(${par.x}px, ${par.y}px)`,
-        }}
+        style={{ backgroundImage: `url(${dashboardBg})`, transform: 'scale(1.08)' }}
       />
       <div className="fixed inset-0 -z-10 bg-app-bg/55" />
       {/* Destellos aleatorios */}

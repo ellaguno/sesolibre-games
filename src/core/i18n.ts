@@ -34,6 +34,7 @@ const es: Dict = {
   'nav.settings': 'Ajustes',
 
   'common.back': 'Volver',
+  'fmt.moves': '{n} mov',
   'common.exit': 'Salir',
   'common.new': 'Nuevo',
   'common.cancel': 'Cancelar',
@@ -241,6 +242,7 @@ const en: Dict = {
   'nav.settings': 'Settings',
 
   'common.back': 'Back',
+  'fmt.moves': '{n} moves',
   'common.exit': 'Exit',
   'common.new': 'New',
   'common.cancel': 'Cancel',

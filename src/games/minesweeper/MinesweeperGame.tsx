@@ -56,6 +56,9 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
   const [endHidden, setEndHidden] = useState(false);
   const [started, setStarted] = useState(false);
   const [seconds, setSeconds] = useState(0);
+  // El guardado lee los segundos de un ref: así no se reescribe cada segundo.
+  const secondsRef = useRef(seconds);
+  secondsRef.current = seconds;
   const startedRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const submittedRef = useRef(false);
@@ -87,13 +90,28 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
     timerRef.current = null;
   };
 
+  // El cronómetro se pausa con la app en segundo plano y se reanuda al volver
+  // si la partida sigue en curso.
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        if (timerRef.current) clearInterval(timerRef.current);
+        timerRef.current = null;
+      } else if (started && status === 'playing' && !timerRef.current) {
+        timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [started, status]);
+
   // Conservar la partida al salir al menú o al perder el foco la app.
   useGameSave<MinesSave>(
     'minesweeper',
     1,
     () =>
       started && status === 'playing'
-        ? { v: 1, difficultyId: difficulty.id, grid, seconds }
+        ? { v: 1, difficultyId: difficulty.id, grid, seconds: secondsRef.current }
         : null,
     (s) => {
       const d = DIFFICULTIES.find((x) => x.id === s.difficultyId);
@@ -104,7 +122,7 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
       startedRef.current = true;
       startTimer();
     },
-    [started, status, grid, seconds, difficulty],
+    [started, status, grid, difficulty],
   );
 
   const cellCenter = (r: number, c: number): { x: number; y: number } | null => {
@@ -284,6 +302,11 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
                   onPointerUp={(e) => onPointerUp(e, r, c)}
                   onPointerLeave={() => {
                     if (longPressRef.current) clearTimeout(longPressRef.current);
+                  }}
+                  onPointerCancel={() => {
+                    // Gesto del sistema: no colocar la bandera del toque largo.
+                    if (longPressRef.current) clearTimeout(longPressRef.current);
+                    longPressRef.current = null;
                   }}
                   onContextMenu={(e) => onContextMenu(e, r, c)}
                 >

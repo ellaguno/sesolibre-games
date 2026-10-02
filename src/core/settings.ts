@@ -27,6 +27,10 @@ interface SettingsState extends Settings {
 function applyTheme(theme: Theme) {
   const root = document.documentElement;
   root.classList.toggle('dark', theme === 'dark');
+  // Barra de estado / UI de la PWA acorde al tema (= --c-bg de index.css).
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute('content', theme === 'dark' ? '#0f172a' : '#eef2f7');
 }
 
 export const useSettings = create<SettingsState>((set, get) => ({

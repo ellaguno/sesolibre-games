@@ -13,6 +13,17 @@ export interface Storage {
   remove(key: string): Promise<void>;
 }
 
+/** JSON corrupto => null (como si no existiera) en vez de romper la
+ *  hidratación de los stores, que dejaría la app con los valores por defecto. */
+function parse<T>(raw: string | null): T | null {
+  if (raw === null) return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
 class WebStorage implements Storage {
   private memory = new Map<string, string>();
 
@@ -30,8 +41,7 @@ class WebStorage implements Storage {
   }
 
   async get<T>(key: string): Promise<T | null> {
-    const raw = this.backend.getItem(key);
-    return raw === null ? null : (JSON.parse(raw) as T);
+    return parse<T>(this.backend.getItem(key));
   }
 
   async set<T>(key: string, value: T): Promise<void> {
@@ -47,7 +57,7 @@ class NativeStorage implements Storage {
   async get<T>(key: string): Promise<T | null> {
     const { Preferences } = await import('@capacitor/preferences');
     const { value } = await Preferences.get({ key });
-    return value === null ? null : (JSON.parse(value) as T);
+    return parse<T>(value);
   }
 
   async set<T>(key: string, value: T): Promise<void> {

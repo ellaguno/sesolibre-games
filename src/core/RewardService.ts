@@ -57,10 +57,11 @@ export function dateKey(d: Date): string {
   ).padStart(2, '0')}`;
 }
 
-function isConsecutive(prev: string, today: string): boolean {
-  const p = new Date(prev + 'T00:00:00');
-  const t = new Date(today + 'T00:00:00');
-  return (t.getTime() - p.getTime()) / 86_400_000 === 1;
+/** ¿`today` es el día siguiente a `prev`? (claves YYYY-MM-DD). Se compara en
+ *  UTC: con medianoches locales, el día del cambio de horario dura 23 o 25 h
+ *  y la racha se rompía dos veces al año. */
+export function isConsecutive(prev: string, today: string): boolean {
+  return (Date.parse(today + 'T00:00:00Z') - Date.parse(prev + 'T00:00:00Z')) / 86_400_000 === 1;
 }
 
 export function dailyReward(streak: number): number {
@@ -184,5 +185,8 @@ function snapshot(s: RewardState): RewardData {
 }
 
 async function persist(get: () => RewardState) {
+  // Antes de hidratar el store tiene los valores por defecto: escribirlos
+  // borraría las monedas/logros guardados.
+  if (!get().loaded) return;
   await storage.set<RewardData>(KEY, snapshot(get()));
 }

@@ -1,4 +1,6 @@
 import type { ScoreKind } from './registry';
+import { resolveLang, translate } from './i18n';
+import { useSettings } from './settings';
 
 /** Duración legible: m:ss, y con horas (h:mm:ss) cuando pasa de 60 minutos. */
 export function formatDuration(totalSeconds: number): string {
@@ -10,8 +12,12 @@ export function formatDuration(totalSeconds: number): string {
 }
 
 /** Formatea un valor de puntuación según el tipo de score del juego. */
-export function formatScore(value: number, kind: ScoreKind): string {
+export function formatScore(
+  value: number,
+  kind: ScoreKind,
+  lang = resolveLang(useSettings.getState().lang),
+): string {
   if (kind === 'time') return formatDuration(value);
-  if (kind === 'moves') return `${value} mov`;
-  return value.toLocaleString('es');
+  if (kind === 'moves') return translate(lang, 'fmt.moves', { n: value });
+  return value.toLocaleString(lang);
 }

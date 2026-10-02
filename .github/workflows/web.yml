@@ -24,9 +24,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
+      # Nada se publica si fallan el lint o los tests.
+      - run: npm run lint
+      - run: npm test
       - run: npm run build
       # Requiere activar Pages una vez: Settings → Pages → Source = GitHub Actions
       - uses: actions/configure-pages@v5

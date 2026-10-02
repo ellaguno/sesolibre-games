@@ -450,6 +450,9 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
   // Ref al traductor para usarlo dentro del bucle sin re-crear la partida.
   const tRef = useRef(t);
   tRef.current = t;
+  // Ref a onScore: una identidad nueva no debe reiniciar la partida.
+  const onScoreRef = useRef(onScore);
+  onScoreRef.current = onScore;
 
   const setDir = useCallback((dir: Dir) => {
     engineRef.current?.setDesired(dir);
@@ -509,6 +512,12 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
     };
 
     const loop = (now: number) => {
+      // En segundo plano no se simula (solo se sigue el reloj).
+      if (document.visibilityState === 'hidden') {
+        last = now;
+        raf = requestAnimationFrame(loop);
+        return;
+      }
       const dt = (now - last) / 1000;
       last = now;
       engine.update(dt);
@@ -529,7 +538,7 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
           AudioService.play('lose');
           if (!submittedRef.current) {
             submittedRef.current = true;
-            onScore(engine.score);
+            onScoreRef.current(engine.score);
           }
         }
       }
@@ -553,13 +562,19 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
       }
       raf = requestAnimationFrame(loop);
     };
+    // Al volver del fondo se reinicia el reloj para no aplicar un dt enorme.
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') last = performance.now();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
     raf = requestAnimationFrame(loop);
     return () => {
       cancelAnimationFrame(raf);
+      document.removeEventListener('visibilitychange', onVisibility);
       if (flashTimer) clearTimeout(flashTimer);
       if (fruitTimer) clearTimeout(fruitTimer);
     };
-  }, [seed, onScore]);
+  }, [seed]);
 
   // Teclado
   useEffect(() => {
