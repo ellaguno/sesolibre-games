@@ -7,6 +7,8 @@ import {
   legalMoves,
   applyMove,
   inCheck,
+  insufficientMaterial,
+  positionKey,
   row,
   col,
   type State,
@@ -112,6 +114,8 @@ function search(
 ): number {
   const moves = legalMoves(state);
   if (moves.length === 0) return inCheck(state, state.turn) ? -MATE - depth : 0;
+  // Tablas por la regla de los 50 movimientos o por material insuficiente.
+  if ((state.halfmove ?? 0) >= 100 || insufficientMaterial(state)) return 0;
   if (depth === 0) return useQ ? quiesce(state, alpha, beta, 4) : persp(state) * evaluate(state);
   let best = -Infinity;
   for (const m of ordered(state, moves)) {
@@ -129,6 +133,7 @@ function rootSearch(
   useQ: boolean,
   jitter: number,
   rng: () => number,
+  seen: ReadonlySet<string>,
 ): Move | null {
   const moves = ordered(state, legalMoves(state));
   if (moves.length === 0) return null;
@@ -137,7 +142,13 @@ function rootSearch(
   let alpha = -Infinity;
   const scored: { m: Move; v: number }[] = [];
   for (const m of moves) {
-    const v = -search(applyMove(state, m), depth - 1, -Infinity, -alpha, useQ);
+    const next = applyMove(state, m);
+    // Evitar repeticiones (ligero): volver a una posición ya vista se puntúa
+    // como tablas, así no la repite si va ganando y sí la busca si va perdiendo.
+    const v =
+      seen.size > 0 && seen.has(positionKey(next))
+        ? 0
+        : -search(next, depth - 1, -Infinity, -alpha, useQ);
     scored.push({ m, v });
     if (v > best) {
       best = v;
@@ -152,9 +163,17 @@ function rootSearch(
   return near[Math.floor(rng() * near.length)] ?? bestMove;
 }
 
+/** Claves de las posiciones del historial (para evitar repeticiones). */
+const seenKeys = (history: readonly State[]) => new Set(history.map(positionKey));
+
 /** Mejor jugada a profundidad fija con quiescencia (usado en tests). */
-export function bestMove(state: State, depth: number, rng: () => number = Math.random): Move | null {
-  return rootSearch(state, depth, true, 0, rng);
+export function bestMove(
+  state: State,
+  depth: number,
+  rng: () => number = Math.random,
+  history: readonly State[] = [],
+): Move | null {
+  return rootSearch(state, depth, true, 0, rng, seenKeys(history));
 }
 
 export type Level = 'easy' | 'medium' | 'hard';
@@ -164,12 +183,17 @@ const LEVELS: Record<Level, { depth: number; q: boolean; blunder: number; jitter
   hard: { depth: 4, q: true, blunder: 0, jitter: 0 },
 };
 
-/** Elige jugada según el nivel de dificultad. */
-export function chooseMove(state: State, level: Level, rng: () => number = Math.random): Move | null {
+/** Elige jugada según el nivel de dificultad. `history`: posiciones previas. */
+export function chooseMove(
+  state: State,
+  level: Level,
+  rng: () => number = Math.random,
+  history: readonly State[] = [],
+): Move | null {
   const cfg = LEVELS[level];
   const moves = ordered(state, legalMoves(state));
   if (moves.length === 0) return null;
   // En "fácil" a veces juega al azar (más vencible).
   if (cfg.blunder > 0 && rng() < cfg.blunder) return moves[Math.floor(rng() * moves.length)];
-  return rootSearch(state, cfg.depth, cfg.q, cfg.jitter, rng);
+  return rootSearch(state, cfg.depth, cfg.q, cfg.jitter, rng, seenKeys(history));
 }

@@ -234,6 +234,22 @@ export default function BloquesGame({ onScore, onExit }: GameProps) {
     [applyGestures, cellPx],
   );
 
+  // Salir a mitad de partida (botón ←, atrás de Android, navegación): la
+  // puntuación cuenta igual, una sola vez. En el doble montaje de StrictMode la
+  // puntuación es 0 y no se envía nada.
+  const onScoreRef = useRef(onScore);
+  onScoreRef.current = onScore;
+  useEffect(
+    () => () => {
+      const g = gRef.current;
+      if (!g.over && !submitted.current && g.score > 0) {
+        submitted.current = true;
+        onScoreRef.current(g.score);
+      }
+    },
+    [],
+  );
+
   // Bucle de gravedad
   useEffect(() => {
     let raf = 0;
@@ -336,6 +352,7 @@ export default function BloquesGame({ onScore, onExit }: GameProps) {
           <select
             value={fig}
             onChange={(e) => setFig(e.target.value as FigOpt)}
+            aria-label={t('bloques.figureSet')}
             className="rounded-lg border border-app-border bg-app-surface/80 p-1 text-xs text-app-text"
           >
             <option value="none">{t('bloques.gemOnly')}</option>
@@ -422,20 +439,29 @@ export default function BloquesGame({ onScore, onExit }: GameProps) {
 
       {/* Controles táctiles */}
       <div className="mt-auto flex w-full max-w-xs items-center justify-between gap-2 pt-4">
-        <Ctrl onClick={() => move(-1)}>◀</Ctrl>
-        <Ctrl onClick={rotatePiece}>⟳</Ctrl>
-        <Ctrl onClick={() => move(1)}>▶</Ctrl>
-        <Ctrl onClick={softDrop}>▼</Ctrl>
-        <Ctrl onClick={hardDrop}>⤓</Ctrl>
+        <Ctrl label={t('bloques.left')} onClick={() => move(-1)}>◀</Ctrl>
+        <Ctrl label={t('bloques.rotate')} onClick={rotatePiece}>⟳</Ctrl>
+        <Ctrl label={t('bloques.right')} onClick={() => move(1)}>▶</Ctrl>
+        <Ctrl label={t('bloques.softDrop')} onClick={softDrop}>▼</Ctrl>
+        <Ctrl label={t('bloques.hardDrop')} onClick={hardDrop}>⤓</Ctrl>
       </div>
     </main>
   );
 }
 
-function Ctrl({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+function Ctrl({
+  onClick,
+  label,
+  children,
+}: {
+  onClick: () => void;
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <button
       onClick={onClick}
+      aria-label={label}
       className="flex h-12 flex-1 items-center justify-center rounded-xl bg-app-surface/80 text-xl backdrop-blur active:scale-95 active:bg-brand"
     >
       {children}

@@ -1,6 +1,6 @@
 import { Suspense, lazy, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { games } from '../core/registry';
+import { games, scoreKey, variantFromMeta } from '../core/registry';
 import { ScoreService } from '../core/ScoreService';
 import { useRewards } from '../core/RewardService';
 import { submitToLeaderboard } from '../core/playGames/service';
@@ -22,14 +22,17 @@ export default function GameHost() {
   // (bucles de juego); una identidad nueva por render los reiniciaría.
   const gameId = game?.id;
   const onScore = useCallback(
-    (score: number) => {
-      if (!gameId) return;
-      useRewards.getState().recordPlay(gameId);
-      void ScoreService.submit(gameId, score).then((isRecord) => {
+    (score: number, meta?: Record<string, unknown>) => {
+      const g = games.find((x) => x.id === gameId);
+      if (!g) return;
+      useRewards.getState().recordPlay(g.id);
+      // Juegos con variantes (dificultades): récord y tabla propios por variante.
+      const variant = variantFromMeta(g, meta);
+      void ScoreService.submit(scoreKey(g.id, variant), score, meta).then((isRecord) => {
         if (isRecord) celebrate();
       });
       // Ranking global (solo en la app de Android con sesión iniciada).
-      void submitToLeaderboard(gameId, score);
+      void submitToLeaderboard(g.id, score, variant);
     },
     [gameId],
   );

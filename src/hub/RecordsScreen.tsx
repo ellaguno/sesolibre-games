@@ -5,7 +5,12 @@ import { ScoreService, type ScoreEntry } from '../core/ScoreService';
 import { formatScore } from '../core/format';
 import { useT } from '../core/i18n';
 import { usePlayGames, loadRanking, openNativeLeaderboard, type GlobalRanking } from '../core/playGames/service';
-import { anyLeaderboardConfigured, fromLeaderboardScore, leaderboardId } from '../core/playGames/config';
+import {
+  anyLeaderboardConfigured,
+  fromLeaderboardScore,
+  leaderboardId,
+  leaderboardVariants,
+} from '../core/playGames/config';
 import type { LeaderboardEntry } from '../core/playGames/plugin';
 
 export default function RecordsScreen() {
@@ -20,7 +25,7 @@ export default function RecordsScreen() {
 
   useEffect(() => {
     let active = true;
-    Promise.all(games.map((g) => ScoreService.getBest(g.id))).then((results) => {
+    Promise.all(games.map((g) => ScoreService.getDisplayBest(g))).then((results) => {
       if (!active) return;
       setBest(Object.fromEntries(games.map((g, i) => [g.id, results[i]])));
     });
@@ -70,14 +75,19 @@ export default function RecordsScreen() {
                 {g.emoji}
               </span>
               <span className="font-medium">{t(`game.${g.id}.title`)}</span>
-              <span className="ml-auto font-mono text-app-muted">
+              <span className="ml-auto text-right font-mono text-app-muted">
                 {best[g.id] ? formatScore(best[g.id]!.value, g.scoreKind) : '—'}
+                {typeof best[g.id]?.meta?.difficulty === 'string' && (
+                  <span className="block font-sans text-[10px] uppercase tracking-wide">
+                    {t(`difficulty.${best[g.id]!.meta!.difficulty as string}`)}
+                  </span>
+                )}
               </span>
               <span className="text-app-muted" aria-hidden>
                 {open === g.id ? '▾' : '▸'}
               </span>
             </button>
-            {open === g.id && <GlobalRankingPanel game={g} />}
+            {open === g.id && <GamePanels game={g} />}
           </li>
         ))}
       </ul>
@@ -85,8 +95,58 @@ export default function RecordsScreen() {
   );
 }
 
+/** Contenido desplegado de un juego: récords por variante y ranking(s) global(es). */
+function GamePanels({ game }: { game: GameMeta }) {
+  if (!game.variants?.length) return <GlobalRankingPanel game={game} />;
+  // Una tabla global por cada variante que la tenga configurada (hoy, en el
+  // Buscaminas, solo Difícil). Sin ninguna, el aviso de "sin tabla".
+  const boards = leaderboardVariants(game.id);
+  return (
+    <>
+      <VariantBestsPanel game={game} />
+      {boards.length === 0 ? (
+        <GlobalRankingPanel game={game} />
+      ) : (
+        boards.map((v) => <GlobalRankingPanel key={v} game={game} variant={v} />)
+      )}
+    </>
+  );
+}
+
+/** Mejor marca local en cada dificultad. */
+function VariantBestsPanel({ game }: { game: GameMeta }) {
+  const t = useT();
+  const [bests, setBests] = useState<Record<string, ScoreEntry | null> | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void ScoreService.getVariantBests(game).then((b) => {
+      if (active) setBests(b);
+    });
+    return () => {
+      active = false;
+    };
+  }, [game]);
+
+  return (
+    <div className="border-t border-app-border px-4 py-3">
+      <p className="mb-2 text-xs uppercase tracking-wide text-app-muted">{t('records.yourBests')}</p>
+      <ul className="flex flex-col gap-1">
+        {(game.variants ?? []).map((v) => (
+          <li key={v} className="flex items-center justify-between text-sm">
+            <span>{t(`difficulty.${v}`)}</span>
+            <span className="font-mono text-app-muted">
+              {bests?.[v] ? formatScore(bests[v]!.value, game.scoreKind) : '—'}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /** Top de jugadores de un juego (Google Play Juegos). */
-function GlobalRankingPanel({ game }: { game: GameMeta }) {
+function GlobalRankingPanel({ game, variant }: { game: GameMeta; variant?: string }) {
   const t = useT();
   const status = usePlayGames((s) => s.status);
   const player = usePlayGames((s) => s.player);
@@ -95,19 +155,19 @@ function GlobalRankingPanel({ game }: { game: GameMeta }) {
   const [data, setData] = useState<GlobalRanking | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const configured = leaderboardId(game.id) !== null;
+  const configured = leaderboardId(game.id, variant) !== null;
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      setData(await loadRanking(game.id));
+      setData(await loadRanking(game.id, { variant }));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
-  }, [game.id]);
+  }, [game.id, variant]);
 
   useEffect(() => {
     if (configured && status === 'signedIn') void load();
@@ -152,7 +212,11 @@ function GlobalRankingPanel({ game }: { game: GameMeta }) {
 
   return (
     <div className="border-t border-app-border px-4 py-3">
-      <p className="mb-2 text-xs uppercase tracking-wide text-app-muted">{t('records.global')}</p>
+      <p className="mb-2 text-xs uppercase tracking-wide text-app-muted">
+        {variant
+          ? t('records.globalVariant', { variant: t(`difficulty.${variant}`) })
+          : t('records.global')}
+      </p>
       {entries.length === 0 ? (
         <p className="text-sm text-app-muted">{t('records.emptyRanking')}</p>
       ) : (
@@ -177,7 +241,7 @@ function GlobalRankingPanel({ game }: { game: GameMeta }) {
         </>
       )}
       <button
-        onClick={() => void openNativeLeaderboard(game.id)}
+        onClick={() => void openNativeLeaderboard(game.id, variant)}
         className="mt-3 text-sm underline underline-offset-2"
       >
         {t('records.openInPlayGames')}

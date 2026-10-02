@@ -119,8 +119,12 @@ export function playGamesReady(): boolean {
  * Envía una puntuación a la tabla del juego. No lanza: si Play Juegos no está
  * disponible (web, sin sesión, sin tabla configurada) simplemente no hace nada.
  */
-export async function submitToLeaderboard(gameId: string, value: number): Promise<void> {
-  const board = leaderboardId(gameId);
+export async function submitToLeaderboard(
+  gameId: string,
+  value: number,
+  variant?: string | null,
+): Promise<void> {
+  const board = leaderboardId(gameId, variant);
   const game = games.find((g) => g.id === gameId);
   if (!board || !game) return;
 
@@ -146,9 +150,9 @@ export interface GlobalRanking extends LeaderboardPage {
 /** Top de jugadores de un juego, para pintarlo en la pantalla de Récords. */
 export async function loadRanking(
   gameId: string,
-  opts: { max?: number; collection?: LeaderboardCollection } = {},
+  opts: { max?: number; collection?: LeaderboardCollection; variant?: string | null } = {},
 ): Promise<GlobalRanking> {
-  const board = leaderboardId(gameId);
+  const board = leaderboardId(gameId, opts.variant);
   if (!board) throw new Error('sin tabla configurada');
 
   const page = await PlayGamesPlugin.loadTopScores({
@@ -174,8 +178,8 @@ export async function loadRanking(
 }
 
 /** Abre la pantalla de la tabla en la app de Google Play Juegos. */
-export async function openNativeLeaderboard(gameId: string): Promise<void> {
-  const board = leaderboardId(gameId);
+export async function openNativeLeaderboard(gameId: string, variant?: string | null): Promise<void> {
+  const board = leaderboardId(gameId, variant);
   if (board) await PlayGamesPlugin.showLeaderboard({ leaderboardId: board });
   else await PlayGamesPlugin.showAllLeaderboards();
 }

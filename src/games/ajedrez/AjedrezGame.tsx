@@ -5,6 +5,7 @@ import {
   applyMove,
   findLegalMove,
   status,
+  isGameOver,
   row,
   col,
   GLYPH,
@@ -133,8 +134,10 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
   }, []);
 
   const moves = useMemo(() => legalMoves(game), [game]);
-  const st = useMemo(() => status(game), [game]);
-  const over = st === 'checkmate' || st === 'stalemate' || timeoutLoser !== null;
+  // El historial permite detectar la triple repetición (tras restaurar un
+  // guardado, solo cuenta el historial recortado: mejor esfuerzo).
+  const st = useMemo(() => status(game, history), [game, history]);
+  const over = isGameOver(st) || timeoutLoser !== null;
 
   // Si la partida vuelve a estar viva (nueva partida o deshacer), el próximo
   // final debe mostrar su panel de nuevo.
@@ -166,7 +169,8 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
       setLevel(s.level);
       setClockId(s.clockId);
       setClk(s.clocks);
-      setGame(s.game);
+      // Los guardados antiguos no traen `halfmove`: se toma 0.
+      setGame({ ...s.game, halfmove: s.game.halfmove ?? 0 });
       setHistory(s.history);
       setPlies(s.plies ?? s.history.length);
       setView3d(s.view3d);
@@ -201,8 +205,8 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
       setGame(next);
       setSel(null);
       const capture = game.board[m.to] !== null || (game.board[m.from]?.t === 'p' && col(m.from) !== col(m.to));
-      const res = status(next);
-      if (res === 'checkmate' || res === 'stalemate') {
+      const res = status(next, [...history, game]);
+      if (isGameOver(res)) {
         AudioService.play(res === 'checkmate' ? 'win' : 'lose');
         // Solo cuenta para el ranking (menos movimientos) el mate que da el
         // humano (blancas) a la IA; ni tablas, ni partidas a dos, ni derrotas.
@@ -220,7 +224,7 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
         setClk({ ...clocksRef.current, [mv]: clocksRef.current[mv] + inc });
       }
     },
-    [game, plies, mode, onScore, clockId],
+    [game, history, plies, mode, onScore, clockId],
   );
 
   // Reloj: descuenta el tiempo del bando que mueve.
@@ -258,6 +262,10 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
     if (mode !== 'ai' || over || game.turn !== AI_COLOR) return;
     setThinking(true);
     let cancelled = false;
+    // Solo las posiciones desde la última captura o jugada de peón pueden
+    // repetirse; se envían para que la IA evite repetir.
+    const hm = game.halfmove ?? 0;
+    const recent = hm > 0 ? history.slice(-hm) : [];
     const reqId = ++aiReqRef.current;
     const apply = (m: Move | null) => {
       if (cancelled || reqId !== aiReqRef.current) return;
@@ -271,7 +279,7 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
       w.onmessage = (e: MessageEvent<{ id: number; move: Move | null }>) => {
         if (e.data.id === reqId) apply(e.data.move);
       };
-      w.postMessage({ id: reqId, state: game, level });
+      w.postMessage({ id: reqId, state: game, level, history: recent });
       return () => {
         cancelled = true;
         w.onmessage = null;
@@ -279,13 +287,13 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
       };
     }
     // Respaldo en el hilo principal
-    const id = setTimeout(() => apply(chooseMove(game, level)), 50);
+    const id = setTimeout(() => apply(chooseMove(game, level, Math.random, recent)), 50);
     return () => {
       cancelled = true;
       clearTimeout(id);
       setThinking(false);
     };
-  }, [game, mode, over, level, doMove]);
+  }, [game, history, mode, over, level, doMove]);
 
   const onSquare = (i: number) => {
     if (pendingPromo || over || thinking) return;
@@ -361,6 +369,9 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
   if (st === 'check') statusText = `${t('chess.check')} · ${turnName(game.turn)}`;
   else if (st === 'checkmate') statusText = `${t('chess.checkmate')} ${turnName(game.turn === 'w' ? 'b' : 'w')}`;
   else if (st === 'stalemate') statusText = t('chess.stalemate');
+  else if (st === 'draw-fifty') statusText = t('chess.drawFifty');
+  else if (st === 'draw-insufficient') statusText = t('chess.drawInsufficient');
+  else if (st === 'draw-repetition') statusText = t('chess.drawRepetition');
   if (timeoutLoser) statusText = `${t('chess.timeout')} ${turnName(otherC(timeoutLoser))}`;
   if (thinking && !over) statusText = t('chess.thinking');
 

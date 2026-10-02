@@ -2,7 +2,8 @@
  * Ajedrez — reglas completas, puras y testeables (sin DOM).
  * Tablero: array de 64, índice = fila*8 + col. Fila 0 arriba (negras), fila 7
  * abajo (blancas). Incluye enroque, al paso (en passant), coronación, jaque,
- * jaque mate y ahogado. Validado con perft.
+ * jaque mate, ahogado y tablas (regla de los 50 movimientos, material
+ * insuficiente y triple repetición). Validado con perft.
  */
 
 export type Color = 'w' | 'b';
@@ -24,6 +25,9 @@ export interface State {
   turn: Color;
   castling: Castling;
   ep: Square | null; // casilla destino de captura al paso
+  // Medios movimientos desde la última captura o movimiento de peón (regla de
+  // los 50 movimientos). Opcional: los guardados antiguos no lo traen (= 0).
+  halfmove?: number;
 }
 export interface Move {
   from: Square;
@@ -46,7 +50,13 @@ export function initialState(): State {
     board[sq(6, c)] = { t: 'p', c: 'w' };
     board[sq(7, c)] = { t: back[c], c: 'w' };
   }
-  return { board, turn: 'w', castling: { wK: true, wQ: true, bK: true, bQ: true }, ep: null };
+  return {
+    board,
+    turn: 'w',
+    castling: { wK: true, wQ: true, bK: true, bQ: true },
+    ep: null,
+    halfmove: 0,
+  };
 }
 
 const KNIGHT = [
@@ -254,10 +264,12 @@ export function applyMove(state: State, m: Move): State {
   const tr = row(m.to);
   const tc = col(m.to);
 
+  let capture = board[m.to] !== null;
   board[m.from] = null;
   // Captura al paso
   if (p.t === 'p' && state.ep !== null && m.to === state.ep && board[m.to] === null) {
     board[sq(fr, tc)] = null;
+    capture = true;
   }
   // Colocar (con coronación)
   board[m.to] = m.promo ? { t: m.promo, c: me } : p;
@@ -275,7 +287,9 @@ export function applyMove(state: State, m: Move): State {
   if (p.t === 'p' && Math.abs(tr - fr) === 2) ep = sq((tr + fr) / 2, fc);
 
   updateRights(castling, m.from, m.to);
-  return { board, turn: other(me), castling, ep };
+  // Captura o movimiento de peón reinician el contador de los 50 movimientos.
+  const halfmove = p.t === 'p' || capture ? 0 : (state.halfmove ?? 0) + 1;
+  return { board, turn: other(me), castling, ep, halfmove };
 }
 
 /** Movimientos legales del bando que mueve. */
@@ -306,12 +320,88 @@ export function findLegalMove(state: State, m: Move | null | undefined): Move | 
   );
 }
 
-export type Status = 'playing' | 'check' | 'checkmate' | 'stalemate';
+export type Status =
+  | 'playing'
+  | 'check'
+  | 'checkmate'
+  | 'stalemate'
+  | 'draw-fifty'
+  | 'draw-insufficient'
+  | 'draw-repetition';
 
-export function status(state: State): Status {
+/** ¿El estado es final (mate, ahogado o tablas)? */
+export const isGameOver = (st: Status) => st !== 'playing' && st !== 'check';
+/** ¿El estado es tablas (incluye el ahogado)? */
+export const isDraw = (st: Status) => st === 'stalemate' || st.startsWith('draw-');
+
+/**
+ * Material insuficiente para dar mate: R-R, R+A-R, R+C-R y cualquier
+ * combinación de solo alfiles (de uno u otro bando) en casillas del mismo color.
+ */
+export function insufficientMaterial(state: State): boolean {
+  let knights = 0;
+  let bishops = 0;
+  const bishopColors = new Set<number>();
+  for (let i = 0; i < 64; i++) {
+    const p = state.board[i];
+    if (!p || p.t === 'k') continue;
+    if (p.t === 'n') knights++;
+    else if (p.t === 'b') {
+      bishops++;
+      bishopColors.add((row(i) + col(i)) % 2);
+    } else return false; // peón, torre o dama
+  }
+  if (knights + bishops === 0) return true;
+  if (knights === 1 && bishops === 0) return true;
+  return knights === 0 && bishopColors.size === 1;
+}
+
+/**
+ * Clave de la posición para la repetición: tablero, turno, derechos de enroque
+ * y casilla al paso (solo si algún peón del bando que mueve podría capturar).
+ */
+export function positionKey(state: State): string {
+  let k = '';
+  for (let i = 0; i < 64; i++) {
+    const p = state.board[i];
+    k += p ? (p.c === 'w' ? p.t.toUpperCase() : p.t) : '.';
+  }
+  const c = state.castling;
+  k += state.turn + (c.wK ? 'K' : '') + (c.wQ ? 'Q' : '') + (c.bK ? 'k' : '') + (c.bQ ? 'q' : '');
+  if (state.ep !== null) {
+    // El peón que captura al paso está en la fila "detrás" del ep según su avance.
+    const r = row(state.ep) + (state.turn === 'w' ? 1 : -1);
+    const ec = col(state.ep);
+    const can = [-1, 1].some((dc) => {
+      if (!onB(r, ec + dc)) return false;
+      const p = state.board[sq(r, ec + dc)];
+      return !!p && p.t === 'p' && p.c === state.turn;
+    });
+    if (can) k += '@' + state.ep;
+  }
+  return k;
+}
+
+/** Veces que aparece la posición actual contando el historial previo. */
+export function repetitionCount(state: State, history: readonly State[]): number {
+  const key = positionKey(state);
+  let n = 1;
+  for (const h of history) if (h.turn === state.turn && positionKey(h) === key) n++;
+  return n;
+}
+
+/**
+ * Estado de la partida. `history` (posiciones anteriores) solo se usa para la
+ * triple repetición; sin él no se detecta.
+ */
+export function status(state: State, history: readonly State[] = []): Status {
   const moves = legalMoves(state);
-  if (moves.length === 0) return inCheck(state, state.turn) ? 'checkmate' : 'stalemate';
-  return inCheck(state, state.turn) ? 'check' : 'playing';
+  const check = inCheck(state, state.turn);
+  if (moves.length === 0) return check ? 'checkmate' : 'stalemate';
+  if ((state.halfmove ?? 0) >= 100) return 'draw-fifty';
+  if (insufficientMaterial(state)) return 'draw-insufficient';
+  if (history.length > 0 && repetitionCount(state, history) >= 3) return 'draw-repetition';
+  return check ? 'check' : 'playing';
 }
 
 // ︎ (selector de variación de TEXTO) evita que el peón (♟) y demás

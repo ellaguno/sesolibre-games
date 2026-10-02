@@ -69,6 +69,7 @@ export default function SettingsScreen() {
         <Row label={t('settings.language')}>
           <select
             value={lang}
+            aria-label={t('settings.language')}
             onChange={(e) => setLang(e.target.value as LangSetting)}
             className="rounded-lg border border-app-border bg-app-surface2 p-2 text-app-text"
           >

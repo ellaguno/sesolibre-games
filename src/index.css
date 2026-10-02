@@ -52,18 +52,19 @@ body {
 /* ---------- Animaciones procedurales ligeras (CSS) ---------- */
 
 /* Entrada de pantalla al navegar */
+/* Solo opacidad: un transform (o filter) en el contenedor crearía un bloque
+   contenedor para los fondos `fixed inset-0` del Hub/GameHost, que durante la
+   animación se posicionarían respecto al contenedor y saltarían al terminar. */
 @keyframes route-enter {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.99);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 .route-enter {
-  animation: route-enter 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: route-enter 0.28s ease-out;
 }
 
 /* Entrada del panel de fin de partida (victoria / sin jugadas) */

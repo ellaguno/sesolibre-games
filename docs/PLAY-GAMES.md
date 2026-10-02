@@ -13,6 +13,7 @@ Qué hay ya hecho en el repo y qué falta por hacer en Play Console:
 | Ranking dentro de la pantalla de Récords | ✅ `src/hub/RecordsScreen.tsx` |
 | Configuración del proyecto en CI | ✅ `scripts/android-play-games.sh` |
 | Proyecto de Play Juegos + las 7 tablas | ✅ creados (borrador) |
+| Tablas de Buscaminas Fácil y Medio | ⛔ **manual (ver sección 2)** |
 | Ids pegados en el repo | ✅ hecho |
 | Credenciales OAuth (firma de Play + depuración) | ✅ creadas (borrador) |
 | **Publicar el proyecto de Play Juegos** | ⛔ **manual (ver abajo)** |
@@ -78,14 +79,17 @@ Servicios de Play Games → **Tablas de clasificación** → *Crear una tabla de
 clasificación*. Una por juego. **El formato y el orden no se pueden cambiar una
 vez publicada la tabla**; el nombre y el orden en la lista sí.
 
-Las siete ya están creadas (en estado *Borrador*):
+Las siete originales ya están creadas (en estado *Borrador*); faltan las dos
+de Buscaminas Fácil y Medio:
 
 | Juego | Nombre en Console | Formato | Orden | Mín. | Id |
 | --- | --- | --- | --- | --- | --- |
 | Figures | Figures | Número | Más altas primero | — | `CgkIoJP--6UCEAIQAA` |
 | Glótono | Glotono | Número | Más altas primero | — | `CgkIoJP--6UCEAIQAQ` |
 | Bloques | Bloques | Número | Más altas primero | — | `CgkIoJP--6UCEAIQAg` |
-| Buscaminas | Buscaminas | Duración | **Más bajas primero** | 1 | `CgkIoJP--6UCEAIQAw` |
+| Buscaminas (Difícil) | Buscaminas | Duración | **Más bajas primero** | 1 | `CgkIoJP--6UCEAIQAw` |
+| Buscaminas (Fácil) | *pendiente* | Duración | **Más bajas primero** | 1 | — |
+| Buscaminas (Medio) | *pendiente* | Duración | **Más bajas primero** | 1 | — |
 | Sudoku | Sudoku | Duración | **Más bajas primero** | 1 | `CgkIoJP--6UCEAIQBA` |
 | Solitario | Solitario | Número | **Más bajas primero** | 1 | `CgkIoJP--6UCEAIQBQ` |
 | Ajedrez | Ajedrez | Número | **Más bajas primero** | 1 | `CgkIoJP--6UCEAIQBg` |
@@ -94,6 +98,29 @@ Las siete ya están creadas (en estado *Borrador*):
 > multiplica por 1000 los tiempos (que lleva en segundos). Ver
 > `toLeaderboardScore` en `src/core/playGames/config.ts`. La vista previa de
 > Console lo confirma: 123.450.000 se muestra como `34:17:30`.
+
+> **Buscaminas: una tabla por dificultad.** Un tiempo en Fácil no es
+> comparable con uno en Difícil, así que la app guarda el récord local de cada
+> dificultad por separado y solo envía a una tabla los tiempos de su
+> dificultad. La tabla existente (`CgkIoJP--6UCEAIQAw`) quedó asignada a
+> **Difícil**; si recibió tiempos de Fácil/Medio durante las pruebas, conviene
+> *restablecer sus puntuaciones* en Console antes de publicar. Para activar
+> Fácil y Medio:
+>
+> 1. Crea dos tablas nuevas, igual que la original (formato **Duración**,
+>    **Más bajas primero**, mínimo 1), p. ej. "Buscaminas Facil" y
+>    "Buscaminas Medio" (sin acentos en en-US). Opcional: renombra la original
+>    a "Buscaminas Dificil".
+> 2. Copia sus ids en `src/core/playGames/config.ts`:
+>    ```ts
+>    minesweeper: {
+>      easy: 'CgkI…',   // vacío = Fácil sin ranking global
+>      medium: 'CgkI…',
+>      hard: 'CgkIoJP--6UCEAIQAw',
+>    },
+>    ```
+> Mientras estén vacíos, esas dificultades no envían nada y Récords solo
+> muestra el ranking global de Difícil.
 
 > La **puntuación mínima 1** en las tablas de "más bajas primero" evita que un
 > `0` accidental se clave como récord imborrable: en esas tablas 0 es el mejor
@@ -112,10 +139,11 @@ Las siete ya están creadas (en estado *Borrador*):
    ```
 2. **Ids de las tablas** → `src/core/playGames/config.ts`:
    ```ts
-   export const LEADERBOARD_IDS: Record<string, string> = {
+   export const LEADERBOARD_IDS: Record<string, string | Record<string, string>> = {
      figures: 'CgkI...',
      glotono: 'CgkI...',
      // …un id por juego; vacío = ese juego se queda sin ranking global
+     minesweeper: { easy: '', medium: '', hard: 'CgkI...' }, // uno por dificultad
    };
    ```
 

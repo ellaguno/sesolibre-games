@@ -85,7 +85,7 @@ export default function HubScreen() {
 
   useEffect(() => {
     let active = true;
-    Promise.all(games.map((g) => ScoreService.getBest(g.id))).then((results) => {
+    Promise.all(games.map((g) => ScoreService.getDisplayBest(g))).then((results) => {
       if (!active) return;
       setBest(Object.fromEntries(games.map((g, i) => [g.id, results[i]])));
     });

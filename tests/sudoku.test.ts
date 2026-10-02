@@ -7,6 +7,9 @@ import {
   isValid,
   findConflicts,
   DIFFICULTIES,
+  gradePuzzle,
+  emptyBoard,
+  TECHNIQUE_RANK,
   type Board,
 } from '../src/games/sudoku/generator';
 
@@ -76,5 +79,78 @@ describe('sudoku generator', () => {
     expect(conf[0][0]).toBe(true);
     expect(conf[0][4]).toBe(true);
     expect(conf[1][1]).toBe(false);
+  });
+
+  it('countSolutions: vacío = 2+, pistas en conflicto = 0, no muta el tablero', () => {
+    const b = emptyBoard();
+    expect(countSolutions(b, 2)).toBe(2);
+    expect(b.flat().every((v) => v === 0)).toBe(true);
+    b[0][0] = 3;
+    b[0][5] = 3;
+    expect(countSolutions(b, 2)).toBe(0);
+  });
+});
+
+function parse(s: string): Board {
+  const d = s.replace(/\s/g, '');
+  return Array.from({ length: 9 }, (_, r) =>
+    Array.from({ length: 9 }, (_, c) => {
+      const ch = d[r * 9 + c];
+      return ch === '.' ? 0 : Number(ch);
+    }),
+  );
+}
+
+describe('sudoku: calificador lógico', () => {
+  it('un tablero casi completo se resuelve con «único candidato»', () => {
+    const b = generateSolved(seededRng(3));
+    b[4][4] = 0;
+    b[0][0] = 0;
+    expect(gradePuzzle(b)).toEqual({ solvedByLogic: true, hardest: 'naked' });
+  });
+
+  it('con pocas pistas (varias soluciones) se atasca sin colgarse', () => {
+    const b = emptyBoard();
+    b[1][3] = 1;
+    b[2][6] = 1;
+    b[3][1] = 1;
+    expect(gradePuzzle(b)).toEqual({ solvedByLogic: false, hardest: 'beyond' });
+  });
+
+  it('un puzzle muy difícil conocido (AI Escargot) no sale solo con estas técnicas', () => {
+    const p = parse(
+      '1....7.9. .3..2...8 ..96..5.. ..53..9.. .1..8...2 6....4... 3......1. .4......7 ..7...3..',
+    );
+    expect(countSolutions(p, 2)).toBe(1);
+    expect(gradePuzzle(p).solvedByLogic).toBe(false);
+  });
+
+  it('cada dificultad exige la técnica prometida (varias semillas)', () => {
+    for (const diff of DIFFICULTIES) {
+      for (let s = 0; s < 8; s++) {
+        const { puzzle } = generatePuzzle(diff, seededRng(1000 + s * 31 + diff.clues));
+        expect(countSolutions(puzzle, 2)).toBe(1);
+        const g = gradePuzzle(puzzle);
+        const rank = TECHNIQUE_RANK[g.hardest];
+        const clues = puzzle.flat().filter((v) => v !== 0).length;
+        if (diff.id === 'easy') {
+          expect(g.hardest).toBe('naked');
+          expect(clues).toBeGreaterThanOrEqual(40);
+        } else if (diff.id === 'medium') {
+          expect(g.hardest).toBe('hidden');
+        } else {
+          expect(rank).toBeGreaterThanOrEqual(TECHNIQUE_RANK.advanced);
+        }
+      }
+    }
+  });
+
+  it('la generación es rápida (Difícil < 1 s por puzzle)', () => {
+    const hard = DIFFICULTIES.find((d) => d.id === 'hard') ?? DIFFICULTIES[2];
+    for (let s = 0; s < 5; s++) {
+      const t0 = performance.now();
+      generatePuzzle(hard, seededRng(500 + s));
+      expect(performance.now() - t0).toBeLessThan(1000);
+    }
   });
 });

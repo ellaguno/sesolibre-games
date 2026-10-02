@@ -1,4 +1,4 @@
-import type { CSSProperties, PointerEvent } from 'react';
+import type { CSSProperties, KeyboardEvent, PointerEvent } from 'react';
 import { figureTypes, type FigureType } from './figures';
 import type { Cell, Power } from './board';
 
@@ -19,6 +19,14 @@ interface Props {
   onPointerUp: (e: PointerEvent<HTMLDivElement>) => void;
   /** Gesto cancelado por el sistema (p. ej. gesto de Android): sin intercambio. */
   onPointerCancel?: (e: PointerEvent<HTMLDivElement>) => void;
+  /** Accesibilidad: nombre leído por el lector de pantalla. */
+  label?: string;
+  /** Tabulación "itinerante": solo la celda activa es alcanzable con Tab. */
+  tabIndex?: number;
+  /** Teclado: Enter/Espacio seleccionan, flechas mueven el foco (lo gestiona el padre). */
+  onKeyDown?: (e: KeyboardEvent<HTMLDivElement>) => void;
+  /** Identificador "fila-columna" para que el padre pueda enfocar la celda. */
+  cellId?: string;
 }
 
 // Color de cada premio (los keyframes viven en figures.css).
@@ -46,6 +54,10 @@ export default function Gem({
   onPointerMove,
   onPointerUp,
   onPointerCancel,
+  label,
+  tabIndex,
+  onKeyDown,
+  cellId,
 }: Props) {
   const animationClass = isNew ? (vertical ? 'animate-fall' : 'animate-slide') : '';
 
@@ -64,13 +76,19 @@ export default function Gem({
 
   return (
     <div
-      className={`relative aspect-square cursor-pointer select-none touch-none ${
+      className={`relative aspect-square cursor-pointer select-none touch-none rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-sky-400 ${
         isSelected ? 'z-10 scale-110' : ''
       } ${gem?.p ? 'z-[5]' : ''} transition-transform duration-200 ${animationClass}`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
+      role="button"
+      tabIndex={tabIndex ?? -1}
+      aria-label={label}
+      aria-pressed={isSelected}
+      onKeyDown={onKeyDown}
+      data-cell={cellId}
       style={style}
     >
       {/* Aura del premio, por detrás de la figura. */}
@@ -85,7 +103,7 @@ export default function Gem({
       {src && (
         <img
           src={src}
-          alt={gem!.t}
+          alt={label ? '' : gem!.t}
           draggable={false}
           className={`relative pointer-events-none h-full w-full object-contain ${
             isDestroying ? 'animate-destruction' : ''

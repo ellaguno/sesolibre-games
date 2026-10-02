@@ -270,16 +270,32 @@ function drawFruit(
   ctx.restore();
 }
 
+// Fondo + paredes del laberinto: son estáticos durante todo el nivel, así que se
+// pintan una vez en un lienzo fuera de pantalla (a la resolución del
+// dispositivo) en vez de crear ~130 degradados en cada fotograma.
+function renderStatic(maze: Maze, dpr: number): HTMLCanvasElement {
+  const off = document.createElement('canvas');
+  off.width = Math.round(maze.tw * TILE * dpr);
+  off.height = Math.round(maze.th * TILE * dpr);
+  const octx = off.getContext('2d');
+  if (octx) {
+    octx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    octx.fillStyle = '#0b1020';
+    octx.fillRect(0, 0, maze.tw * TILE, maze.th * TILE);
+    drawWalls(octx, maze);
+  }
+  return off;
+}
+
 function draw(
   ctx: CanvasRenderingContext2D,
   s: RenderState,
   imgs: HTMLImageElement[],
   t: number,
+  staticLayer: HTMLCanvasElement,
 ) {
   const { maze } = s;
-  ctx.fillStyle = '#0b1020';
-  ctx.fillRect(0, 0, maze.tw * TILE, maze.th * TILE);
-  drawWalls(ctx, maze);
+  ctx.drawImage(staticLayer, 0, 0, maze.tw * TILE, maze.th * TILE);
   drawDots(ctx, maze, t);
   drawFruit(ctx, s, imgs, t);
   for (const e of s.enemies) {
@@ -466,9 +482,37 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
     setLevelFlash(null);
     setFruitFlash(null);
     const canvas = canvasRef.current!;
-    canvas.width = engine.maze.tw * TILE;
-    canvas.height = engine.maze.th * TILE;
     const ctx = canvas.getContext('2d')!;
+
+    // Lienzo a la densidad de píxeles del dispositivo (nítido en móviles): el
+    // búfer mide w*dpr y el CSS w; se dibuja en unidades CSS con setTransform.
+    // La capa estática (paredes) se regenera al cambiar de nivel (el motor crea
+    // un laberinto nuevo) o de dpr (zoom, mover la ventana de pantalla).
+    let dpr = 0;
+    let cachedMaze: Maze | null = null;
+    let staticLayer: HTMLCanvasElement | null = null;
+    const ensureCanvas = (): HTMLCanvasElement => {
+      const maze = engine.maze;
+      const curDpr = Math.max(1, window.devicePixelRatio || 1);
+      if (curDpr !== dpr || maze !== cachedMaze || !staticLayer) {
+        const w = maze.tw * TILE;
+        const h = maze.th * TILE;
+        if (curDpr !== dpr || canvas.style.width !== `${w}px`) {
+          canvas.width = Math.round(w * curDpr);
+          canvas.height = Math.round(h * curDpr);
+          canvas.style.width = `${w}px`;
+        }
+        dpr = curDpr;
+        cachedMaze = maze;
+        staticLayer = renderStatic(maze, dpr);
+      }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      return staticLayer;
+    };
+    const drawFrame = (now: number) =>
+      draw(ctx, engine.getState(), fruitImgs.current, now, ensureCanvas());
+    // Primer fotograma inmediato (sin esperar a rAF).
+    drawFrame(performance.now());
 
     let raf = 0;
     let last = performance.now();
@@ -522,7 +566,7 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
       last = now;
       engine.update(dt);
       handleEvents(engine.drainEvents());
-      draw(ctx, engine.getState(), fruitImgs.current, now);
+      drawFrame(now);
 
       if (engine.level !== lastLevelSeen) {
         lastLevelSeen = engine.level;
@@ -542,6 +586,9 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
           }
         }
       }
+      // Partida perdida: ya se pintó el fotograma final; no seguir animando
+      // (el HUD se actualiza abajo una última vez).
+      const stopped = engine.status === 'lost';
 
       if (
         engine.score !== pushedScore ||
@@ -560,19 +607,31 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
           status: engine.status,
         });
       }
-      raf = requestAnimationFrame(loop);
+      if (!stopped) raf = requestAnimationFrame(loop);
     };
     // Al volver del fondo se reinicia el reloj para no aplicar un dt enorme.
     const onVisibility = () => {
       if (document.visibilityState === 'visible') last = performance.now();
     };
+    // Con la partida detenida no hay bucle: redibujar si cambia el dpr/tamaño.
+    const onResize = () => {
+      if (engine.status === 'lost') drawFrame(performance.now());
+    };
+    window.addEventListener('resize', onResize);
     document.addEventListener('visibilitychange', onVisibility);
     raf = requestAnimationFrame(loop);
     return () => {
       cancelAnimationFrame(raf);
       document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('resize', onResize);
       if (flashTimer) clearTimeout(flashTimer);
       if (fruitTimer) clearTimeout(fruitTimer);
+      // Salir (o reiniciar) a mitad de partida: la puntuación cuenta, una sola
+      // vez. En el doble montaje de StrictMode aún vale 0 y no se envía.
+      if (!submittedRef.current && engine.score > 0) {
+        submittedRef.current = true;
+        onScoreRef.current(engine.score);
+      }
     };
   }, [seed]);
 

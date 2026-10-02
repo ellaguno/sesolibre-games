@@ -71,6 +71,9 @@ export default function RewardsScreen() {
           const isPrize = !!b.achievement; // se gana con un logro, no se compra
           const affordable = coins >= b.cost;
           const buyable = !owned && !isPrize && affordable;
+          // Nombre del reverso para lectores de pantalla: sin él, todos los
+          // botones sonaban igual («Usar», «Comprar»).
+          const name = t('cos.backName', { name: t(`back.${b.id}`) });
 
           const buy = () => {
             if (buyBack(b.id, b.cost)) {
@@ -92,9 +95,15 @@ export default function RewardsScreen() {
               <button
                 onClick={onTap}
                 disabled={!owned && !buyable}
-                aria-label={
-                  inUse ? t('cos.inUse') : owned ? t('cos.use') : `${t('cos.buy')} ${b.cost} 🪙`
-                }
+                aria-label={`${name}: ${
+                  inUse
+                    ? t('cos.inUse')
+                    : owned
+                      ? t('cos.use')
+                      : isPrize
+                        ? t('ach.explorer')
+                        : `${t('cos.buy')} ${b.cost} 🪙`
+                }`}
                 className={`relative aspect-[5/7] w-full overflow-hidden rounded-md border transition ${
                   inUse ? 'border-brand ring-2 ring-brand' : 'border-white/20'
                 } ${!owned && !buyable ? 'opacity-60' : 'hover:scale-[1.03] active:scale-95'}`}
@@ -125,6 +134,7 @@ export default function RewardsScreen() {
               ) : owned ? (
                 <button
                   onClick={() => selectBack(b.id)}
+                  aria-label={`${t('cos.use')}: ${name}`}
                   className="rounded-full bg-app-surface2 px-2.5 py-1 text-[11px] font-semibold hover:bg-app-border"
                 >
                   {t('cos.use')}
@@ -137,6 +147,7 @@ export default function RewardsScreen() {
                 <button
                   onClick={buy}
                   disabled={!affordable}
+                  aria-label={`${t('cos.buy')}: ${name} · ${b.cost} 🪙`}
                   className="rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-semibold text-amber-500 hover:bg-amber-500/25 disabled:opacity-50"
                 >
                   {t('cos.buy')} · {b.cost} 🪙

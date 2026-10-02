@@ -143,7 +143,8 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
         bigCelebrate();
         if (!submittedRef.current) {
           submittedRef.current = true;
-          onScore(secs); // tiempo en segundos: menor es mejor
+          // Tiempo en segundos (menor es mejor); récord y tabla por dificultad.
+          onScore(secs, { difficulty: difficulty.id });
         }
       } else {
         AudioService.play('lose');
@@ -156,7 +157,7 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
       setGrid(next);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [onScore],
+    [onScore, difficulty.id],
   );
 
   const handleReveal = (r: number, c: number) => {
@@ -278,21 +279,29 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
                 'flex aspect-square w-full items-center justify-center font-bold leading-none select-none rounded-[3px]';
               let content: React.ReactNode = '';
               let cls = 'bg-app-surface2 hover:bg-app-surface2';
+              let state = t('mines.cell.hidden');
               if (cell.revealed) {
                 if (cell.mine) {
                   content = '💣';
                   cls = 'bg-rose-900/60';
+                  state = t('mines.cell.mine');
                 } else {
                   cls = 'bg-app-surface/60';
                   if (cell.adjacent > 0) content = cell.adjacent;
+                  state =
+                    cell.adjacent > 0
+                      ? t('mines.cell.number', { n: cell.adjacent })
+                      : t('mines.cell.empty');
                 }
               } else if (cell.flagged) {
                 content = '🚩';
+                state = t('mines.cell.flag');
               }
               return (
                 <button
                   key={`${r}-${c}`}
                   className={`${base} ${cls}`}
+                  aria-label={t('mines.cell', { r: r + 1, c: c + 1, state })}
                   style={
                     cell.revealed && cell.adjacent > 0 && !cell.mine
                       ? { color: NUM_COLORS[cell.adjacent] }

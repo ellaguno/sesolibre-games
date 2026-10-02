@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AudioService } from '../core/AudioService';
 import { useT } from '../core/i18n';
 
@@ -17,9 +17,36 @@ interface Props {
 export default function HelpButton({ title, text, className = '' }: Props) {
   const t = useT();
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+
+  // Accesibilidad: al abrir, foco al botón de cerrar; Escape cierra; al
+  // cerrar, el foco vuelve al botón «?» que abrió la ventana.
+  useEffect(() => {
+    if (!open) return;
+    closeRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        setOpen(false);
+      }
+    };
+    // Fase de captura: que el Escape no llegue a los atajos del juego.
+    window.addEventListener('keydown', onKey, true);
+    const trigger = triggerRef.current;
+    return () => {
+      window.removeEventListener('keydown', onKey, true);
+      trigger?.focus();
+    };
+  }, [open]);
+
   return (
     <>
       <button
+        ref={triggerRef}
+        aria-haspopup="dialog"
+        aria-expanded={open}
         onClick={() => {
           AudioService.play('click');
           setOpen(true);
@@ -47,6 +74,7 @@ export default function HelpButton({ title, text, className = '' }: Props) {
             <div className="mb-2 flex items-center justify-between gap-4">
               <p className="text-lg font-bold text-white">{title}</p>
               <button
+                ref={closeRef}
                 onClick={() => setOpen(false)}
                 aria-label={t('common.close')}
                 className="rounded-lg px-2 py-1 text-white/60 hover:bg-white/10 hover:text-white"

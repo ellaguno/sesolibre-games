@@ -8,9 +8,10 @@ interface Req {
   id: number;
   state: State;
   level: Level;
+  history?: State[]; // posiciones previas (evitar repeticiones)
 }
 
 self.onmessage = (e: MessageEvent<Req>) => {
-  const move = chooseMove(e.data.state, e.data.level);
+  const move = chooseMove(e.data.state, e.data.level, Math.random, e.data.history ?? []);
   (self as DedicatedWorkerGlobalScope).postMessage({ id: e.data.id, move });
 };

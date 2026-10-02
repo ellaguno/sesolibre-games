@@ -25,6 +25,11 @@ import {
 import type { GameProps } from '../../core/registry';
 import { ScoreService } from '../../core/ScoreService';
 import { useGameSave } from '../../core/saves';
+import { storage } from '../../core/storage';
+
+// Puntuación ya enviada al salir a mitad de partida (la partida se conserva
+// para continuarla): al volver solo se reenvía si la mejora.
+const REPORTED_KEY = 'figures:reported';
 import { AudioService } from '../../core/AudioService';
 import { useT, type TFn } from '../../core/i18n';
 import Button from '../../ui/Button';
@@ -79,6 +84,9 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfig, setShowConfig] = useState(true);
   const [reshuffled, setReshuffled] = useState(false);
+  const [confirmEnd, setConfirmEnd] = useState(false);
+  // Celda con el foco de teclado (tabulación itinerante en el tablero).
+  const [focusPos, setFocusPos] = useState<Pos>({ row: 0, col: 0 });
   const [best, setBest] = useState(0);
   const [config, setConfig] = useState<Config>({
     limitedMoves: true,
@@ -90,10 +98,56 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
   const movesLeftRef = useRef(TOTAL_MOVES);
   const scoreRef = useRef(0);
   const submittedRef = useRef(false);
+  const reportedRef = useRef(0);
+  // Temporizadores de la cascada (para cancelarlos al salir o reiniciar) y
+  // bandera de montaje: ningún temporizador rezagado debe tocar el estado ni
+  // enviar puntuación tras desmontar.
+  const timersRef = useRef(new Set<ReturnType<typeof setTimeout>>());
+  const mountedRef = useRef(false);
+  const onScoreRef = useRef(onScore);
+  onScoreRef.current = onScore;
+
+  const later = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(() => {
+      timersRef.current.delete(id);
+      if (mountedRef.current) fn();
+    }, ms);
+    timersRef.current.add(id);
+  }, []);
+
+  const clearTimers = useCallback(() => {
+    for (const id of timersRef.current) clearTimeout(id);
+    timersRef.current.clear();
+  }, []);
+
+  // Envía la puntuación de la partida en curso una sola vez (si hay algo que
+  // enviar). Lo usan el fin de partida, "Terminar", reiniciar desde Opciones y
+  // salir a mitad de partida.
+  const submitOnce = useCallback(() => {
+    const final = scoreRef.current;
+    if (submittedRef.current || final <= 0 || final <= reportedRef.current) return false;
+    submittedRef.current = true;
+    onScoreRef.current(final);
+    return true;
+  }, []);
 
   useEffect(() => {
     void ScoreService.getBest('figures').then((b) => b && setBest(b.value));
   }, []);
+
+  // Al desmontar (botón ←, atrás de Android, navegación): cancelar la cascada
+  // y guardar la puntuación si la partida quedó a medias. En el doble montaje
+  // de StrictMode la puntuación aún es 0, así que no se envía nada.
+  useEffect(() => {
+    mountedRef.current = true;
+    const timers = timersRef.current;
+    return () => {
+      mountedRef.current = false;
+      for (const id of timers) clearTimeout(id);
+      timers.clear();
+      if (submitOnce()) void storage.set(REPORTED_KEY, scoreRef.current);
+    };
+  }, [submitOnce]);
 
   // Conservar la partida al salir al menú o al perder el foco la app. Durante
   // las cascadas (isProcessing) no se guarda: el tablero está a medio resolver.
@@ -110,6 +164,9 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
       setBoard(s.board);
       setScore(s.score);
       scoreRef.current = s.score;
+      void storage.get<number>(REPORTED_KEY).then((v) => {
+        reportedRef.current = v ?? 0;
+      });
       setMovesLeft(s.movesLeft);
       movesLeftRef.current = s.movesLeft;
       setShowConfig(false);
@@ -120,6 +177,16 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
   const playSound = useCallback(() => AudioService.play('pop'), []);
 
   const initializeBoard = useCallback(() => {
+    // Nueva partida desde Opciones a mitad de juego: no perder la puntuación.
+    clearTimers();
+    const prev = scoreRef.current;
+    if (submitOnce()) setBest((b) => Math.max(b, prev));
+    reportedRef.current = 0;
+    void storage.remove(REPORTED_KEY);
+    setDestroyingGems([]);
+    setBlasts([]);
+    setNewGems([]);
+    setConfirmEnd(false);
     setBoard(createBoard(config.figureType));
     setScore(0);
     scoreRef.current = 0;
@@ -131,21 +198,26 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
     setShowConfig(false);
     setReshuffled(false);
     submittedRef.current = false;
-  }, [config.figureType]);
+  }, [config.figureType, clearTimers, submitOnce]);
 
   const canInteract =
     !gameOver && !isProcessing && !(config.limitedMoves && movesLeft <= 0);
 
   const finishGame = useCallback(() => {
+    if (!mountedRef.current) return;
+    clearTimers();
     setGameOver(true);
     setIsProcessing(false);
+    setConfirmEnd(false);
     const final = scoreRef.current;
-    if (!submittedRef.current) {
+    if (!submittedRef.current && final > reportedRef.current) {
       submittedRef.current = true;
-      onScore(final);
+      onScoreRef.current(final);
       if (final > best) setBest(final);
     }
-  }, [best, onScore]);
+    reportedRef.current = 0;
+    void storage.remove(REPORTED_KEY);
+  }, [best, clearTimers]);
 
   // Resuelve todas las reacciones en cadena de un movimiento. `origin` es la
   // celda que el jugador acaba de mover: si su jugada gana un premio, el premio
@@ -162,7 +234,7 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
         if (!hasValidMove(currentBoard)) {
           setBoard(reshuffle(currentBoard, config.figureType));
           setReshuffled(true);
-          setTimeout(() => setReshuffled(false), 1500);
+          later(() => setReshuffled(false), 1500);
         }
         setIsProcessing(false);
         return;
@@ -172,7 +244,7 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
       setBlasts(step.detonations);
       playSound();
       if (step.detonations.length > 0) AudioService.play('reward');
-      setTimeout(() => {
+      later(() => {
         const cleared = removeMatches(currentBoard, step.cleared);
         const withPrizes = placePrizes(cleared, step.prizes);
         scoreRef.current +=
@@ -189,13 +261,13 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
         );
         setBoard(filled);
         setNewGems(spawned);
-        setTimeout(() => {
+        later(() => {
           setNewGems([]);
           resolve(filled);
         }, MATCH_ANIM_MS);
       }, MATCH_ANIM_MS);
     },
-    [config.limitedMoves, config.verticalMovement, config.figureType, playSound, finishGame],
+    [config.limitedMoves, config.verticalMovement, config.figureType, playSound, finishGame, later],
   );
 
   const trySwap = useCallback(
@@ -206,7 +278,7 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
       if (matches.length === 0) {
         setIsProcessing(true);
         setBoard(swapped);
-        setTimeout(() => {
+        later(() => {
           setBoard(board);
           setIsProcessing(false);
         }, INVALID_REVERT_MS);
@@ -222,7 +294,7 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
       // `b` es donde acaba la ficha que el jugador arrastró: ahí nace el premio.
       resolve(swapped, b);
     },
-    [board, config.limitedMoves, resolve],
+    [board, config.limitedMoves, resolve, later],
   );
 
   const handleSelect = (row: number, col: number) => {
@@ -242,6 +314,36 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
     } else {
       setSelected({ row, col });
     }
+  };
+
+  // Teclado: Enter/Espacio seleccionan (y con una ficha ya seleccionada,
+  // intercambian con la vecina); las flechas mueven el foco por el tablero.
+  const boardRef = useRef<HTMLDivElement>(null);
+  const onGemKey = (row: number, col: number, e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleSelect(row, col);
+      return;
+    }
+    const step: Record<string, Pos> = {
+      ArrowUp: { row: -1, col: 0 },
+      ArrowDown: { row: 1, col: 0 },
+      ArrowLeft: { row: 0, col: -1 },
+      ArrowRight: { row: 0, col: 1 },
+    };
+    const d = step[e.key];
+    if (!d) return;
+    e.preventDefault();
+    const r = clamp(row + d.row, 0, BOARD_SIZE - 1);
+    const c = clamp(col + d.col, 0, BOARD_SIZE - 1);
+    setFocusPos({ row: r, col: c });
+    boardRef.current?.querySelector<HTMLElement>(`[data-cell="${r}-${c}"]`)?.focus();
+  };
+
+  const gemLabel = (row: number, col: number): string => {
+    const gem = board[row]?.[col];
+    const base = t('fig.cell', { name: gem?.t ?? t('fig.empty'), r: row + 1, c: col + 1 });
+    return gem?.p ? `${base}, ${t(`fig.power.${gem.p}`)}` : base;
   };
 
   // ---- Arrastre animado de fichas (sigue al dedo hacia un vecino) ----
@@ -376,7 +478,12 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
       ) : (
         <>
           <div className="w-full">
-            <div className="mb-3 grid grid-cols-8 gap-1 rounded-xl bg-app-surface p-2">
+            <div
+              ref={boardRef}
+              role="group"
+              aria-label={t('fig.board')}
+              className="mb-3 grid grid-cols-8 gap-1 rounded-xl bg-app-surface p-2"
+            >
               {board.map((row, rowIndex) =>
                 row.map((gem, colIndex) => (
                   <Gem
@@ -397,6 +504,12 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
                     onPointerMove={onGemMove}
                     onPointerUp={onGemUp}
                     onPointerCancel={onGemCancel}
+                    label={gemLabel(rowIndex, colIndex)}
+                    cellId={`${rowIndex}-${colIndex}`}
+                    tabIndex={
+                      focusPos.row === rowIndex && focusPos.col === colIndex ? 0 : -1
+                    }
+                    onKeyDown={(e) => onGemKey(rowIndex, colIndex, e)}
                     isDestroying={destroyingGems.some(
                       (g) => g.row === rowIndex && g.col === colIndex,
                     )}
@@ -423,12 +536,39 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
             <div className="mt-2 font-semibold text-brand">{t('fig.reshuffled')}</div>
           )}
           {outOfMoves && <div className="mt-2 text-app-muted">{t('fig.noMoves')}</div>}
-          <button
-            className="mt-3 rounded-lg bg-app-surface px-4 py-2 text-sm hover:bg-app-surface2"
-            onClick={() => setShowConfig(true)}
-          >
-            {t('common.options')}
-          </button>
+          {confirmEnd ? (
+            <div className="mt-3 flex flex-col items-center gap-2 rounded-xl bg-app-surface px-4 py-3 text-center">
+              <p className="text-sm font-semibold">{t('fig.endConfirm')}</p>
+              <div className="flex gap-2">
+                <Button onClick={finishGame} disabled={isProcessing}>
+                  {t('fig.end')}
+                </Button>
+                <Button variant="ghost" onClick={() => setConfirmEnd(false)}>
+                  {t('common.cancel')}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-3 flex gap-2">
+              {/* Modo ilimitado: la partida no acaba sola, así que se ofrece
+                  terminarla para que la puntuación cuente. */}
+              {!config.limitedMoves && (
+                <button
+                  className="rounded-lg bg-app-surface px-4 py-2 text-sm hover:bg-app-surface2 disabled:opacity-50"
+                  onClick={() => setConfirmEnd(true)}
+                  disabled={isProcessing}
+                >
+                  {t('fig.end')}
+                </button>
+              )}
+              <button
+                className="rounded-lg bg-app-surface px-4 py-2 text-sm hover:bg-app-surface2"
+                onClick={() => setShowConfig(true)}
+              >
+                {t('common.options')}
+              </button>
+            </div>
+          )}
         </>
       )}
     </main>
