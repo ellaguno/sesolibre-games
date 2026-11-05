@@ -8,6 +8,7 @@ import { useT } from '../core/i18n';
 import dashboardBg from '../assets/backgrounds/dashboard.webp';
 import HeroCard from './HeroCard';
 import GameTile from './GameTile';
+import MindInvite from './MindInvite';
 
 // Destellos aleatorios (posición/tamaño/ritmo fijos por sesión).
 function makeTwinkles(n: number) {
@@ -222,6 +223,8 @@ export default function HubScreen() {
             />
           ))}
         </section>
+
+        <MindInvite />
 
         <footer className="mt-auto pt-8 text-center text-xs">
           <p className="font-semibold text-sky-300/90">{t('hub.slogan')}</p>
