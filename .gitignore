@@ -41,3 +41,11 @@ coverage/
 # Salida de Gradle del plugin nativo (plugins/*/android)
 plugins/*/android/build/
 plugins/*/android/.gradle/
+
+# Firma de Apple (nunca se versiona)
+*.p12
+*.p8
+*.key
+*.mobileprovision
+*.cer
+*.certSigningRequest

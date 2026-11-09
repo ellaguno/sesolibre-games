@@ -17,6 +17,7 @@ Salidas:
   public/icons/icon-512-maskable.png  PWA maskable (zona segura 80%)
   public/icons/apple-touch-icon.png   180, iOS Safari
   assets/play/icon-512.png        ícono de la ficha de Google Play
+  assets/splash.png, splash-dark.png  pantalla de arranque (2732, iOS/Android)
 
 Uso:  npm run icons   (= python3 scripts/build-icons.py; requiere google-chrome / chromium)
 Luego: npm run assets:android  para regenerar los mipmaps locales.
@@ -235,6 +236,12 @@ def main() -> None:
         render(full_big, ROOT / 'public/icons/apple-touch-icon.png', 180, chrome, tmp)
         # Ficha de Google Play: 512x512 a sangre (Play aplica sus esquinas).
         render(full_big, ROOT / 'assets/play/icon-512.png', 512, chrome, tmp)
+        # Pantalla de arranque para @capacitor/assets (sin ella iOS muestra el
+        # logo de Capacitor). Lienzo 2732 con la marca centrada y pequeña: el
+        # sistema recorta a la proporción de cada pantalla.
+        splash = svg(background(2732) + mark(1366, 1366, 900, fill='url(#brand)', extra='filter="url(#glow)"'), 2732)
+        render(splash, ROOT / 'assets/splash.png', 2732, chrome, tmp)
+        render(splash, ROOT / 'assets/splash-dark.png', 2732, chrome, tmp)
 
 
 if __name__ == '__main__':

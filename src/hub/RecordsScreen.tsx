@@ -4,6 +4,7 @@ import { games, type GameMeta } from '../core/registry';
 import { ScoreService, type ScoreEntry } from '../core/ScoreService';
 import { formatScore } from '../core/format';
 import { useT } from '../core/i18n';
+import { IS_IOS } from '../core/platform';
 import { usePlayGames, loadRanking, openNativeLeaderboard, type GlobalRanking } from '../core/playGames/service';
 import {
   anyLeaderboardConfigured,
@@ -21,7 +22,7 @@ export default function RecordsScreen() {
   const player = usePlayGames((s) => s.player);
   const busy = usePlayGames((s) => s.busy);
   const signIn = usePlayGames((s) => s.signIn);
-  const hasLeaderboards = anyLeaderboardConfigured();
+  const hasLeaderboards = !IS_IOS && anyLeaderboardConfigured();
 
   useEffect(() => {
     let active = true;
@@ -97,6 +98,8 @@ export default function RecordsScreen() {
 
 /** Contenido desplegado de un juego: récords por variante y ranking(s) global(es). */
 function GamePanels({ game }: { game: GameMeta }) {
+  // iOS: sin Google Play Juegos, solo récords locales.
+  if (IS_IOS) return game.variants?.length ? <VariantBestsPanel game={game} /> : <LocalOnlyPanel />;
   if (!game.variants?.length) return <GlobalRankingPanel game={game} />;
   // Una tabla global por cada variante que la tenga configurada (hoy, en el
   // Buscaminas, solo Difícil). Sin ninguna, el aviso de "sin tabla".
@@ -111,6 +114,11 @@ function GamePanels({ game }: { game: GameMeta }) {
       )}
     </>
   );
+}
+
+function LocalOnlyPanel() {
+  const t = useT();
+  return <Panel>{t('records.localOnly')}</Panel>;
 }
 
 /** Mejor marca local en cada dificultad. */

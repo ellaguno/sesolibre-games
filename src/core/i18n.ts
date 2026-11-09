@@ -69,6 +69,7 @@ const es: Dict = {
   'records.connect': 'Conectar con Google Play Juegos',
   'records.connecting': 'Conectando…',
   'records.connected': 'Conectado a Google Play Juegos',
+  'records.localOnly': 'Tus récords se guardan en este dispositivo.',
   'records.onlyAndroid':
     'El ranking global de jugadores funciona en la app de Android, con Google Play Juegos.',
   'records.signInForRanking': 'Conéctate a Google Play Juegos para ver el ranking global.',
@@ -325,6 +326,7 @@ const en: Dict = {
   'records.connect': 'Connect to Google Play Games',
   'records.connecting': 'Connecting…',
   'records.connected': 'Connected to Google Play Games',
+  'records.localOnly': 'Your records are saved on this device.',
   'records.onlyAndroid': 'The global player ranking works in the Android app, via Google Play Games.',
   'records.signInForRanking': 'Connect to Google Play Games to see the global ranking.',
   'records.needPlayGamesApp':

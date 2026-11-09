@@ -9,6 +9,7 @@ import dashboardBg from '../assets/backgrounds/dashboard.webp';
 import HeroCard from './HeroCard';
 import GameTile from './GameTile';
 import MindInvite from './MindInvite';
+import { IS_IOS } from '../core/platform';
 
 // Destellos aleatorios (posición/tamaño/ritmo fijos por sesión).
 function makeTwinkles(n: number) {
@@ -224,7 +225,8 @@ export default function HubScreen() {
           ))}
         </section>
 
-        <MindInvite />
+        {/* Invita a una prueba de Google Play: no aplica (ni se permite) en iOS. */}
+        {!IS_IOS && <MindInvite />}
 
         <footer className="mt-auto pt-8 text-center text-xs">
           <p className="font-semibold text-sky-300/90">{t('hub.slogan')}</p>

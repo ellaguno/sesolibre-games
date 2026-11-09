@@ -22,6 +22,7 @@
   "dependencies": {
     "@capacitor/android": "^8.4.2",
     "@capacitor/core": "^8.4.2",
+    "@capacitor/ios": "^8.4.2",
     "@capacitor/preferences": "^8.0.1",
     "@sesolibre/capacitor-play-games": "file:plugins/capacitor-play-games",
     "react": "^18.3.1",
