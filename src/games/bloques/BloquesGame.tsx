@@ -408,7 +408,7 @@ export default function BloquesGame({ onScore, onExit }: GameProps) {
         </div>
 
         {g.over && !endHidden && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-lg bg-slate-950/85">
+          <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-3 rounded-lg bg-slate-950/85">
             <p className="text-2xl font-bold text-white">{t('bloques.over')}</p>
             <p className="font-mono text-emerald-400">{t('bloques.points')}: {g.score}</p>
             <div className="flex gap-2">

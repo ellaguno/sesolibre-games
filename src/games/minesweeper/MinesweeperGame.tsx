@@ -327,7 +327,7 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
         </div>
 
         {status !== 'playing' && !endHidden && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-xl bg-slate-950/80 text-white">
+          <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-3 rounded-xl bg-slate-950/80 text-white">
             <p className="text-2xl font-bold">
               {status === 'won' ? t('mines.cleared', { s: formatDuration(seconds) }) : t('mines.boom')}
             </p>

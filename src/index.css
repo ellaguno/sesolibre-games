@@ -29,6 +29,38 @@ body,
   height: 100%;
 }
 
+/* Es una app, no un documento: sin desplazamiento lateral (animaciones o
+   arrastres que asoman por un borde dejaban la página corrida a la derecha y
+   había que regresarla con el dedo) ni rebote/arrastre de la página entera. */
+html,
+body {
+  overflow-x: hidden;
+  overscroll-behavior: none;
+}
+#root {
+  overflow-x: clip;
+}
+body {
+  /* Solo desplazamiento vertical; los tableros ya usan touch-action: none. */
+  touch-action: pan-y;
+  /* Sin selección de texto ni menú de "copiar/compartir" al mantener pulsado
+     un botón, una leyenda o una imagen (selector nativo de Android). */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+input,
+textarea,
+[contenteditable='true'] {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+img {
+  -webkit-user-drag: none;
+}
+
 /* Altura mínima de pantalla de juego: el viewport visible menos las safe
    areas (que ya ocupa el padding del body). A diferencia de min-h-screen no
    desborda en móviles con notch, y a diferencia de min-h-full no se colapsa

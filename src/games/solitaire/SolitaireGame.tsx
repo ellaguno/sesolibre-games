@@ -687,7 +687,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
         </div>
 
         {won && !endHidden && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-slate-950/70 backdrop-blur-sm">
+          <div className="absolute inset-0 z-40 flex items-center justify-center rounded-xl bg-slate-950/70 backdrop-blur-sm">
             <div className="overlay-pop flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-gradient-to-b from-slate-800/95 to-slate-900/95 px-8 py-7 text-center shadow-2xl">
               <div className="animate-bounce text-6xl drop-shadow-lg">🎉</div>
               <p className="bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 bg-clip-text text-3xl font-extrabold text-transparent">
@@ -711,7 +711,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
         )}
 
         {gameOver && !endHidden && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-slate-950/70 backdrop-blur-sm">
+          <div className="absolute inset-0 z-40 flex items-center justify-center rounded-xl bg-slate-950/70 backdrop-blur-sm">
             <div className="overlay-pop flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-gradient-to-b from-slate-800/95 to-slate-900/95 px-8 py-7 text-center shadow-2xl">
               <div className="text-5xl drop-shadow-lg">{unwinnable ? '🏳️' : '🃏'}</div>
               <p className="text-2xl font-bold text-white">
@@ -736,7 +736,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
         )}
 
         {confirmNew && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-slate-950/70 backdrop-blur-sm">
+          <div className="absolute inset-0 z-[45] flex items-center justify-center rounded-xl bg-slate-950/70 backdrop-blur-sm">
             <div className="overlay-pop flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-gradient-to-b from-slate-800/95 to-slate-900/95 px-8 py-7 text-center shadow-2xl">
               <div className="text-5xl drop-shadow-lg">🔄</div>
               <p className="text-2xl font-bold text-white">{t('sol.newGameConfirmTitle')}</p>

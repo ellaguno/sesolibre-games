@@ -478,7 +478,7 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
         </div>
 
         {solved && !endHidden && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-md bg-slate-950/85 text-white">
+          <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-3 rounded-md bg-slate-950/85 text-white">
             <p className="text-2xl font-bold">{t('sudoku.solved', { s: formatDuration(seconds) })}</p>
             <div className="flex gap-2">
               <Button onClick={() => newGame(difficulty)}>{t('common.new')}</Button>
@@ -497,7 +497,7 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
         )}
 
         {confirmNew && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center rounded-md bg-slate-950/70 backdrop-blur-sm">
+          <div className="absolute inset-0 z-[45] flex items-center justify-center rounded-md bg-slate-950/70 backdrop-blur-sm">
             <div className="overlay-pop flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-gradient-to-b from-slate-800/95 to-slate-900/95 px-8 py-7 text-center shadow-2xl">
               <div className="text-5xl drop-shadow-lg">🔄</div>
               <p className="text-2xl font-bold text-white">{t('common.newGameConfirmTitle')}</p>

@@ -567,7 +567,7 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
         </div>
 
         {pendingPromo && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-slate-950/85">
+          <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-2 rounded-lg bg-slate-950/85">
             <p className="text-sm font-semibold text-white">{t('chess.promote')}</p>
             <div className="flex gap-2">
               {PROMOS.map((pr) => {
@@ -602,7 +602,7 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
         )}
 
         {over && !endHidden && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-lg bg-slate-950/85">
+          <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-3 rounded-lg bg-slate-950/85">
             <p className="text-center text-2xl font-bold text-white">{statusText}</p>
             <Button onClick={newGame}>{t('common.new')}</Button>
             {/* Quitar el panel para estudiar la posición final. */}

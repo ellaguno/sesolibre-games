@@ -708,7 +708,7 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
         )}
 
         {hud.status === 'lost' && !endHidden && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-xl bg-slate-950/80 text-white">
+          <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-3 rounded-xl bg-slate-950/80 text-white">
             <p className="text-2xl font-bold">{t('glotono.caught')}</p>
             <p className="font-mono text-emerald-400">
               {t('glotono.levelPts', { lv: hud.level, pts: hud.score })}
