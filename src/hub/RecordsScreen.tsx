@@ -13,6 +13,7 @@ import {
   leaderboardVariants,
 } from '../core/playGames/config';
 import type { LeaderboardEntry } from '../core/playGames/plugin';
+import OnlineTopPanel from './OnlineTopPanel';
 
 export default function RecordsScreen() {
   const t = useT();
@@ -96,29 +97,28 @@ export default function RecordsScreen() {
   );
 }
 
-/** Contenido desplegado de un juego: récords por variante y ranking(s) global(es). */
+/**
+ * Contenido desplegado de un juego: récords por variante, tabla en línea con
+ * iniciales (todas las plataformas) y ranking(s) de Google Play Juegos (solo
+ * Android; en iOS no existe y no se menciona).
+ */
 function GamePanels({ game }: { game: GameMeta }) {
-  // iOS: sin Google Play Juegos, solo récords locales.
-  if (IS_IOS) return game.variants?.length ? <VariantBestsPanel game={game} /> : <LocalOnlyPanel />;
-  if (!game.variants?.length) return <GlobalRankingPanel game={game} />;
-  // Una tabla global por cada variante que la tenga configurada (hoy, en el
-  // Buscaminas, solo Difícil). Sin ninguna, el aviso de "sin tabla".
+  const hasVariants = !!game.variants?.length;
+  // Una tabla de Play Juegos por cada variante que la tenga configurada (hoy,
+  // en el Buscaminas, solo Difícil); si no, una sola tabla (o el aviso).
   const boards = leaderboardVariants(game.id);
   return (
     <>
-      <VariantBestsPanel game={game} />
-      {boards.length === 0 ? (
-        <GlobalRankingPanel game={game} />
-      ) : (
-        boards.map((v) => <GlobalRankingPanel key={v} game={game} variant={v} />)
-      )}
+      {hasVariants && <VariantBestsPanel game={game} />}
+      <OnlineTopPanel game={game} />
+      {!IS_IOS &&
+        (boards.length === 0 ? (
+          <GlobalRankingPanel game={game} />
+        ) : (
+          boards.map((v) => <GlobalRankingPanel key={v} game={game} variant={v} />)
+        ))}
     </>
   );
-}
-
-function LocalOnlyPanel() {
-  const t = useT();
-  return <Panel>{t('records.localOnly')}</Panel>;
 }
 
 /** Mejor marca local en cada dificultad. */

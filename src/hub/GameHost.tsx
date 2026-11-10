@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useMemo } from 'react';
+import { Suspense, lazy, useCallback, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { games, scoreKey, variantFromMeta } from '../core/registry';
 import { ScoreService } from '../core/ScoreService';
@@ -6,6 +6,8 @@ import { useRewards } from '../core/RewardService';
 import { submitToLeaderboard } from '../core/playGames/service';
 import { celebrate } from '../anim/particles';
 import GamePlaceholder from './GamePlaceholder';
+import OnlineResult from '../ui/OnlineResult';
+import type { Board } from '../core/online';
 
 export default function GameHost() {
   const { id } = useParams();
@@ -21,6 +23,8 @@ export default function GameHost() {
   // Callbacks estables: los juegos los tienen en dependencias de sus efectos
   // (bucles de juego); una identidad nueva por render los reiniciaría.
   const gameId = game?.id;
+  // Último resultado, para ofrecer compararlo/publicarlo en línea.
+  const [result, setResult] = useState<{ board: Board; score: number } | null>(null);
   const onScore = useCallback(
     (score: number, meta?: Record<string, unknown>) => {
       const g = games.find((x) => x.id === gameId);
@@ -33,6 +37,7 @@ export default function GameHost() {
       });
       // Ranking global (solo en la app de Android con sesión iniciada).
       void submitToLeaderboard(g.id, score, variant);
+      if (score > 0) setResult({ board: { gameId: g.id, variant }, score });
     },
     [gameId],
   );
@@ -60,6 +65,9 @@ export default function GameHost() {
       >
         <Lazy onScore={onScore} onExit={onExit} />
       </Suspense>
+      {result && (
+        <OnlineResult board={result.board} score={result.score} onClose={() => setResult(null)} />
+      )}
     </div>
   );
 }

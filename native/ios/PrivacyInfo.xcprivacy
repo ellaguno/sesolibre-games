@@ -2,8 +2,9 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
   Manifiesto de privacidad de la app (exigido por App Store desde 2024).
-  SesoLibre Games no rastrea ni recopila datos: récords, ajustes y partidas
-  viven en el dispositivo. La única "API de motivo obligatorio" que usa es
+  SesoLibre Games no rastrea: récords, ajustes y partidas viven en el
+  dispositivo. Solo si se activa «Comparar en línea» se envía el resultado de
+  una partida y, al publicar, 3 iniciales (contenido de juego no vinculado). La única "API de motivo obligatorio" que usa es
   UserDefaults, a través de @capacitor/preferences, para guardar esos datos
   de la propia app (motivo CA92.1).
   scripts/ios-configure.sh lo copia a ios/App/App y lo añade al target.
@@ -15,7 +16,22 @@
 	<key>NSPrivacyTrackingDomains</key>
 	<array/>
 	<key>NSPrivacyCollectedDataTypes</key>
-	<array/>
+	<array>
+		<!-- Solo con «Comparar en línea» (opcional, apagado por defecto): el
+		     resultado de la partida y 3 iniciales, sin vínculo con la persona. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeGameplayContent</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array>
 		<dict>

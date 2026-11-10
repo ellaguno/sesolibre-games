@@ -3,6 +3,8 @@ import Screen from '../ui/Screen';
 import { useSettings, type LangSetting } from '../core/settings';
 import { AudioService } from '../core/AudioService';
 import { useT } from '../core/i18n';
+import { blockedInitials } from '../core/online';
+import InitialsInput from '../ui/InitialsInput';
 
 function ToggleRow({
   label,
@@ -41,8 +43,20 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 
 export default function SettingsScreen() {
   const t = useT();
-  const { theme, sound, motion, lang, toggleTheme, setSound, setMotion, setLang } =
-    useSettings();
+  const {
+    theme,
+    sound,
+    motion,
+    lang,
+    online,
+    initials,
+    toggleTheme,
+    setSound,
+    setMotion,
+    setLang,
+    setOnline,
+    setInitials,
+  } = useSettings();
 
   return (
     <Screen title={t('settings.title')}>
@@ -78,6 +92,16 @@ export default function SettingsScreen() {
             <option value="en">{t('lang.en')}</option>
           </select>
         </Row>
+        <ToggleRow label={t('settings.online')} checked={online} onChange={() => setOnline(!online)} />
+        <p className="-mt-1 px-1 text-xs text-app-muted">{t('settings.onlineHint')}</p>
+        {online && (
+          <Row label={t('settings.initials')}>
+            <InitialsInput value={initials} onChange={setInitials} label={t('settings.initials')} />
+          </Row>
+        )}
+        {online && blockedInitials(initials) && (
+          <p className="-mt-1 px-1 text-xs text-red-400">{t('online.badInitials')}</p>
+        )}
       </div>
     </Screen>
   );

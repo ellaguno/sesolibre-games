@@ -274,7 +274,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
         submittedRef.current = true;
         AudioService.play('win');
         bigCelebrate();
-        onScore(next.moves);
+        onScore(next.moves, { difficulty: next.drawCount === 1 ? 'd1' : 'd3' });
       }
       return true;
     },
@@ -317,7 +317,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
         submittedRef.current = true;
         AudioService.play('win');
         bigCelebrate();
-        onScore(cur.moves);
+        onScore(cur.moves, { difficulty: cur.drawCount === 1 ? 'd1' : 'd3' });
       }
     }
   };

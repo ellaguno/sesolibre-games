@@ -28,7 +28,9 @@ export interface GameMeta {
    * Variantes con récord propio (p. ej. dificultades), de la más fácil a la
    * más difícil. El juego las indica en onScore(score, { difficulty }); cada
    * una se guarda aparte (clave `<id>:<variante>`) y se rotula con la clave
-   * i18n `difficulty.<variante>`.
+   * i18n `difficulty.<variante>`. También separa las tablas en línea (lvl).
+   * Figures: free | limited · Solitario: d1 | d3 (robar 1 o 3) · resto:
+   * easy | medium | hard (en Ajedrez, el nivel de la IA).
    */
   variants?: readonly string[];
 }
@@ -62,6 +64,7 @@ export const games: GameMeta[] = [
     accent: '#3b82f6',
     bg: figuresBg,
     load: () => import('../games/figures/FiguresGame'),
+    variants: ['free', 'limited'],
   },
   {
     id: 'glotono',
@@ -94,6 +97,7 @@ export const games: GameMeta[] = [
     accent: '#3b82f6',
     bg: sudokuBg,
     load: () => import('../games/sudoku/SudokuGame'),
+    variants: ['easy', 'medium', 'hard'],
   },
   {
     id: 'solitaire',
@@ -104,6 +108,7 @@ export const games: GameMeta[] = [
     accent: '#a855f7',
     bg: solitaireBg,
     load: () => import('../games/solitaire/SolitaireGame'),
+    variants: ['d1', 'd3'],
   },
   {
     id: 'bloques',
@@ -124,5 +129,6 @@ export const games: GameMeta[] = [
     accent: '#d9a441',
     bg: ajedrezBg,
     load: () => import('../games/ajedrez/AjedrezGame'),
+    variants: ['easy', 'medium', 'hard'],
   },
 ];

@@ -43,6 +43,9 @@ export function leaderboardId(gameId: string, variant?: string | null): string |
 
 /** Variantes del juego que tienen tabla configurada (de fácil a difícil). */
 export function leaderboardVariants(gameId: string): string[] {
+  // Una tabla única (id en texto) sirve para todas las variantes: no se
+  // desglosa por variante.
+  if (typeof LEADERBOARD_IDS[gameId] === 'string') return [];
   const game = games.find((g) => g.id === gameId);
   return (game?.variants ?? []).filter((v) => leaderboardId(gameId, v) !== null);
 }

@@ -1,6 +1,6 @@
 # Política de Privacidad — SesoLibre Games
 
-**Última actualización:** 29 de julio de 2026
+**Última actualización:** 10 de noviembre de 2026
 
 Esta Política de Privacidad describe cómo la aplicación **SesoLibre Games** (en
 adelante, "la app"), desarrollada por **SesoLibre Apps** (Eduardo Llaguno
@@ -17,6 +17,11 @@ ni a terceros.
 **Google Play Juegos** para participar en las tablas de clasificación. Es
 opcional, se desactiva por defecto y se explica en su propia sección más abajo.
 Nosotros seguimos sin recibir ni almacenar ningún dato tuyo.
+
+**Otra excepción, también opcional y apagada por defecto:** si activas
+**Comparar en línea**, al terminar una partida se envía su resultado (sin datos
+personales) para mostrarte cómo te fue frente a otros, y puedes publicarlo con
+3 iniciales. Ver «Comparar en línea» más abajo.
 
 ## Qué información se guarda y dónde
 
@@ -64,6 +69,27 @@ Si decides conectarte:
 - Puedes desconectarte o borrar tu perfil de juego desde la app de **Google Play
   Juegos** (Ajustes → *Eliminar cuenta de Play Juegos y datos*).
 
+## Comparar en línea (opcional)
+
+Si activas **Comparar en línea** en Ajustes (está apagado por defecto), en
+cualquier plataforma (web, Android o iOS):
+
+- Al terminar una partida, la app consulta a nuestro servidor
+  (`games.sesolibre.com/score`) qué porcentaje de los resultados publicados supera el
+  tuyo. Para eso envía solo: el juego, la modalidad (por ejemplo la dificultad) y
+  tu resultado (puntos, tiempo o jugadas). **Esta consulta no se guarda.**
+- Si tocas **Publicar**, se guardan esos mismos datos y el día junto con las **3
+  iniciales** que elijas, para formar las tablas de mejores resultados, que son
+  **públicas** dentro de la app.
+- **No** se envía tu nombre, correo, identificador del dispositivo ni ubicación;
+  tampoco la hora, solo el día. No hay cuentas.
+- Tu dirección IP solo se usa, convertida en un código irreversible (hash), para
+  limitar el número de envíos por minuto, y ese registro se borra a los 10
+  minutos. No se usa para identificarte ni se guarda con tus resultados.
+- Las iniciales ofensivas se pueden reportar u ocultar desde la tabla (⚑).
+  Revisamos los reportes en menos de 24 horas. Para retirar unas iniciales que
+  publicaste, escríbenos indicando el juego, la modalidad y el resultado.
+
 ## Anuncios y compras
 
 La versión actual de la app **no muestra anuncios y no contiene compras dentro de
@@ -74,8 +100,8 @@ consentimiento conforme a la normativa vigente.
 ## Permisos
 
 La app solo declara el permiso de **Internet**, requerido técnicamente por la
-plataforma. La app no necesita conexión para funcionar y no envía datos a través
-de la red.
+plataforma. La app no necesita conexión para funcionar; solo la usa si activas
+«Comparar en línea» o te conectas a Google Play Juegos.
 
 ## Menores de edad
 
@@ -104,7 +130,7 @@ Para cualquier consulta sobre esta política puedes escribir a:
 
 # Privacy Policy — SesoLibre Games
 
-**Last updated:** May 28, 2026
+**Last updated:** November 10, 2026
 
 This Privacy Policy explains how the **SesoLibre Games** application (the "app"),
 developed by **SesoLibre Apps** (Eduardo Llaguno Velasco), handles information
@@ -115,6 +141,11 @@ when you use it.
 **SesoLibre Games does not collect, transmit, or share any personal data.** The
 app works fully offline. Everything you save (your progress and preferences) stays
 only on your device and is never sent to us or to any third party.
+
+**The only exception is optional and off by default:** if you turn on **Compare
+online**, when you finish a game its result is sent (no personal data) to show you
+how you did against others, and you may post it with 3 initials. See "Compare
+online" below.
 
 ## What is stored and where
 
@@ -140,6 +171,26 @@ The app does **not** collect or request:
 - Advertising identifiers (Advertising ID / GAID) or device identifiers.
 - Usage data, analytics, or telemetry.
 
+## Compare online (optional)
+
+If you turn on **Compare online** in Settings (off by default), on any platform
+(web, Android or iOS):
+
+- When you finish a game, the app asks our server (`games.sesolibre.com/score`)
+  what percentage of posted results yours beats. It sends only the game, the mode
+  (for example the difficulty) and your result (points, time or moves). **This
+  query is not stored.**
+- If you tap **Post**, that same data and the day are stored together with the **3
+  initials** you choose, to build the leaderboards, which are **public** in the app.
+- Your name, email, device identifier and location are **not** sent; nor is the
+  time, only the day. There are no accounts.
+- Your IP address is used only as an irreversible hash to limit posts per minute,
+  and that record is deleted after 10 minutes. It is not used to identify you and
+  is not stored with your results.
+- Offensive initials can be reported or hidden from the leaderboard (⚑). We review
+  reports within 24 hours. To remove initials you posted, email us with the game,
+  mode and result.
+
 ## Ads and purchases
 
 The current version of the app **does not display ads and does not contain
@@ -150,8 +201,8 @@ requested in accordance with applicable regulations.
 ## Permissions
 
 The app only declares the **Internet** permission, which is technically required
-by the platform. The app does not need a connection to work and does not send data
-over the network.
+by the platform. The app does not need a connection to work; it only uses it if you
+turn on "Compare online" or connect to Google Play Games.
 
 ## Children
 

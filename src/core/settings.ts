@@ -9,10 +9,21 @@ export interface Settings {
   sound: boolean;
   motion: boolean;
   lang: LangSetting;
+  /** Comparar en línea (games.sesolibre.com/score): opcional, apagado por defecto. */
+  online: boolean;
+  /** 3 iniciales para publicar resultados, al estilo de las maquinitas. */
+  initials: string;
 }
 
 const KEY = 'settings';
-const DEFAULTS: Settings = { theme: 'dark', sound: true, motion: true, lang: 'auto' };
+const DEFAULTS: Settings = {
+  theme: 'dark',
+  sound: true,
+  motion: true,
+  lang: 'auto',
+  online: false,
+  initials: '',
+};
 
 interface SettingsState extends Settings {
   loaded: boolean;
@@ -22,6 +33,8 @@ interface SettingsState extends Settings {
   setSound: (sound: boolean) => void;
   setMotion: (motion: boolean) => void;
   setLang: (lang: LangSetting) => void;
+  setOnline: (online: boolean) => void;
+  setInitials: (initials: string) => void;
 }
 
 function applyTheme(theme: Theme) {
@@ -71,11 +84,21 @@ export const useSettings = create<SettingsState>((set, get) => ({
     set({ lang });
     void persist(get);
   },
+
+  setOnline: (online) => {
+    set({ online });
+    void persist(get);
+  },
+
+  setInitials: (initials) => {
+    set({ initials: initials.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3) });
+    void persist(get);
+  },
 }));
 
 async function persist(get: () => SettingsState) {
-  const { theme, sound, motion, lang } = get();
-  await storage.set<Settings>(KEY, { theme, sound, motion, lang });
+  const { theme, sound, motion, lang, online, initials } = get();
+  await storage.set<Settings>(KEY, { theme, sound, motion, lang, online, initials });
 }
 
 /** ¿Deben reproducirse animaciones? Respeta el ajuste y prefers-reduced-motion. */

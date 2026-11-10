@@ -212,7 +212,8 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
         // humano (blancas) a la IA; ni tablas, ni partidas a dos, ni derrotas.
         if (res === 'checkmate' && mode === 'ai' && game.turn !== AI_COLOR && !submitted.current) {
           submitted.current = true;
-          onScore(plies + 1);
+          // La modalidad es el nivel de la IA: récord y tabla propios.
+          onScore(plies + 1, { difficulty: level });
         }
       } else {
         AudioService.play(capture ? 'pop' : 'click');
@@ -224,7 +225,7 @@ export default function AjedrezGame({ onScore, onExit }: GameProps) {
         setClk({ ...clocksRef.current, [mv]: clocksRef.current[mv] + inc });
       }
     },
-    [game, history, plies, mode, onScore, clockId],
+    [game, history, plies, mode, level, onScore, clockId],
   );
 
   // Reloj: descuenta el tiempo del bando que mueve.

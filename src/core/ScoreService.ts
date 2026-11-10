@@ -59,8 +59,9 @@ export const ScoreService = {
 
   /**
    * Marca a mostrar en el hub. En juegos con variantes, la de la variante más
-   * difícil que tenga récord, con `meta.difficulty` indicando cuál. (Las
-   * entradas antiguas sin variante no se pueden atribuir y se ignoran.)
+   * difícil que tenga récord, con `meta.difficulty` indicando cuál. Si aún
+   * no hay ninguna, la marca antigua sin variante (de antes de separarlas),
+   * sin rotular.
    */
   async getDisplayBest(game: GameMeta): Promise<ScoreEntry | null> {
     if (!game.variants?.length) return this.getBest(game.id);
@@ -69,7 +70,8 @@ export const ScoreService = {
       const b = bests[v];
       if (b) return { ...b, meta: { ...b.meta, difficulty: v } };
     }
-    return null;
+    const legacy = await this.getBest(game.id);
+    return legacy ? { ...legacy, meta: undefined } : null;
   },
 
   /**

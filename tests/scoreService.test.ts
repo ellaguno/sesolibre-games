@@ -76,9 +76,11 @@ describe('Buscaminas: récords por dificultad', () => {
     expect(bests.hard?.value).toBe(300);
   });
 
-  it('el hub muestra la dificultad más alta con récord e ignora entradas antiguas', async () => {
+  it('el hub muestra la dificultad más alta con récord (y la antigua solo si no hay otra)', async () => {
     await ScoreService.submit('minesweeper', 5); // entrada mezclada antigua
-    expect(await ScoreService.getDisplayBest(mines)).toBeNull();
+    const legacy = await ScoreService.getDisplayBest(mines);
+    expect(legacy?.value).toBe(5);
+    expect(legacy?.meta).toBeUndefined(); // sin rotular dificultad
 
     await ScoreService.submit(scoreKey('minesweeper', 'easy'), 30);
     await ScoreService.submit(scoreKey('minesweeper', 'medium'), 90);

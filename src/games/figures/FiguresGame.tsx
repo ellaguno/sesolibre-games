@@ -22,7 +22,7 @@ import {
   type Power,
   type SpawnedCell,
 } from './board';
-import type { GameProps } from '../../core/registry';
+import { scoreKey, type GameProps } from '../../core/registry';
 import { ScoreService } from '../../core/ScoreService';
 import { useGameSave } from '../../core/saves';
 import { storage } from '../../core/storage';
@@ -94,6 +94,11 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
     figureType: 'animals',
   });
 
+  // Modalidad (récord y tabla en línea propios): 20 jugadas o sin límite.
+  const mode = config.limitedMoves ? 'limited' : 'free';
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
+
   // Refs para que la cascada asíncrona lea valores frescos, no del closure.
   const movesLeftRef = useRef(TOTAL_MOVES);
   const scoreRef = useRef(0);
@@ -127,13 +132,20 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
     const final = scoreRef.current;
     if (submittedRef.current || final <= 0 || final <= reportedRef.current) return false;
     submittedRef.current = true;
-    onScoreRef.current(final);
+    onScoreRef.current(final, { difficulty: modeRef.current });
     return true;
   }, []);
 
+  // Mejor marca de la modalidad elegida (o la antigua, de antes de separarlas).
   useEffect(() => {
-    void ScoreService.getBest('figures').then((b) => b && setBest(b.value));
-  }, []);
+    let alive = true;
+    void ScoreService.getBest(scoreKey('figures', mode))
+      .then((b) => b ?? ScoreService.getBest('figures'))
+      .then((b) => alive && setBest(b?.value ?? 0));
+    return () => {
+      alive = false;
+    };
+  }, [mode]);
 
   // Al desmontar (botón ←, atrás de Android, navegación): cancelar la cascada
   // y guardar la puntuación si la partida quedó a medias. En el doble montaje
@@ -212,7 +224,7 @@ export default function FiguresGame({ onScore, onExit }: GameProps) {
     const final = scoreRef.current;
     if (!submittedRef.current && final > reportedRef.current) {
       submittedRef.current = true;
-      onScoreRef.current(final);
+      onScoreRef.current(final, { difficulty: modeRef.current });
       if (final > best) setBest(final);
     }
     reportedRef.current = 0;

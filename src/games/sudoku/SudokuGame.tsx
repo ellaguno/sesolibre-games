@@ -177,10 +177,10 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
       bigCelebrate();
       if (!submittedRef.current) {
         submittedRef.current = true;
-        onScore(seconds);
+        onScore(seconds, { difficulty: difficulty.id });
       }
     },
-    [game.solution, onScore, seconds],
+    [game.solution, onScore, seconds, difficulty.id],
   );
 
   // Destello pequeño + sonido al COMPLETAR un dígito en todo el tablero.
