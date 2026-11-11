@@ -137,6 +137,7 @@ const es: Dict = {
   'records.onlineInvite': 'Ver las tablas en línea',
   'records.onlineEmpty': 'Aún no hay resultados publicados.',
   'records.onlineMode': 'Modalidad',
+  'records.allBoards': 'Ver todas las tablas',
 
   'game.figures.title': 'Figures',
   'game.figures.desc': 'Match-3: combina 3 o más figuras.',
@@ -426,6 +427,7 @@ const en: Dict = {
   'records.onlineInvite': 'See the online leaderboards',
   'records.onlineEmpty': 'No results posted yet.',
   'records.onlineMode': 'Mode',
+  'records.allBoards': 'See all leaderboards',
 
   'game.figures.title': 'Figures',
   'game.figures.desc': 'Match-3: line up 3 or more figures.',

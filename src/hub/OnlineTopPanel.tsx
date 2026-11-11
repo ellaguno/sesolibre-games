@@ -125,6 +125,14 @@ export default function OnlineTopPanel({ game }: { game: GameMeta }) {
       <p className="mt-2 text-xs text-app-muted" aria-live="polite">
         {thanks ? t('online.reportThanks') : t('online.reportNote')}
       </p>
+      <a
+        href={`https://games.sesolibre.com/score/#app=games&act=${game.id}`}
+        target="_blank"
+        rel="noopener"
+        className="mt-1 inline-block text-xs font-semibold text-sky-400 hover:underline"
+      >
+        {t('records.allBoards')} ↗
+      </a>
     </div>
   );
 }
