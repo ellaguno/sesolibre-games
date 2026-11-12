@@ -87,10 +87,22 @@ custodia la clave de firma final y esta solo es la *llave de subida*.
 
 Sin estos secrets el workflow genera el AAB **sin firmar** (solo para validar).
 
-### 3) Subir a Play
+### 3) Subir a Play (automático)
 
-Actions → *Play AAB* → *Run workflow* → descarga el artefacto
-`sesolibre-games-aab` → súbelo en Play Console (prueba interna o cerrada).
+Cada tag `v*` sube el AAB, el `mapping.txt` de R8 y las notas a **producción
+como borrador** (`scripts/android/play.mjs`, Google Play Developer API). En Play
+Console → Producción solo queda revisar la versión y pulsar **Enviar a revisión**.
+
+- **Antes de cada tag**, actualiza `docs/release-notes.txt` (líneas `es:` y `en:`,
+  máx. 500 caracteres cada una).
+- Secret: `PLAY_SERVICE_ACCOUNT_JSON` (la misma cuenta de servicio de Mind, con
+  acceso a esta app en Play Console → Usuarios y permisos). Sin él, el paso se
+  salta con un aviso y el AAB queda como artefacto, como antes.
+- Variables opcionales del repo: `PLAY_TRACK` (por defecto `production`),
+  `PLAY_RELEASE_STATUS` (`draft`; `inProgress` = escalonado con
+  `PLAY_USER_FRACTION`; `completed` = al 100 % al aprobarse).
+- A mano: Actions → *Play AAB* → *Run workflow* con la casilla "Subir a Google Play".
+- Ver pistas y versiones: `PLAY_SERVICE_ACCOUNT_PATH=cuenta.json node scripts/android/play.mjs tracks`.
 
 > **targetSdk:** Play exige targetSdk **36** (Android 16) desde el 30-ago-2026.
 > Cubierto: Capacitor **8** genera compile/targetSdk 36 y minSdk 24 nativamente;

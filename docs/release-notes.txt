@@ -1,0 +1,2 @@
+es: Nuevo: compara tus resultados con otros jugadores y publícalos con 3 iniciales (opcional, en Ajustes). Récords por modalidad en Sudoku, Ajedrez, Solitario y Figures, y tablero público en games.sesolibre.com/score.
+en: New: compare your results with other players and post them with 3 initials (optional, in Settings). Separate records per mode in Sudoku, Chess, Solitaire and Figures, and a public leaderboard at games.sesolibre.com/score.

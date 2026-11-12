@@ -11,11 +11,27 @@ name: Play AAB (release firmado)
 #   ANDROID_KEY_PASSWORD      -> contraseña de la clave
 # Si faltan los secrets, el AAB se genera SIN firmar (no apto para Play) para
 # poder validar el pipeline. El AAB queda como artefacto del run (no como Release).
+#
+# Subida a Google Play (scripts/android/play.mjs): en cada tag v* (o a mano con
+# la casilla) sube el AAB, el mapping de R8 y las notas (docs/release-notes.txt)
+# a PRODUCCIÓN como BORRADOR; la versión se envía a revisión desde Play Console.
+#   PLAY_SERVICE_ACCOUNT_JSON -> JSON de la cuenta de servicio (secret)
+# Variables opcionales del repo: PLAY_TRACK (production), PLAY_RELEASE_STATUS
+# (draft | completed | inProgress) y PLAY_USER_FRACTION (con inProgress).
 
 on:
   workflow_dispatch:
+    inputs:
+      upload:
+        description: 'Subir a Google Play (borrador en producción)'
+        type: boolean
+        default: false
   push:
     tags: ['v*']
+
+concurrency:
+  group: play-aab-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   aab:
@@ -134,3 +150,22 @@ jobs:
           name: sesolibre-games-aab
           path: sesolibre-games-*.aab
           if-no-files-found: error
+
+      - name: Subir a Google Play (producción, borrador)
+        if: github.event_name == 'push' || inputs.upload
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          PLAY_TRACK: ${{ vars.PLAY_TRACK || 'production' }}
+          PLAY_RELEASE_STATUS: ${{ vars.PLAY_RELEASE_STATUS || 'draft' }}
+          PLAY_USER_FRACTION: ${{ vars.PLAY_USER_FRACTION || '0.2' }}
+        run: |
+          if [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]; then
+            echo "::warning::Sin PLAY_SERVICE_ACCOUNT_JSON: no se sube a Google Play (el AAB queda como artefacto)."
+            exit 0
+          fi
+          AAB="sesolibre-games-${GITHUB_REF_NAME}.aab"
+          [ -f "$AAB" ] || { echo "::error::No hay AAB firmado ($AAB): no se puede subir"; exit 1; }
+          VN=$(node -p "require('./package.json').version")
+          node scripts/android/play.mjs tracks
+          PLAY_RELEASE_NAME="$VN (${{ github.run_number }})" node scripts/android/play.mjs upload "$AAB" "$PLAY_TRACK" \
+            android/app/build/outputs/mapping/release/mapping.txt docs/release-notes.txt
