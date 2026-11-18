@@ -107,9 +107,15 @@ jobs:
         run: |
           M=$(find android/app/build/intermediates -path '*release*' -name AndroidManifest.xml | xargs grep -l 'screen.portrait' | head -1)
           [ -n "$M" ] || { echo "::error::No se encontró el manifiesto final de release"; exit 1; }
-          grep -n 'screen.portrait' "$M"
-          grep -q 'screen.portrait" android:required="false"' "$M" \
-            || { echo "::error::android.hardware.screen.portrait quedó obligatorio"; exit 1; }
+          # El manifiesto fusionado reparte los atributos en varias líneas.
+          python3 - "$M" <<'PY'
+          import re, sys
+          text = open(sys.argv[1]).read()
+          els = re.findall(r'<uses-feature[^>]*screen\.portrait[^>]*>', text)
+          print(*(' '.join(e.split()) for e in els), sep='\n')
+          if not els or any('android:required="false"' not in e for e in els):
+              sys.exit('::error::android.hardware.screen.portrait quedó obligatorio')
+          PY
 
       # Si R8 corrió deja el mapping de ofuscación; si no, el AAB saldría sin
       # optimizar y Play volvería a marcar la app. Mejor fallar aquí.
