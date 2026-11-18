@@ -65,10 +65,8 @@ jobs:
       - name: Sincronizar web -> nativo
         run: npx cap sync android
 
-      - name: Bloquear orientación vertical (los juegos no están diseñados para horizontal)
-        run: |
-          sed -i 's/android:launchMode="singleTask"/android:launchMode="singleTask"\n            android:screenOrientation="portrait"/' android/app/src/main/AndroidManifest.xml
-          grep -n "screenOrientation" android/app/src/main/AndroidManifest.xml
+      - name: Manifiesto (vertical; pantalla vertical opcional para no excluir tablets/PC)
+        run: ./scripts/android-manifest.sh
 
       - name: Verificar compileSdk/targetSdk 36 (requisito de Play desde ago 2026)
         # Capacitor 8 ya genera SDK 36; este paso solo falla si una futura
@@ -102,6 +100,16 @@ jobs:
           cd android
           chmod +x gradlew
           ./gradlew bundleRelease --no-daemon
+
+      # Play rechaza enviar a revisión si la pantalla vertical queda como
+      # función de hardware obligatoria (excluye tablets, PC y XR).
+      - name: Verificar que la pantalla vertical sea opcional
+        run: |
+          M=$(find android/app/build/intermediates -path '*release*' -name AndroidManifest.xml | xargs grep -l 'screen.portrait' | head -1)
+          [ -n "$M" ] || { echo "::error::No se encontró el manifiesto final de release"; exit 1; }
+          grep -n 'screen.portrait' "$M"
+          grep -q 'screen.portrait" android:required="false"' "$M" \
+            || { echo "::error::android.hardware.screen.portrait quedó obligatorio"; exit 1; }
 
       # Si R8 corrió deja el mapping de ofuscación; si no, el AAB saldría sin
       # optimizar y Play volvería a marcar la app. Mejor fallar aquí.

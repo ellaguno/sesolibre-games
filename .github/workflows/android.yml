@@ -45,10 +45,8 @@ jobs:
       - name: Sincronizar web -> nativo
         run: npx cap sync android
 
-      - name: Bloquear orientación vertical (los juegos no están diseñados para horizontal)
-        run: |
-          sed -i 's/android:launchMode="singleTask"/android:launchMode="singleTask"\n            android:screenOrientation="portrait"/' android/app/src/main/AndroidManifest.xml
-          grep -n "screenOrientation" android/app/src/main/AndroidManifest.xml
+      - name: Manifiesto (vertical; pantalla vertical opcional para no excluir tablets/PC)
+        run: ./scripts/android-manifest.sh
 
       - name: Configurar Google Play Juegos (id del proyecto)
         run: ./scripts/android-play-games.sh
