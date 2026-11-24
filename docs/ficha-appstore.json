@@ -1,0 +1,58 @@
+{
+  "app": "6832693284",
+  "version": "1.2.9",
+  "copyright": "2026 Eduardo Llaguno",
+  "categorias": {
+    "primaryCategory": "GAMES",
+    "primarySubcategoryOne": "GAMES_PUZZLE",
+    "primarySubcategoryTwo": "GAMES_BOARD",
+    "secondaryCategory": "ENTERTAINMENT"
+  },
+  "edad": {
+    "booleanos": {
+      "advertising": false, "ageAssurance": false, "gambling": false, "healthOrWellnessTopics": false,
+      "lootBox": false, "messagingAndChat": false, "parentalControls": false, "unrestrictedWebAccess": false,
+      "userGeneratedContent": true, "socialMedia": false, "sharedLocation": false
+    },
+    "otros": { "contests": "INFREQUENT_OR_MILD" },
+    "ninguno": [
+      "alcoholTobaccoOrDrugUseOrReferences", "gamblingSimulated", "gunsOrOtherWeapons",
+      "medicalOrTreatmentInformation", "profanityOrCrudeHumor", "sexualContentGraphicAndNudity",
+      "sexualContentOrNudity", "horrorOrFearThemes", "matureOrSuggestiveThemes",
+      "violenceCartoonOrFantasy", "violenceRealisticProlongedGraphicOrSadistic", "violenceRealistic"
+    ]
+  },
+  "idiomas": {
+    "es-MX": {
+      "capturas": "es",
+      "info": {
+        "name": "SesoLibre Games",
+        "subtitle": "Juegos clásicos para tu mente",
+        "privacyPolicyUrl": "https://sesolibre.com/politica-de-privacidad-sesolibre-games/"
+      },
+      "version": {
+        "promotionalText": "Siete juegos clásicos para ejercitar la mente, sin anuncios y sin conexión. Compara tus récords con otros jugadores usando solo 3 iniciales.",
+        "keywords": "ajedrez,sudoku,solitario,buscaminas,bloques,laberinto,puzzle,mente,clásicos,sin anuncios",
+        "supportUrl": "https://sesolibre.com",
+        "marketingUrl": "https://games.sesolibre.com",
+        "description": "SesoLibre Games reúne siete juegos clásicos para ejercitar la mente en ratos libres: sin anuncios, sin registros y funcionando sin conexión.\n\nLOS JUEGOS\n• Ajedrez: contra un amigo en el mismo dispositivo o contra la computadora en tres niveles, con reloj opcional y vista 3D. Reconoce tablas por repetición, por la regla de las 50 jugadas y por material insuficiente.\n• Sudoku: tres dificultades calificadas según las técnicas que necesitas, con notas y pistas.\n• Solitario: roba de una o de tres cartas, con arrastrar y soltar, pistas y reversos de carta coleccionables.\n• Buscaminas: el primer toque siempre es seguro; tres tamaños de tablero.\n• Bloques: piezas que caen y líneas que brillan, con gestos: arrastra, toca para girar y desliza para soltar.\n• Figures: combina tres o más figuras, desata reacciones en cadena y gana premios.\n• Glótono: un pequeño slime hambriento que devora orbes en laberintos que nunca se repiten mientras escapa de los virus.\n\nRÉCORDS\nCada juego guarda tus mejores marcas por modalidad. Si quieres, activa «Comparar en línea» en Ajustes para ver cómo te fue frente a otros jugadores y publicar tu resultado con solo 3 iniciales, al estilo de las maquinitas. Es opcional y está apagado por defecto.\n\nHECHO CON CUIDADO\n• Sin anuncios ni compras dentro de la app.\n• Sin cuentas: tus partidas y récords se guardan en tu dispositivo.\n• Se adapta a iPhone y iPad, en español e inglés, con tema claro y oscuro.\n• Recompensas diarias, logros y monedas para desbloquear diseños de cartas."
+      }
+    },
+    "en-US": {
+      "capturas": "en",
+      "info": {
+        "name": "SesoLibre Games",
+        "subtitle": "Classic games for your mind",
+        "privacyPolicyUrl": "https://sesolibre.com/politica-de-privacidad-sesolibre-games/"
+      },
+      "version": {
+        "promotionalText": "Seven classic games to exercise your mind, with no ads and no connection needed. Compare your records with other players using just 3 initials.",
+        "keywords": "chess,sudoku,solitaire,minesweeper,blocks,maze,match 3,puzzle,brain,classic,offline,no ads",
+        "supportUrl": "https://sesolibre.com",
+        "marketingUrl": "https://games.sesolibre.com",
+        "description": "SesoLibre Games brings together seven classic games to exercise your mind in your spare time: no ads, no sign-up, and they work offline.\n\nTHE GAMES\n• Chess: play a friend on the same device or the computer at three levels, with an optional clock and 3D view. Draws by repetition, the 50-move rule and insufficient material are recognized.\n• Sudoku: three difficulties rated by the techniques you need, with notes and hints.\n• Solitaire: draw one or three cards, with drag and drop, hints and collectible card backs.\n• Minesweeper: your first tap is always safe; three board sizes.\n• Bloques: falling pieces and glowing lines, with gestures: drag, tap to rotate and swipe to drop.\n• Figures: match three or more figures, set off chain reactions and earn prizes.\n• Glótono: a hungry little slime devours orbs in mazes that never repeat while it escapes the viruses.\n\nRECORDS\nEach game keeps your best scores per mode. If you like, turn on \"Compare online\" in Settings to see how you did against other players and post your result with just 3 initials, arcade style. It's optional and off by default.\n\nMADE WITH CARE\n• No ads and no in-app purchases.\n• No accounts: your games and records stay on your device.\n• Fits iPhone and iPad, in Spanish and English, with light and dark themes.\n• Daily rewards, achievements and coins to unlock card designs."
+      }
+    }
+  },
+  "capturas": { "APP_IPHONE_67": "iphone-", "APP_IPAD_PRO_3GEN_129": "ipad-" }
+}
