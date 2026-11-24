@@ -414,7 +414,7 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
         ))}
       </div>
 
-      <div className="relative w-full max-w-[min(92vw,380px)]">
+      <div className="relative w-full max-w-[min(92vw,23.75rem)]">
         <div className="grid aspect-square w-full grid-cols-9 rounded-md border-2 border-slate-400 bg-app-surface">
           {board.map((row, r) =>
             row.map((v, c) => {
@@ -523,7 +523,7 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
       )}
 
       {/* Teclado numérico (los dígitos completos se deshabilitan) */}
-      <div className="mt-4 grid w-full max-w-[min(92vw,380px)] grid-cols-9 gap-1">
+      <div className="mt-4 grid w-full max-w-[min(92vw,23.75rem)] grid-cols-9 gap-1">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => {
           const done = digitComplete(board, game.solution, n);
           return (
@@ -578,7 +578,7 @@ export default function SudokuGame({ onScore, onExit }: GameProps) {
       </div>
 
       {/* Nueva partida (izquierda) y deshacer (derecha) */}
-      <div className="mt-3 flex w-full max-w-[min(92vw,380px)] items-center justify-between">
+      <div className="mt-3 flex w-full max-w-[min(92vw,23.75rem)] items-center justify-between">
         <button
           onClick={requestNewGame}
           className="rounded-lg bg-app-surface px-4 py-2 text-sm font-semibold hover:bg-app-surface2"

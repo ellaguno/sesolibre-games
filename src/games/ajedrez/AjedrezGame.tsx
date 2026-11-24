@@ -24,8 +24,8 @@ import Button from '../../ui/Button';
 import HelpButton from '../../ui/HelpButton';
 
 // Celda = 1/8 del ancho (tablero a pantalla completa en móvil), con tope para
-// escritorio (max-w-md / 8 ≈ 56px).
-const SIZE = { '--cs': 'min(12.5vw, 56px)' } as CSSProperties;
+// escritorio (max-w-md / 8 ≈ 3.5rem; crece con la letra base en tablets).
+const SIZE = { '--cs': 'min(12.5vw, 3.5rem)' } as CSSProperties;
 const PROMOS: PieceType[] = ['q', 'r', 'b', 'n'];
 type Mode = 'hotseat' | 'ai';
 const AI_COLOR: Color = 'b'; // la IA juega con negras; el humano, blancas

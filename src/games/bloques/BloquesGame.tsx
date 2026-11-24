@@ -67,7 +67,7 @@ function gemStyle(color: string): CSSProperties {
   };
 }
 
-const SIZE_VARS = { '--bs': 'min(8.4vw, 3.9vh, 30px)' } as CSSProperties;
+const SIZE_VARS = { '--bs': 'min(8.4vw, 3.9vh, 1.875rem)' } as CSSProperties;
 
 export default function BloquesGame({ onScore, onExit }: GameProps) {
   const t = useT();

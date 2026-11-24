@@ -264,13 +264,13 @@ export default function MinesweeperGame({ onScore, onExit }: GameProps) {
         ))}
       </div>
 
-      <div className="relative w-full max-w-[460px]">
+      <div className="relative w-full max-w-[28.75rem]">
         <div
           ref={boardRef}
           className="grid w-full touch-none gap-0.5"
           style={{
             gridTemplateColumns: `repeat(${difficulty.cols}, minmax(0, 1fr))`,
-            fontSize: `calc(min(92vw, 460px) / ${difficulty.cols} * 0.5)`,
+            fontSize: `calc(min(92vw, 28.75rem) / ${difficulty.cols} * 0.5)`,
           }}
         >
           {grid.map((row, r) =>

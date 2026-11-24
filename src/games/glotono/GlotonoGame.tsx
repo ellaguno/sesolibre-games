@@ -493,14 +493,24 @@ export default function GlotonoGame({ onScore, onExit }: GameProps) {
     let staticLayer: HTMLCanvasElement | null = null;
     const ensureCanvas = (): HTMLCanvasElement => {
       const maze = engine.maze;
-      const curDpr = Math.max(1, window.devicePixelRatio || 1);
+      // En pantallas grandes (la letra base crece, ver index.css) el laberinto
+      // llena el ancho disponible sin pasar de ~55 % del alto, y se dibuja a esa
+      // resolución para que no se vea borroso. En teléfonos, tamaño de siempre.
+      const w = maze.tw * TILE;
+      const h = maze.th * TILE;
+      const ui = parseFloat(getComputedStyle(document.documentElement).fontSize) / 16 || 1;
+      // Ancho útil de la pantalla del juego (el contenedor del lienzo se ajusta
+      // al propio lienzo, no sirve para medir), menos su margen lateral.
+      const main = canvas.closest('main');
+      const avail = main ? main.clientWidth - 2 * 16 * ui : w;
+      const ui2 = ui > 1 ? Math.max(1, Math.min(avail / w, (window.innerHeight * 0.55) / h)) : 1;
+      const curDpr = Math.max(1, window.devicePixelRatio || 1) * ui2;
       if (curDpr !== dpr || maze !== cachedMaze || !staticLayer) {
-        const w = maze.tw * TILE;
-        const h = maze.th * TILE;
-        if (curDpr !== dpr || canvas.style.width !== `${w}px`) {
+        const cssW = `${Math.round(w * ui2)}px`;
+        if (curDpr !== dpr || canvas.style.width !== cssW) {
           canvas.width = Math.round(w * curDpr);
           canvas.height = Math.round(h * curDpr);
-          canvas.style.width = `${w}px`;
+          canvas.style.width = cssW;
         }
         dpr = curDpr;
         cachedMaze = maze;

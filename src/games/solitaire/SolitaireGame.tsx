@@ -63,7 +63,7 @@ const parseDrop = (s: string | null): Location | null => {
 
 // Variables de tamaño de carta (escala con el ancho de pantalla).
 const SIZE_VARS = {
-  '--cw': 'min(12.8vw, 58px)',
+  '--cw': 'min(12.8vw, 3.625rem)',
   '--ch': 'calc(var(--cw) * 1.45)',
   '--cov': 'calc(var(--ch) * 0.34)',
 } as CSSProperties;
@@ -534,7 +534,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
 
   return (
     <main
-      className="mx-auto flex min-h-app max-w-[480px] select-none flex-col px-2 py-3"
+      className="mx-auto flex min-h-app max-w-[30rem] select-none flex-col px-2 py-3"
       style={SIZE_VARS}
     >
       <div className="mb-2 flex items-center justify-between">

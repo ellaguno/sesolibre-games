@@ -29,6 +29,19 @@ body,
   height: 100%;
 }
 
+/* Pantallas grandes (iPad, Mac, escritorio): toda la interfaz está en rem, así
+   que basta con crecer el tamaño base para que juegos y menús ocupen la
+   pantalla en vez de quedarse del tamaño de un teléfono. Se escala por lo que
+   alcance primero —ancho (ref. 430 px) o alto (ref. 900 px)— para que nada se
+   salga; en teléfonos (< 600 px de ancho) no cambia nada. Las medidas de los
+   juegos que dependen de esto van en rem (no en px). */
+@media (min-width: 600px) {
+  html {
+    font-size: clamp(16px, min(100vw * 16 / 430, 100vh * 16 / 900), 26px);
+    font-size: clamp(16px, min(100vw * 16 / 430, 100dvh * 16 / 900), 26px);
+  }
+}
+
 /* Es una app, no un documento: sin desplazamiento lateral (animaciones o
    arrastres que asoman por un borde dejaban la página corrida a la derecha y
    había que regresarla con el dedo) ni rebote/arrastre de la página entera. */
