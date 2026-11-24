@@ -39,6 +39,14 @@ base64 -w0 ~/apple-certs/dist.p12 | gh secret set APPLE_CERT_P12_BASE64 --repo e
 5. Importa el .p12 a un keychain temporal e instala el perfil.
 6. `xcodebuild archive` → `-exportArchive` (app-store-connect) → `altool --upload-app`.
 7. El .ipa queda además como artefacto (`sesolibre-games-ipa`).
+8. Trabajo `testflight` (Linux, `scripts/asc-testflight.py`): espera a que Apple
+   procese el build, pone el «qué probar» (línea `es:` de `docs/release-notes.txt`),
+   lo agrega al grupo externo **«Familia y amigos»** y lo envía a la revisión
+   beta. Al aprobarse, cualquiera con el enlace público
+   (https://testflight.apple.com/join/9WhG3Ghr, sin límite de probadores) puede
+   instalarlo. Si Apple rechaza el envío ("Please try again later"), el
+   workflow termina con un aviso y se puede reenviar desde App Store Connect.
+   Otro grupo: variable del repo `TESTFLIGHT_GROUP`.
 
 ## Diferencias con Android
 

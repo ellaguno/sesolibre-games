@@ -7,6 +7,8 @@ name: iOS (TestFlight)
 #          KEYCHAIN_PASSWORD, ASC_KEY_ID, ASC_ISSUER_ID, ASC_PRIVATE_KEY.
 # Requisito manual (una vez): la app debe existir en App Store Connect con el
 # Bundle ID de abajo; si no, la subida falla. Guía en docs/RELEASING-IOS.md.
+# Tras subir, el trabajo «testflight» lo lleva a la prueba externa (enlace
+# público) y lo envía a la revisión beta de Apple (scripts/asc-testflight.py).
 
 on:
   push:
@@ -151,3 +153,24 @@ jobs:
         run: |
           security delete-keychain "$RUNNER_TEMP/firma.keychain-db" 2>/dev/null || true
           rm -rf ~/.appstoreconnect/private_keys
+
+  # Prueba EXTERNA (enlace público): espera a que Apple procese el build, lo
+  # agrega al grupo «Familia y amigos» y lo envía a la revisión beta. Corre en
+  # Linux para no ocupar la Mac mientras Apple procesa (5–20 min).
+  testflight:
+    needs: ios
+    if: github.event_name == 'push' || inputs.upload
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enviar a la prueba externa de TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          TESTFLIGHT_GROUP: ${{ vars.TESTFLIGHT_GROUP || 'Familia y amigos' }}
+        run: |
+          python3 -m pip install --quiet pyjwt cryptography
+          VERSION=$(node -p "require('./package.json').version")
+          python3 scripts/asc-testflight.py "$BUNDLE_ID" "$VERSION" "${{ github.run_number }}" "$TESTFLIGHT_GROUP"
