@@ -1,2 +1,2 @@
-es: Nuevo: compara tus resultados con otros jugadores y publícalos con 3 iniciales (opcional, en Ajustes). Récords por modalidad en Sudoku, Ajedrez, Solitario y Figures, y tablero público en games.sesolibre.com/score.
-en: New: compare your results with other players and post them with 3 initials (optional, in Settings). Separate records per mode in Sudoku, Chess, Solitaire and Figures, and a public leaderboard at games.sesolibre.com/score.
+es: Solitario: si eliges seguir jugando un reparto que ya no tiene solución, el aviso ya no vuelve a interrumpirte en cada jugada. Sigue disponible: compara tus resultados con otros jugadores y publícalos con 3 iniciales (Ajustes → Comparar en línea).
+en: Solitaire: if you choose to keep playing a deal that can no longer be solved, the warning no longer interrupts you on every move. Still available: compare your results with other players and post them with 3 initials (Settings → Compare online).
