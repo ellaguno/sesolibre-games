@@ -75,6 +75,8 @@ interface SolitaireSave {
   drawCount: 1 | 3;
   game: GameState;
   history: GameState[];
+  /** Ya se avisó que este reparto no tiene solución y el jugador quiso seguir. */
+  ack?: boolean;
 }
 const SAVE_HISTORY = 20;
 
@@ -108,6 +110,12 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
   const [dead, setDead] = useState(false);
   // Panel de fin de partida oculto a petición del jugador (para ver el tablero).
   const [endHidden, setEndHidden] = useState(false);
+  // El jugador ya vio que el reparto no tiene solución y eligió seguir: no se
+  // le vuelve a interrumpir en cada jugada (el solver re-analiza tras cada
+  // movimiento). Dura todo el reparto; se reinicia al repartir de nuevo.
+  const [ackUnwinnable, setAckUnwinnable] = useState(false);
+  const ackRef = useRef(false);
+  ackRef.current = ackUnwinnable;
   const [leftHanded, setLeftHanded] = useState(false);
   // Confirmación de "nuevo juego" para evitar perder la partida por un toque
   // accidental en el botón de los controles inferiores.
@@ -152,7 +160,12 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
         // sugerir un movimiento que no lleva a ninguna parte.
         if (advice.verdict === 'lost') {
           setDead(true);
-          setEndHidden(false);
+          if (ackRef.current) {
+            // Ya lo sabe y quiere seguir: solo un recordatorio breve.
+            setHintNote(t('sol.unwinnableTitle'));
+            if (noteTimer.current) clearTimeout(noteTimer.current);
+            noteTimer.current = setTimeout(() => setHintNote(null), 3200);
+          } else setEndHidden(false);
         }
         return;
       }
@@ -237,13 +250,20 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
     () =>
       won || isWin(game)
         ? null
-        : { v: 1, drawCount, game, history: history.slice(-SAVE_HISTORY) },
+        : {
+            v: 1,
+            drawCount,
+            game,
+            history: history.slice(-SAVE_HISTORY),
+            ...(ackUnwinnable && { ack: true }),
+          },
     (s) => {
       setDrawCount(s.drawCount);
       setGame(s.game);
       setHistory(s.history);
+      setAckUnwinnable(!!s.ack);
     },
-    [won, game, history, drawCount],
+    [won, game, history, drawCount, ackUnwinnable],
   );
 
   const newGame = useCallback((dc: 1 | 3) => {
@@ -251,6 +271,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
     setHistory([]);
     setWon(false);
     setDead(false);
+    setAckUnwinnable(false);
     setConfirmNew(false);
     hintLine.current = [];
     submittedRef.current = false;
@@ -710,7 +731,7 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
           </div>
         )}
 
-        {gameOver && !endHidden && (
+        {gameOver && !endHidden && !(unwinnable && ackUnwinnable) && (
           <div className="absolute inset-0 z-40 flex items-center justify-center rounded-xl bg-slate-950/70 backdrop-blur-sm">
             <div className="overlay-pop flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-gradient-to-b from-slate-800/95 to-slate-900/95 px-8 py-7 text-center shadow-2xl">
               <div className="text-5xl drop-shadow-lg">{unwinnable ? '🏳️' : '🃏'}</div>
@@ -728,7 +749,14 @@ export default function SolitaireGame({ onScore, onExit }: GameProps) {
               </div>
               {/* Botón grande: seguir viendo/moviendo el tablero es una opción
                   de verdad, no un enlace escondido. */}
-              <Button variant="ghost" className="w-full" onClick={() => setEndHidden(true)}>
+              <Button
+                variant="ghost"
+                className="w-full"
+                onClick={() => {
+                  setEndHidden(true);
+                  if (unwinnable) setAckUnwinnable(true);
+                }}
+              >
                 👁 {t('sol.viewKeepTrying')}
               </Button>
             </div>
