@@ -1,6 +1,6 @@
 {
   "app": "6832693284",
-  "version": "1.2.9",
+  "version": "1.3.0",
   "copyright": "2026 Eduardo Llaguno",
   "categorias": {
     "primaryCategory": "GAMES",
@@ -10,16 +10,34 @@
   },
   "edad": {
     "booleanos": {
-      "advertising": false, "ageAssurance": false, "gambling": false, "healthOrWellnessTopics": false,
-      "lootBox": false, "messagingAndChat": false, "parentalControls": false, "unrestrictedWebAccess": false,
-      "userGeneratedContent": true, "socialMedia": false, "sharedLocation": false
+      "advertising": false,
+      "ageAssurance": false,
+      "gambling": false,
+      "healthOrWellnessTopics": false,
+      "lootBox": false,
+      "messagingAndChat": false,
+      "parentalControls": false,
+      "unrestrictedWebAccess": false,
+      "userGeneratedContent": true,
+      "socialMedia": false,
+      "sharedLocation": false
     },
-    "otros": { "contests": "INFREQUENT_OR_MILD" },
+    "otros": {
+      "contests": "INFREQUENT_OR_MILD"
+    },
     "ninguno": [
-      "alcoholTobaccoOrDrugUseOrReferences", "gamblingSimulated", "gunsOrOtherWeapons",
-      "medicalOrTreatmentInformation", "profanityOrCrudeHumor", "sexualContentGraphicAndNudity",
-      "sexualContentOrNudity", "horrorOrFearThemes", "matureOrSuggestiveThemes",
-      "violenceCartoonOrFantasy", "violenceRealisticProlongedGraphicOrSadistic", "violenceRealistic"
+      "alcoholTobaccoOrDrugUseOrReferences",
+      "gamblingSimulated",
+      "gunsOrOtherWeapons",
+      "medicalOrTreatmentInformation",
+      "profanityOrCrudeHumor",
+      "sexualContentGraphicAndNudity",
+      "sexualContentOrNudity",
+      "horrorOrFearThemes",
+      "matureOrSuggestiveThemes",
+      "violenceCartoonOrFantasy",
+      "violenceRealisticProlongedGraphicOrSadistic",
+      "violenceRealistic"
     ]
   },
   "idiomas": {
@@ -54,5 +72,8 @@
       }
     }
   },
-  "capturas": { "APP_IPHONE_67": "iphone-", "APP_IPAD_PRO_3GEN_129": "ipad-" }
+  "capturas": {
+    "APP_IPHONE_67": "iphone-",
+    "APP_IPAD_PRO_3GEN_129": "ipad-"
+  }
 }
