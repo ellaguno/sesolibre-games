@@ -99,7 +99,7 @@ def main() -> None:
                 subir_capturas(loc, tipo, archivos)
 
     builds = [b for b in llamar('GET', f'/v1/builds?filter[app]={app}&sort=-uploadedDate&limit=5')['data']
-              if b['attributes']['processingState'] == 'VALID']
+              if b['attributes']['processingState'] == 'VALID' and not b['attributes'].get('expired')]
     if builds:
         b = builds[0]
         llamar('PATCH', f'/v1/appStoreVersions/{version["id"]}/relationships/build',
